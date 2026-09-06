@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 
@@ -19,4 +20,5 @@ private:
     ModelManager m_modelManager;
     Renderer m_renderer;
     std::unique_ptr<SceneManager> m_currentScene;
+    std::chrono::steady_clock::time_point m_lastFrameTime;
 };

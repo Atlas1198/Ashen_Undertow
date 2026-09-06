@@ -11,7 +11,7 @@ public:
     explicit GameScene(ModelManager& modelManager);
 
     bool Initialize() override;
-    void Update() override;
+    void Update(float deltaTime) override;
     void Draw(Renderer& renderer) override;
 
 private:

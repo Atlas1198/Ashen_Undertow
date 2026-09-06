@@ -11,9 +11,9 @@ bool GameScene::Initialize()
     return m_player->Initialize(m_modelManager);
 }
 
-void GameScene::Update()
+void GameScene::Update(float deltaTime)
 {
-    m_player->Update();
+    m_player->Update(deltaTime);
 }
 
 void GameScene::Draw(Renderer& renderer)

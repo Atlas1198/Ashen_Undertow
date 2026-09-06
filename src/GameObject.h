@@ -10,7 +10,7 @@ class GameObject
 public:
     virtual ~GameObject() = default;
 
-    virtual void Update() = 0;
+    virtual void Update(float deltaTime) = 0;
     virtual void Draw(Renderer& renderer) = 0;
 
     void SetPosition(float x, float y, float z) { m_position = { x, y, z }; }
