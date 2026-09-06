@@ -14,5 +14,6 @@ bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
 void Manager::RunFrame()
 {
     m_currentScene->Update();
+    m_currentScene->Draw(m_renderer);
     m_renderer.Render();
 }

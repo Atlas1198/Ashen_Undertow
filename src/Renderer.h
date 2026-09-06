@@ -14,14 +14,14 @@
 #pragma once
 
 #include <vector>
+#include <DirectXMath.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>   // ComPtr (COM オブジェクトのスマートポインタ)
 #include <cstdint>
 #include "HdrLoader.h"
 #include "GltfLoader.h"
-
-class ModelManager;
+#include "ModelManager.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -35,6 +35,7 @@ public:
     ~Renderer();
 
     bool Initialize(HWND hwnd, uint32_t width, uint32_t height, ModelManager& modelManager);
+    void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world);
     void Render();
 
 private:
@@ -72,6 +73,7 @@ private:
 
     // バックバッファは 2 枚でダブルバッファリング
     static constexpr uint32_t kFrameCount = 2;
+    static constexpr uint32_t kMaxDrawMeshCount = 4096;
 
     // 定数バッファに載せるオブジェクト数(メッシュ数 + 床)。
     // モデル読み込み後に決まるので実行時に求める
@@ -147,6 +149,13 @@ private:
     };
     std::vector<MeshPrimitive> m_meshes;
 
+    struct DrawCommand
+    {
+        ModelHandle modelHandle;
+        DirectX::XMFLOAT4X4 world;
+    };
+    std::vector<DrawCommand> m_drawCommands;
+
     // --- 環境マップ(IBL の元になる HDRI) ---
 	ComPtr<ID3D12DescriptorHeap> m_srvHeap;         // SRV 用ディスクリプタヒープ
 	ComPtr<ID3D12Resource>       m_envTexture;      // 環境マップ本体
@@ -160,6 +169,7 @@ private:
 
     // --- モデル ---
     const GltfModel*       m_model = nullptr;
+    ModelHandle            m_modelHandle;
     // 全マテリアルぶんのテクスチャ。
     // SRV はヒープが持っているので、ここは寿命を保つためだけの入れ物
     std::vector<ComPtr<ID3D12Resource>> m_materialTextures;

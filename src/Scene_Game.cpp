@@ -13,4 +13,10 @@ bool GameScene::Initialize()
 
 void GameScene::Update()
 {
+    m_player->Update();
+}
+
+void GameScene::Draw(Renderer& renderer)
+{
+    m_player->Draw(renderer);
 }

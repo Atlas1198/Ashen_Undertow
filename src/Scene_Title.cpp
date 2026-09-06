@@ -8,3 +8,8 @@ bool Title::Initialize()
 void Title::Update()
 {
 }
+
+void Title::Draw(Renderer& renderer)
+{
+    (void)renderer;
+}

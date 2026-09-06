@@ -10,6 +10,8 @@ public:
     ~Player() override = default;
 
     bool Initialize(ModelManager& modelManager);
+    void Update() override;
+    void Draw(Renderer& renderer) override;
     ModelHandle GetModelHandle() const { return m_modelHandle; }
 
 private:

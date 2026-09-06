@@ -154,8 +154,8 @@ bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height,
     m_width  = width;
     m_height = height;
 
-    const ModelHandle modelHandle = modelManager.Load("assets/model.glb");
-    m_model = modelManager.GetModel(modelHandle);
+    m_modelHandle = modelManager.Load("assets/model.glb");
+    m_model = modelManager.GetModel(m_modelHandle);
     if (!m_model) return false;
 
     // 高精度タイマーの初期化。
@@ -2462,8 +2462,8 @@ bool Renderer::CreateConstantBuffer()
     // 1 オブジェクトぶんのサイズ。256 バイト境界に揃える必要がある
     m_cbStride = (sizeof(SceneConstants) + 255) & ~255u;
 
-    // メッシュ 1 つにつき 1 個 + 床の 1 個
-    m_objectCount = (uint32_t)m_meshes.size() + 1;
+    // 描画要求されたメッシュ群と、床 1 個ぶんを確保する。
+    m_objectCount = kMaxDrawMeshCount + 1;
     const UINT bufferSize = m_cbStride * m_objectCount;
 
     D3D12_HEAP_PROPERTIES heapProps = {};
@@ -2497,6 +2497,15 @@ bool Renderer::CreateConstantBuffer()
 //----------------------------------------------------------------------------
 // 毎フレームの描画
 //----------------------------------------------------------------------------
+void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world)
+{
+    // 現在GPUへ転送済みのモデルだけを受け付ける。
+    if (modelHandle.value != m_modelHandle.value) return;
+    if ((m_drawCommands.size() + 1) * m_meshes.size() > kMaxDrawMeshCount) return;
+
+    m_drawCommands.push_back({ modelHandle, world });
+}
+
 void Renderer::Render()
 {
     // --- フレーム時間の計測 ---
@@ -2590,48 +2599,55 @@ void Renderer::Render()
 
     XMStoreFloat4x4(&cb.lightViewProj, XMMatrixTranspose(lightViewProj));
 
-    // --- 各メッシュぶんの定数を書く ---
-// 行列やライトは共通なので、マテリアルだけ差し替えながら書き込む
-    for (size_t i = 0; i < m_meshes.size(); ++i)
+    // --- DrawModel で登録された各モデルインスタンスの定数を書く ---
+    size_t drawConstantIndex = 0;
+    for (const DrawCommand& command : m_drawCommands)
     {
-        const int matIndex = m_meshes[i].material;
-        if (matIndex >= 0 && (size_t)matIndex < m_model->materials.size())
+        const XMMATRIX objectWorld = XMLoadFloat4x4(&command.world);
+        XMStoreFloat4x4(&cb.mvp, XMMatrixTranspose(objectWorld * view * proj));
+        XMStoreFloat4x4(&cb.world, XMMatrixTranspose(objectWorld));
+
+        for (size_t i = 0; i < m_meshes.size(); ++i)
         {
-            const GltfMaterial& mat = m_model->materials[(size_t)matIndex];
-            cb.albedo = { mat.baseColorFactor[0],
-                             mat.baseColorFactor[1],
-                             mat.baseColorFactor[2] };
-            cb.metallic = mat.metallicFactor;
-            cb.roughness = mat.roughnessFactor;
+            const int matIndex = m_meshes[i].material;
+            if (matIndex >= 0 && (size_t)matIndex < m_model->materials.size())
+            {
+                const GltfMaterial& mat = m_model->materials[(size_t)matIndex];
+                cb.albedo = { mat.baseColorFactor[0], mat.baseColorFactor[1],
+                    mat.baseColorFactor[2] };
+                cb.metallic = mat.metallicFactor;
+                cb.roughness = mat.roughnessFactor;
+                const float kEmissiveStrength = 4.0f;
+                cb.emissiveFactor = { mat.emissiveFactor[0] * kEmissiveStrength,
+                    mat.emissiveFactor[1] * kEmissiveStrength,
+                    mat.emissiveFactor[2] * kEmissiveStrength };
+            }
+            else
+            {
+                cb.albedo = { 1.0f, 1.0f, 1.0f };
+                cb.metallic = 0.0f;
+                cb.roughness = 0.5f;
+                cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
+            }
 
-            // glTF のエミッシブは 0〜1 に収まるが、実際に発光する物体は
-            // それ以上の輝度を持つ。ブルームのしきい値を超えさせるための係数
-            const float kEmissiveStrength = 4.0f;
-            cb.emissiveFactor = { mat.emissiveFactor[0] * kEmissiveStrength,
-                                  mat.emissiveFactor[1] * kEmissiveStrength,
-                                  mat.emissiveFactor[2] * kEmissiveStrength };
+            cb.alphaCutoff = m_meshes[i].alphaCutoff;
+            cb.padding8 = cb.padding9 = cb.padding10 = 0.0f;
+            memcpy((uint8_t*)m_cbMapped + drawConstantIndex * m_cbStride,
+                &cb, sizeof(cb));
+            ++drawConstantIndex;
         }
-        else
-        {
-            cb.albedo = { 1.0f, 1.0f, 1.0f };
-            cb.metallic = 0.0f;
-            cb.roughness = 0.5f;
-            cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
-        }
-
-        cb.alphaCutoff = m_meshes[i].alphaCutoff;
-        cb.padding8 = cb.padding9 = cb.padding10 = 0.0f;
-
-        memcpy((uint8_t*)m_cbMapped + i * m_cbStride, &cb, sizeof(cb));
     }
 
-    // --- 床(メッシュの次のスロット) ---
+    // --- 床(固定の最終スロット) ---
+    const size_t floorConstantIndex = kMaxDrawMeshCount;
+    XMStoreFloat4x4(&cb.mvp, XMMatrixTranspose(world * view * proj));
+    XMStoreFloat4x4(&cb.world, XMMatrixTranspose(world));
     cb.albedo = { 0.18f, 0.18f, 0.19f };
     cb.alphaCutoff = -1.0f;
     cb.metallic = 0.0f;
     cb.roughness = 0.70f;
     cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
-    memcpy((uint8_t*)m_cbMapped + m_meshes.size() * m_cbStride, &cb, sizeof(cb));
+    memcpy((uint8_t*)m_cbMapped + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 1. このフレーム用のアロケータを Reset。
     //    (WaitForGpu 済み or フェンスで安全が確認できているときだけ許される)
@@ -2673,25 +2689,29 @@ void Renderer::Render()
         m_commandList->SetPipelineState(m_shadowPSO.Get());
         m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        // モデルの全メッシュが影を落とす。
-        // アルファテストのため、マテリアルのテクスチャも渡す必要がある
-        for (size_t i = 0; i < m_meshes.size(); ++i)
+        // 登録された全モデルインスタンスが影を落とす。
+        drawConstantIndex = 0;
+        for (const DrawCommand& command : m_drawCommands)
         {
-            m_commandList->SetGraphicsRootConstantBufferView(
-                0, m_constantBuffer->GetGPUVirtualAddress() + i * m_cbStride);
-            // アルファテストのためにベースカラーが要る
-            const UINT materialSlot = (m_meshes[i].material >= 0)
-                ? kSrvMaterialStart + (UINT)m_meshes[i].material * kTexturesPerMaterial
-                : kSrvDefaultMaterial;
-            D3D12_GPU_DESCRIPTOR_HANDLE shadowMaterial =
-                m_srvHeap->GetGPUDescriptorHandleForHeapStart();
-            shadowMaterial.ptr += (SIZE_T)materialSlot *
-                m_device->GetDescriptorHandleIncrementSize(
-                    D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-            m_commandList->SetGraphicsRootDescriptorTable(2, shadowMaterial);
-            m_commandList->IASetVertexBuffers(0, 1, &m_meshes[i].vertexBufferView);
-            m_commandList->IASetIndexBuffer(&m_meshes[i].indexBufferView);
-            m_commandList->DrawIndexedInstanced(m_meshes[i].indexCount, 1, 0, 0, 0);
+            (void)command;
+            for (size_t i = 0; i < m_meshes.size(); ++i)
+            {
+                m_commandList->SetGraphicsRootConstantBufferView(0,
+                    m_constantBuffer->GetGPUVirtualAddress() + drawConstantIndex * m_cbStride);
+                const UINT materialSlot = (m_meshes[i].material >= 0)
+                    ? kSrvMaterialStart + (UINT)m_meshes[i].material * kTexturesPerMaterial
+                    : kSrvDefaultMaterial;
+                D3D12_GPU_DESCRIPTOR_HANDLE shadowMaterial =
+                    m_srvHeap->GetGPUDescriptorHandleForHeapStart();
+                shadowMaterial.ptr += (SIZE_T)materialSlot *
+                    m_device->GetDescriptorHandleIncrementSize(
+                        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+                m_commandList->SetGraphicsRootDescriptorTable(2, shadowMaterial);
+                m_commandList->IASetVertexBuffers(0, 1, &m_meshes[i].vertexBufferView);
+                m_commandList->IASetIndexBuffer(&m_meshes[i].indexBufferView);
+                m_commandList->DrawIndexedInstanced(m_meshes[i].indexCount, 1, 0, 0, 0);
+                ++drawConstantIndex;
+            }
         }
 
         // 深度書き込み → テクスチャとして読める状態へ戻す
@@ -2740,7 +2760,7 @@ void Renderer::Render()
     m_commandList->SetDescriptorHeaps(_countof(shadowHeaps), shadowHeaps);
 
     m_commandList->SetGraphicsRootConstantBufferView(
-        0, m_constantBuffer->GetGPUVirtualAddress());
+        0, m_constantBuffer->GetGPUVirtualAddress() + floorConstantIndex * m_cbStride);
     // ルートパラメータ 1 番に、SRV が置いてあるヒープ上の位置を渡す
     m_commandList->SetGraphicsRootDescriptorTable(
         1, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
@@ -2774,38 +2794,36 @@ void Renderer::Render()
     const D3D12_GPU_VIRTUAL_ADDRESS cbBase =
         m_constantBuffer->GetGPUVirtualAddress();
 
-    // --- モデルの全メッシュ ---
-// マテリアルが違えばディスクリプタテーブルを切り替えて描く。
-// ヒープ上での位置が「マテリアル番号 × 5」で求まるのが、
-// 前回レイアウトを整理した効果
-    for (size_t i = 0; i < m_meshes.size(); ++i)
+    // --- 登録されたモデルインスタンスの全メッシュ ---
+    drawConstantIndex = 0;
+    for (const DrawCommand& command : m_drawCommands)
     {
-        const MeshPrimitive& mesh = m_meshes[i];
-
-        // 両面マテリアルだけカリングを切った PSO に差し替える
-        m_commandList->SetPipelineState(mesh.doubleSided
-            ? m_pipelineStateNoCull.Get()
-            : m_pipelineState.Get());
-
-        m_commandList->SetGraphicsRootConstantBufferView(0, cbBase + i * m_cbStride);
-
-        const UINT materialSlot = (mesh.material >= 0)
-            ? kSrvMaterialStart + (UINT)mesh.material * kTexturesPerMaterial
-            : kSrvDefaultMaterial;
-
-        D3D12_GPU_DESCRIPTOR_HANDLE material = heapStart;
-        material.ptr += (SIZE_T)materialSlot * srvStep;
-        m_commandList->SetGraphicsRootDescriptorTable(2, material);
-
-        m_commandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
-        m_commandList->IASetIndexBuffer(&mesh.indexBufferView);
-        m_commandList->DrawIndexedInstanced(mesh.indexCount, 1, 0, 0, 0);
+        (void)command;
+        for (size_t i = 0; i < m_meshes.size(); ++i)
+        {
+            const MeshPrimitive& mesh = m_meshes[i];
+            m_commandList->SetPipelineState(mesh.doubleSided
+                ? m_pipelineStateNoCull.Get()
+                : m_pipelineState.Get());
+            m_commandList->SetGraphicsRootConstantBufferView(
+                0, cbBase + drawConstantIndex * m_cbStride);
+            const UINT materialSlot = (mesh.material >= 0)
+                ? kSrvMaterialStart + (UINT)mesh.material * kTexturesPerMaterial
+                : kSrvDefaultMaterial;
+            D3D12_GPU_DESCRIPTOR_HANDLE material = heapStart;
+            material.ptr += (SIZE_T)materialSlot * srvStep;
+            m_commandList->SetGraphicsRootDescriptorTable(2, material);
+            m_commandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
+            m_commandList->IASetIndexBuffer(&mesh.indexBufferView);
+            m_commandList->DrawIndexedInstanced(mesh.indexCount, 1, 0, 0, 0);
+            ++drawConstantIndex;
+        }
     }
 
     // --- 床(定数 1 番、マテリアルはヒープ 9 番から) ---
     {
         m_commandList->SetGraphicsRootConstantBufferView(
-            0, cbBase + m_meshes.size() * m_cbStride);
+            0, cbBase + floorConstantIndex * m_cbStride);
 
         D3D12_GPU_DESCRIPTOR_HANDLE material = heapStart;
         material.ptr += kSrvDefaultMaterial * srvStep;
@@ -2982,6 +3000,7 @@ void Renderer::Render()
         WaitForSingleObject(m_fenceEvent, INFINITE);
     }
     m_fenceValues[m_frameIndex] = currentFenceValue + 1;
+    m_drawCommands.clear();
 }
 
 //----------------------------------------------------------------------------

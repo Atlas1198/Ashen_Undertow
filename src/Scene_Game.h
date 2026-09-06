@@ -12,6 +12,7 @@ public:
 
     bool Initialize() override;
     void Update() override;
+    void Draw(Renderer& renderer) override;
 
 private:
     ModelManager& m_modelManager;
