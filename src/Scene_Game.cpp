@@ -1,5 +1,7 @@
 #include "Scene_Game.h"
 
+#include "Enemy.h"
+
 #include "Renderer.h"
 
 GameScene::GameScene(ModelManager& modelManager)
@@ -10,7 +12,12 @@ GameScene::GameScene(ModelManager& modelManager)
 bool GameScene::Initialize()
 {
     m_player = AddGameObject<Player>();
-    return m_player != nullptr;
+    if (!m_player) return false;
+
+    auto* enemy = AddGameObject<Enemy>();
+    if (!enemy) return false;
+    enemy->SetPosition(3.0f, 0.0f, 3.0f);
+    return true;
 }
 
 void GameScene::OnDraw(Renderer& renderer)
