@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="RenderEngine.vcxproj" Id="5091f1f1-b823-4552-b8ba-7ddea52c10c5" />
+</Solution>

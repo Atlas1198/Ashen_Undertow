@@ -1,0 +1,43 @@
+# ---- ビルド生成物 ----
+x64/
+Debug/
+Release/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.log
+*.tlog
+*.idb
+*.iobj
+*.ipdb
+*.res
+*.exp
+*.lib
+
+# ---- Visual Studio ----
+.vs/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+*.aps
+
+# ---- アセット ----
+# ライセンスの都合でリポジトリには含めない。
+# 取得方法は README.md を参照。
+#   - Sponza は Crytek の Cryengine Limited License Agreement 下にあり再配布不可
+#   - HDRI はサイズが大きいためリポジトリに置かない
+assets/
+
+# ---- 個人用の読解メモ ----
+# 公開したくなければこの行を有効のままに。
+# 「理解している証拠」として見せたいなら、この行を消せば公開される。
+docs/reading/
+
+# ---- その他 ----
+*.cso
+Thumbs.db
+desktop.ini
