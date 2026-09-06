@@ -14,6 +14,7 @@ public:
     virtual void Draw(Renderer& renderer) = 0;
 
     void SetPosition(float x, float y, float z) { m_position = { x, y, z }; }
+    const DirectX::XMFLOAT3& GetPosition() const { return m_position; }
 
 protected:
     DirectX::XMFLOAT4X4 CreateWorldMatrix() const

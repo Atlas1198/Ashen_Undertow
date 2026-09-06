@@ -35,6 +35,7 @@ public:
     ~Renderer();
 
     bool Initialize(HWND hwnd, uint32_t width, uint32_t height, ModelManager& modelManager);
+    void SetCameraTarget(const DirectX::XMFLOAT3& target) { m_cameraTarget = target; }
     void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world);
     void Render();
 
@@ -99,6 +100,7 @@ private:
 
     uint32_t m_width  = 0;
     uint32_t m_height = 0;
+    DirectX::XMFLOAT3 m_cameraTarget { 0.0f, 0.0f, 0.0f };
 
     // --- コアオブジェクト ---
     ComPtr<IDXGIFactory6>              m_factory;
@@ -215,13 +217,4 @@ private:
     ComPtr<ID3D12Resource>             m_constantBuffer;
 	void*                              m_cbMapped = nullptr;    // MapしたままのCPU書き込み先
     UINT                               m_cbStride = 0;   // 1 オブジェクトぶんの定数バッファサイズ
-	float                              m_rotationAngle = 0.0f;	  // 回転角（ラジアン）
-    
-    // --- フレーム時間 ---
-   // QueryPerformanceCounter は「刻み数」を返すだけなので、
-   // 1 秒あたりの刻み数(周波数)で割って秒に直す必要がある
-    uint64_t m_perfFrequency = 0;    // 高精度カウンタの周波数(起動中は不変)
-    uint64_t m_lastCounter = 0;    // 前フレームのカウンタ値
-    float    m_deltaTime = 0.0f; // 前フレームからの経過時間(秒)
-
 };

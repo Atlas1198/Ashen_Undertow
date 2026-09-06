@@ -158,14 +158,6 @@ bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height,
     m_model = modelManager.GetModel(m_modelHandle);
     if (!m_model) return false;
 
-    // 高精度タイマーの初期化。
-    // 周波数は起動中に変化しないので一度だけ取得すればよい
-    LARGE_INTEGER freq, counter;
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&counter);
-    m_perfFrequency = (uint64_t)freq.QuadPart;
-    m_lastCounter = (uint64_t)counter.QuadPart;
-
     if (!CreateDevice())            return false;
     if (!CreateCommandObjects())    return false;
     if (!CreateSwapChain(hwnd))     return false;
@@ -2508,34 +2500,15 @@ void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world)
 
 void Renderer::Render()
 {
-    // --- フレーム時間の計測 ---
-    LARGE_INTEGER now;
-	QueryPerformanceCounter(&now);
-    m_deltaTime = float((uint64_t)now.QuadPart - m_lastCounter) / 
-		float(m_perfFrequency); // 前フレームからの経過時間(秒)
-	m_lastCounter = (uint64_t)now.QuadPart; // 次フレームのために保存
-
-    // ブレークポイントで長時間止めた直後などに巨大な値が入ると
-    // 物体が吹き飛ぶので上限を設けておく(ゲーム開発では定番の保険)
-    if (m_deltaTime > 0.1f) m_deltaTime = 0.1f;
-
     // --- 定数バッファの更新 ---
-    // 毎フレーム角度を進める。
-    // ※ 本当はフレーム時間を掛けるべき(次のレッスンでタイマーを入れる)
-    m_rotationAngle += XMConvertToRadians(45.0f) * m_deltaTime;
-
     // World 行列: 物体をワールド空間に配置する。
     // Y 軸(縦軸)まわりに回すと、遠近感が付いたことが分かりやすい
     XMMATRIX world = XMMatrixIdentity();
 
-    // View 行列: カメラ。
-       // カメラをモデルのまわりで周回させる。
-    // 「カメラを動かす」といっても、ビュー行列を作り直しているだけ
-    const float orbitRadius = 2.5f;
-    XMVECTOR eye = XMVectorSet(sinf(m_rotationAngle) * orbitRadius,
-        0.8f,
-        -cosf(m_rotationAngle) * orbitRadius, 1.0f);
-    XMVECTOR target = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);   // 注視点
+    // View 行列: Playerを固定オフセットで追従する。
+    XMVECTOR target = XMLoadFloat3(&m_cameraTarget);
+    target = XMVectorSetW(target, 1.0f);
+    XMVECTOR eye = XMVectorAdd(target, XMVectorSet(0.0f, 2.5f, -6.0f, 0.0f));
     XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);  // 上方向
     XMMATRIX view = XMMatrixLookAtLH(eye, target, up);
 

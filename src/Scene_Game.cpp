@@ -1,5 +1,7 @@
 #include "Scene_Game.h"
 
+#include "Renderer.h"
+
 GameScene::GameScene(ModelManager& modelManager)
     : m_modelManager(modelManager)
 {
@@ -18,5 +20,6 @@ void GameScene::Update(float deltaTime)
 
 void GameScene::Draw(Renderer& renderer)
 {
+    renderer.SetCameraTarget(m_player->GetPosition());
     m_player->Draw(renderer);
 }
