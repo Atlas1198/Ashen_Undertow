@@ -5,6 +5,6 @@
 class Title final : public SceneManager
 {
 public:
-    void Initialize() override;
+    bool Initialize() override;
     void Update() override;
 };

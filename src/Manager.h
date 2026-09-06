@@ -6,6 +6,7 @@
 
 #include "Renderer.h"
 #include "SceneManager.h"
+#include "ModelManager.h"
 
 // ゲーム全体の最上層。main.cpp はこのクラスだけを操作する。
 class Manager
@@ -15,6 +16,7 @@ public:
     void RunFrame();
 
 private:
+    ModelManager m_modelManager;
     Renderer m_renderer;
     std::unique_ptr<SceneManager> m_currentScene;
 };

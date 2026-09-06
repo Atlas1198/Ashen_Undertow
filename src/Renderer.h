@@ -21,6 +21,8 @@
 #include "HdrLoader.h"
 #include "GltfLoader.h"
 
+class ModelManager;
+
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
@@ -32,7 +34,7 @@ class Renderer
 public:
     ~Renderer();
 
-    bool Initialize(HWND hwnd, uint32_t width, uint32_t height);
+    bool Initialize(HWND hwnd, uint32_t width, uint32_t height, ModelManager& modelManager);
     void Render();
 
 private:
@@ -157,7 +159,7 @@ private:
     ComPtr<ID3D12DescriptorHeap> m_brdfLutRtvHeap;  // それに描き込むための RTV
 
     // --- モデル ---
-    GltfModel              m_model;
+    const GltfModel*       m_model = nullptr;
     // 全マテリアルぶんのテクスチャ。
     // SRV はヒープが持っているので、ここは寿命を保つためだけの入れ物
     std::vector<ComPtr<ID3D12Resource>> m_materialTextures;

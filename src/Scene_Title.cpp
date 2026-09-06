@@ -1,7 +1,8 @@
-#include "Title.h"
+#include "Scene_Title.h"
 
-void Title::Initialize()
+bool Title::Initialize()
 {
+    return true;
 }
 
 void Title::Update()

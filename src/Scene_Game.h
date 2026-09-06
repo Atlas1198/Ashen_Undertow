@@ -8,9 +8,12 @@
 class GameScene final : public SceneManager
 {
 public:
-    void Initialize() override;
+    explicit GameScene(ModelManager& modelManager);
+
+    bool Initialize() override;
     void Update() override;
 
 private:
+    ModelManager& m_modelManager;
     std::unique_ptr<Player> m_player;
 };

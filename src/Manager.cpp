@@ -1,15 +1,14 @@
 #include "Manager.h"
 
-#include "GameScene.h"
+#include "Scene_Game.h"
 
 bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
 {
-    if (!m_renderer.Initialize(hwnd, width, height))
+    m_currentScene = std::make_unique<GameScene>(m_modelManager);
+    if (!m_currentScene->Initialize())
         return false;
 
-    m_currentScene = std::make_unique<GameScene>();
-    m_currentScene->Initialize();
-    return true;
+    return m_renderer.Initialize(hwnd, width, height, m_modelManager);
 }
 
 void Manager::RunFrame()

@@ -146,6 +146,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Scene_Game.cpp" />
     <ClCompile Include="src\Manager.cpp" />
+    <ClCompile Include="src\ModelManager.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\Scene_Title.cpp" />
@@ -158,6 +159,7 @@
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\Scene_Game.h" />
     <ClInclude Include="src\Manager.h" />
+    <ClInclude Include="src\ModelManager.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\SceneManager.h" />
     <ClInclude Include="src\Scene_Title.h" />

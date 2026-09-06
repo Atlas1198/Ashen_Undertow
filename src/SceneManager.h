@@ -6,6 +6,6 @@ class SceneManager
 public:
     virtual ~SceneManager() = default;
 
-    virtual void Initialize() = 0;
+    virtual bool Initialize() = 0;
     virtual void Update() = 0;
 };

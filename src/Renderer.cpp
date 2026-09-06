@@ -11,6 +11,7 @@
 //   6. Present して、フェンスで同期
 //----------------------------------------------------------------------------
 #include "Renderer.h"
+#include "ModelManager.h"
 
 #include <map>
 #include <utility>
@@ -147,10 +148,15 @@ Renderer::~Renderer()
     }
 }
 
-bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height)
+bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height,
+    ModelManager& modelManager)
 {
     m_width  = width;
     m_height = height;
+
+    const ModelHandle modelHandle = modelManager.Load("assets/model.glb");
+    m_model = modelManager.GetModel(modelHandle);
+    if (!m_model) return false;
 
     // 高精度タイマーの初期化。
     // 周波数は起動中に変化しないので一度だけ取得すればよい
@@ -589,7 +595,7 @@ bool Renderer::CreateTrianglePipeline()
 //----------------------------------------------------------------------------
 bool Renderer::CreateVertexBuffer()
 {
-    if (!LoadGltf("assets/model.glb", m_model) || !m_model.Valid())
+    if (!m_model || !m_model->Valid())
     {
         OutputDebugStringA("assets/model.glb の読み込みに失敗しました\n");
         return false;
@@ -609,9 +615,9 @@ bool Renderer::CreateVertexBuffer()
 
     D3D12_RANGE readRange = { 0, 0 };
 
-    m_meshes.reserve(m_model.primitives.size());
+    m_meshes.reserve(m_model->primitives.size());
 
-    for (const GltfPrimitive& prim : m_model.primitives)
+    for (const GltfPrimitive& prim : m_model->primitives)
     {
         if (prim.vertices.empty() || prim.indices.empty()) continue;
 
@@ -621,9 +627,9 @@ bool Renderer::CreateVertexBuffer()
 
         // マテリアルからアルファと両面の設定を取り出しておく。
         // 描画時にマテリアル配列を引き直さずに済む
-        if (prim.material >= 0 && (size_t)prim.material < m_model.materials.size())
+        if (prim.material >= 0 && (size_t)prim.material < m_model->materials.size())
         {
-            const GltfMaterial& mat = m_model.materials[(size_t)prim.material];
+            const GltfMaterial& mat = m_model->materials[(size_t)prim.material];
             // MASK 以外は「常に通る」ことを表す負の値にする。
             // こうするとシェーダ側に分岐が要らない
             mesh.alphaCutoff = (mat.alphaMode == GltfMaterial::AlphaMode::Mask)
@@ -875,7 +881,7 @@ bool Renderer::CreateEnvironmentTexture()
     // マテリアル数に応じて必要な数が変わる。
     // モデルが未読み込みでも 1 個ぶんは確保しておく
     const uint32_t materialCount =
-        m_model.materials.empty() ? 1u : (uint32_t)m_model.materials.size();
+        m_model->materials.empty() ? 1u : (uint32_t)m_model->materials.size();
     heapDesc.NumDescriptors = kSrvMaterialStart + kTexturesPerMaterial * materialCount;
 
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -1768,8 +1774,8 @@ bool Renderer::CreateMaterialTextures()
     // 画像添字から実体を引く。無効なら nullptr
     auto findImage = [&](int index) -> const GltfImage*
         {
-            if (index < 0 || (size_t)index >= m_model.images.size()) return nullptr;
-            const GltfImage& img = m_model.images[(size_t)index];
+            if (index < 0 || (size_t)index >= m_model->images.size()) return nullptr;
+            const GltfImage& img = m_model->images[(size_t)index];
             return img.Valid() ? &img : nullptr;
         };
 
@@ -1823,9 +1829,9 @@ bool Renderer::CreateMaterialTextures()
         };
 
     // --- 各マテリアルのテクスチャ 5 枚を、5 個ずつ並べていく ---
-    for (size_t i = 0; i < m_model.materials.size(); ++i)
+    for (size_t i = 0; i < m_model->materials.size(); ++i)
     {
-        const GltfMaterial& mat = m_model.materials[i];
+        const GltfMaterial& mat = m_model->materials[i];
         const UINT base = kSrvMaterialStart + (UINT)i * kTexturesPerMaterial;
 
         // 色として見えるものは sRGB、数値として使うものはリニア
@@ -2589,9 +2595,9 @@ void Renderer::Render()
     for (size_t i = 0; i < m_meshes.size(); ++i)
     {
         const int matIndex = m_meshes[i].material;
-        if (matIndex >= 0 && (size_t)matIndex < m_model.materials.size())
+        if (matIndex >= 0 && (size_t)matIndex < m_model->materials.size())
         {
-            const GltfMaterial& mat = m_model.materials[(size_t)matIndex];
+            const GltfMaterial& mat = m_model->materials[(size_t)matIndex];
             cb.albedo = { mat.baseColorFactor[0],
                              mat.baseColorFactor[1],
                              mat.baseColorFactor[2] };

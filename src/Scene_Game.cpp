@@ -1,8 +1,14 @@
-#include "GameScene.h"
+#include "Scene_Game.h"
 
-void GameScene::Initialize()
+GameScene::GameScene(ModelManager& modelManager)
+    : m_modelManager(modelManager)
+{
+}
+
+bool GameScene::Initialize()
 {
     m_player = std::make_unique<Player>();
+    return m_player->Initialize(m_modelManager);
 }
 
 void GameScene::Update()
