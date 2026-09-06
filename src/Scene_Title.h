@@ -5,7 +5,7 @@
 class Title final : public SceneManager
 {
 public:
+    using SceneManager::SceneManager;
+
     bool Initialize() override;
-    void Update(float deltaTime) override;
-    void Draw(Renderer& renderer) override;
 };

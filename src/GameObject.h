@@ -3,6 +3,7 @@
 #include <DirectXMath.h>
 
 class Renderer;
+class ModelManager;
 
 // ゲームシーンに存在する実体の共通基底クラス。
 class GameObject
@@ -10,6 +11,7 @@ class GameObject
 public:
     virtual ~GameObject() = default;
 
+    virtual bool Initialize(ModelManager& modelManager) = 0;
     virtual void Update(float deltaTime) = 0;
     virtual void Draw(Renderer& renderer) = 0;
 

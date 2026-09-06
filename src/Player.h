@@ -9,7 +9,7 @@ public:
     Player() = default;
     ~Player() override = default;
 
-    bool Initialize(ModelManager& modelManager);
+    bool Initialize(ModelManager& modelManager) override;
     void Update(float deltaTime) override;
     void Draw(Renderer& renderer) override;
     ModelHandle GetModelHandle() const { return m_modelHandle; }

@@ -3,23 +3,17 @@
 #include "Renderer.h"
 
 GameScene::GameScene(ModelManager& modelManager)
-    : m_modelManager(modelManager)
+    : SceneManager(modelManager)
 {
 }
 
 bool GameScene::Initialize()
 {
-    m_player = std::make_unique<Player>();
-    return m_player->Initialize(m_modelManager);
+    m_player = AddGameObject<Player>();
+    return m_player != nullptr;
 }
 
-void GameScene::Update(float deltaTime)
-{
-    m_player->Update(deltaTime);
-}
-
-void GameScene::Draw(Renderer& renderer)
+void GameScene::OnDraw(Renderer& renderer)
 {
     renderer.SetCameraTarget(m_player->GetPosition());
-    m_player->Draw(renderer);
 }
