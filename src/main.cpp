@@ -4,7 +4,7 @@
 // DX12 そのものはここには出てこない。ウィンドウ(HWND)を Renderer に渡すだけ。
 //----------------------------------------------------------------------------
 #include <Windows.h>
-#include "Renderer.h"
+#include "Manager.h"
 
 namespace
 {
@@ -55,9 +55,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
         rect.right - rect.left, rect.bottom - rect.top,
         nullptr, nullptr, hInstance, nullptr);
 
-    // 3. レンダラ初期化(DX12 の本体は Renderer.cpp)
-    Renderer renderer;
-    if (!renderer.Initialize(hwnd, kClientWidth, kClientHeight))
+    // 3. ゲーム全体を管理する最上層を初期化
+    Manager manager;
+    if (!manager.Initialize(hwnd, kClientWidth, kClientHeight))
     {
         // 失敗の詳細はデバッグレイヤーが「出力」ウィンドウに書いている。
         // Visual Studio の [デバッグ] → [ウィンドウ] → [出力] を必ず確認する
@@ -83,7 +83,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
         }
         else
         {
-            renderer.Render();
+            manager.RunFrame();
         }
     }
 
