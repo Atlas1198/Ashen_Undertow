@@ -136,6 +136,11 @@ namespace
 
 Renderer::~Renderer()
 {
+    while (m_cursorHideCalls > 0)
+    {
+        ShowCursor(TRUE);
+        --m_cursorHideCalls;
+    }
     // ComPtr が解放される前に、GPU がリソースを使い終わるのを待つ。
     // これを忘れると「使用中のリソースを破棄した」ことになり得る。
     if (m_commandQueue && m_fence)
@@ -153,6 +158,7 @@ bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height,
 {
     m_width  = width;
     m_height = height;
+    m_window = hwnd;
 
     m_modelHandle = modelManager.Load("assets/model.glb");
     m_model = modelManager.GetModel(m_modelHandle);
@@ -2505,10 +2511,88 @@ void Renderer::Render()
     // Y 軸(縦軸)まわりに回すと、遠近感が付いたことが分かりやすい
     XMMATRIX world = XMMatrixIdentity();
 
-    // View 行列: Playerを固定オフセットで追従する。
+    // Escで解除、クライアント領域の左クリックで再開する。
+    const bool focused = GetForegroundWindow() == m_window;
+    const bool leftDown = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+    const bool escapeDown = (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
+    if (!focused || escapeDown)
+        m_cameraControlEnabled = false;
+
+    POINT clickPosition;
+    RECT clientRect;
+    if (focused && !escapeDown && leftDown && !m_leftMouseWasDown &&
+        GetCursorPos(&clickPosition) && ScreenToClient(m_window, &clickPosition) &&
+        GetClientRect(m_window, &clientRect) && PtInRect(&clientRect, clickPosition))
+        m_cameraControlEnabled = true;
+    m_leftMouseWasDown = leftDown;
+
+    const bool controlling = focused && m_cameraControlEnabled;
+    if (controlling && m_cursorHideCalls == 0)
+    {
+        int count;
+        do
+        {
+            count = ShowCursor(FALSE);
+            ++m_cursorHideCalls;
+        } while (count >= 0);
+    }
+    else if (!controlling)
+    {
+        while (m_cursorHideCalls > 0)
+        {
+            ShowCursor(TRUE);
+            --m_cursorHideCalls;
+        }
+    }
+
+    POINT mousePosition;
+    if (controlling &&
+        GetCursorPos(&mousePosition))
+    {
+        if (m_cameraDragging)
+        {
+            constexpr float sensitivity = 0.005f; // radians / pixel
+            m_cameraYaw = std::remainder(m_cameraYaw -
+                (mousePosition.x - m_lastMousePosition.x) * sensitivity, XM_2PI);
+            m_cameraPitch += (mousePosition.y - m_lastMousePosition.y) * sensitivity;
+            // 真上・真下でLookAtの上方向と視線が平行になるのを防ぐ。
+            constexpr float pitchLimit = XM_PIDIV2 - 0.05f;
+            if (m_cameraPitch > pitchLimit) m_cameraPitch = pitchLimit;
+            if (m_cameraPitch < -pitchLimit) m_cameraPitch = -pitchLimit;
+        }
+        else
+        {
+            POINT clientPosition = mousePosition;
+            RECT clientRect;
+            if (ScreenToClient(m_window, &clientPosition) &&
+                GetClientRect(m_window, &clientRect))
+                m_cameraDragging = PtInRect(&clientRect, clientPosition) != FALSE;
+        }
+        m_lastMousePosition = mousePosition;
+        // カーソルを中央へ戻し、画面端でも回転を続けられるようにする。
+        RECT cameraRect;
+        if (GetClientRect(m_window, &cameraRect))
+        {
+            POINT center { (cameraRect.left + cameraRect.right) / 2,
+                (cameraRect.top + cameraRect.bottom) / 2 };
+            if (ClientToScreen(m_window, &center) && SetCursorPos(center.x, center.y))
+                m_lastMousePosition = center;
+        }
+    }
+    else
+    {
+        m_cameraDragging = false;
+    }
+
+    // Playerの注視点と距離は維持し、カメラの角度だけ変更する。
     XMVECTOR target = XMLoadFloat3(&m_cameraTarget);
     target = XMVectorSetW(target, 1.0f);
-    XMVECTOR eye = XMVectorAdd(target, XMVectorSet(0.0f, 2.5f, -6.0f, 0.0f));
+    constexpr float cameraDistance = 6.5f; // sqrt(2.5^2 + 6^2)
+    const float horizontalDistance = cameraDistance * cosf(m_cameraPitch);
+    XMVECTOR eye = XMVectorAdd(target, XMVectorSet(
+        horizontalDistance * sinf(m_cameraYaw),
+        cameraDistance * sinf(m_cameraPitch),
+        -horizontalDistance * cosf(m_cameraYaw), 0.0f));
     XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);  // 上方向
     XMMATRIX view = XMMatrixLookAtLH(eye, target, up);
 

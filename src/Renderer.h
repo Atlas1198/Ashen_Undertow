@@ -101,6 +101,14 @@ private:
     uint32_t m_width  = 0;
     uint32_t m_height = 0;
     DirectX::XMFLOAT3 m_cameraTarget { 0.0f, 0.0f, 0.0f };
+    HWND m_window = nullptr;
+    POINT m_lastMousePosition {};
+    bool m_cameraDragging = false;
+    bool m_cameraControlEnabled = true;
+    bool m_leftMouseWasDown = false;
+    int m_cursorHideCalls = 0;
+    float m_cameraYaw = 0.0f;
+    float m_cameraPitch = 0.39479112f; // atan2(2.5, 6): 初期の視点を維持
 
     // --- コアオブジェクト ---
     ComPtr<IDXGIFactory6>              m_factory;
