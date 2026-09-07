@@ -1,6 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
+#include "ComponentManager.h"
 
 class Renderer;
 class ModelManager;
@@ -9,7 +10,22 @@ class ModelManager;
 class GameObject
 {
 public:
+    GameObject() : m_componentManager(*this) {}
     virtual ~GameObject() = default;
+
+    template<class T, class... Args>
+    T* AddComponent(Args&&... args)
+    {
+        return m_componentManager.AddComponent<T>(std::forward<Args>(args)...);
+    }
+
+    template<class T>
+    T* GetComponent() { return m_componentManager.GetComponent<T>(); }
+
+    template<class T>
+    const T* GetComponent() const { return m_componentManager.GetComponent<T>(); }
+
+    void UpdateComponents(float deltaTime) { m_componentManager.Update(deltaTime); }
 
     virtual bool Initialize(ModelManager& modelManager) = 0;
     virtual void Update(float deltaTime) = 0;
@@ -35,4 +51,7 @@ protected:
     DirectX::XMFLOAT3 m_position { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_rotation { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_scale { 1.0f, 1.0f, 1.0f };
+
+private:
+    ComponentManager m_componentManager;
 };

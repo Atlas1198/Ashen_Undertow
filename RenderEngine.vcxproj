@@ -148,6 +148,7 @@
     <ClCompile Include="src\Manager.cpp" />
     <ClCompile Include="src\ModelManager.cpp" />
     <ClCompile Include="src\ObjectManager.cpp" />
+    <ClCompile Include="src\ComponentManager.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Enemy.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
@@ -163,6 +164,8 @@
     <ClInclude Include="src\Manager.h" />
     <ClInclude Include="src\ModelManager.h" />
     <ClInclude Include="src\ObjectManager.h" />
+    <ClInclude Include="src\Component.h" />
+    <ClInclude Include="src\ComponentManager.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Enemy.h" />
     <ClInclude Include="src\SceneManager.h" />
