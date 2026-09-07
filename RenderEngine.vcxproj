@@ -78,6 +78,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -97,6 +98,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -114,6 +116,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -133,6 +136,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -145,56 +149,56 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Scene_Game.cpp" />
-    <ClCompile Include="src\Manager.cpp" />
-    <ClCompile Include="src\ModelManager.cpp" />
-    <ClCompile Include="src\ObjectManager.cpp" />
-    <ClCompile Include="src\ComponentManager.cpp" />
-    <ClCompile Include="src\Collider.cpp" />
-    <ClCompile Include="src\CollisionManager.cpp" />
+    <ClCompile Include="src\Engine\Manager.cpp" />
+    <ClCompile Include="src\Engine\ModelManager.cpp" />
+    <ClCompile Include="src\Engine\ObjectManager.cpp" />
+    <ClCompile Include="src\Engine\ComponentManager.cpp" />
+    <ClCompile Include="src\Engine\Collider.cpp" />
+    <ClCompile Include="src\Engine\CollisionManager.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Enemy.cpp" />
-    <ClCompile Include="src\Renderer.cpp" />
-    <ClCompile Include="src\Input.cpp" />
-    <ClCompile Include="src\Camera.cpp" />
-    <ClCompile Include="src\ModelComponent.cpp" />
-    <ClCompile Include="src\RendererDevice.cpp" />
-    <ClCompile Include="src\RendererModels.cpp" />
-    <ClCompile Include="src\RendererEnvironment.cpp" />
-    <ClCompile Include="src\RendererPipelines.cpp" />
-    <ClCompile Include="src\RendererPostProcess.cpp" />
-    <ClCompile Include="src\RendererFrame.cpp" />
+    <ClCompile Include="src\Engine\Renderer.cpp" />
+    <ClCompile Include="src\Engine\Input.cpp" />
+    <ClCompile Include="src\Engine\Camera.cpp" />
+    <ClCompile Include="src\Engine\ModelComponent.cpp" />
+    <ClCompile Include="src\Engine\RendererDevice.cpp" />
+    <ClCompile Include="src\Engine\RendererModels.cpp" />
+    <ClCompile Include="src\Engine\RendererEnvironment.cpp" />
+    <ClCompile Include="src\Engine\RendererPipelines.cpp" />
+    <ClCompile Include="src\Engine\RendererPostProcess.cpp" />
+    <ClCompile Include="src\Engine\RendererFrame.cpp" />
     <ClCompile Include="src\Scene_Title.cpp" />
-    <ClCompile Include="src\HdrLoader.cpp" />
-    <ClCompile Include="src\Json.cpp" />
-    <ClCompile Include="src\GltfLoader.cpp" />
+    <ClCompile Include="src\Engine\HdrLoader.cpp" />
+    <ClCompile Include="src\Engine\Json.cpp" />
+    <ClCompile Include="src\Engine\GltfLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Renderer.h" />
-    <ClInclude Include="src\Input.h" />
-    <ClInclude Include="src\Camera.h" />
-    <ClInclude Include="src\ModelComponent.h" />
-    <ClInclude Include="src\ModelHandle.h" />
-    <ClInclude Include="src\GameAssets.h" />
-    <ClInclude Include="src\RendererInternal.h" />
-    <ClInclude Include="src\GameObject.h" />
+    <ClInclude Include="src\Engine\Renderer.h" />
+    <ClInclude Include="src\Engine\Input.h" />
+    <ClInclude Include="src\Engine\Camera.h" />
+    <ClInclude Include="src\Engine\ModelComponent.h" />
+    <ClInclude Include="src\Engine\ModelHandle.h" />
+    <ClInclude Include="src\Engine\GameAssets.h" />
+    <ClInclude Include="src\Engine\RendererInternal.h" />
+    <ClInclude Include="src\Engine\GameObject.h" />
     <ClInclude Include="src\Scene_Game.h" />
-    <ClInclude Include="src\Manager.h" />
-    <ClInclude Include="src\ModelManager.h" />
-    <ClInclude Include="src\ObjectManager.h" />
-    <ClInclude Include="src\Component.h" />
-    <ClInclude Include="src\ComponentManager.h" />
-    <ClInclude Include="src\Collider.h" />
-    <ClInclude Include="src\SphereCollider.h" />
-    <ClInclude Include="src\CapsuleCollider.h" />
-    <ClInclude Include="src\BoxCollider.h" />
-    <ClInclude Include="src\CollisionManager.h" />
+    <ClInclude Include="src\Engine\Manager.h" />
+    <ClInclude Include="src\Engine\ModelManager.h" />
+    <ClInclude Include="src\Engine\ObjectManager.h" />
+    <ClInclude Include="src\Engine\Component.h" />
+    <ClInclude Include="src\Engine\ComponentManager.h" />
+    <ClInclude Include="src\Engine\Collider.h" />
+    <ClInclude Include="src\Engine\SphereCollider.h" />
+    <ClInclude Include="src\Engine\CapsuleCollider.h" />
+    <ClInclude Include="src\Engine\BoxCollider.h" />
+    <ClInclude Include="src\Engine\CollisionManager.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Enemy.h" />
-    <ClInclude Include="src\SceneManager.h" />
+    <ClInclude Include="src\Engine\SceneManager.h" />
     <ClInclude Include="src\Scene_Title.h" />
-    <ClInclude Include="src\HdrLoader.h" />
-    <ClInclude Include="src\Json.h" />
-    <ClInclude Include="src\GltfLoader.h" />
+    <ClInclude Include="src\Engine\HdrLoader.h" />
+    <ClInclude Include="src\Engine\Json.h" />
+    <ClInclude Include="src\Engine\GltfLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <!-- HLSL は実行時に D3DCompileFromFile で読むため、ビルドでは何もしない -->

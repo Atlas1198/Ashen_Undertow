@@ -206,6 +206,7 @@ Sponza(103 プリミティブ / 25 マテリアル / 65 テクスチャ / 262,26
 ```
 src/
   main.cpp        Win32 ウィンドウとメインループ
+  Engine/         エンジン共通機能
   Manager.*      入力・シーン・描画の実行順序と寿命管理
   Scene_*.h/cpp  シーンごとの配置とカメラ制御
   ObjectManager.* GameObject の所有・更新・描画・当たり判定
