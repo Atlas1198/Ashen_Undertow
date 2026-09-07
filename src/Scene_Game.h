@@ -4,6 +4,7 @@
 #include "SceneManager.h"
 
 class Player;
+class Enemy;
 class Input;
 
 class Scene_Game final : public SceneManager
@@ -19,6 +20,7 @@ private:
     void OnDraw(Renderer& renderer) override;
 
     Player* m_player = nullptr;
+    Enemy* m_enemy = nullptr;
     const Input& m_input;
     Camera m_camera;
 };
