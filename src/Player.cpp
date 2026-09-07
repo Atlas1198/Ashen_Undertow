@@ -21,8 +21,14 @@ void Player::Update(float deltaTime)
     if (length > 0.0f)
     {
         constexpr float moveSpeed = 3.0f;
-        m_position.x += moveX / length * moveSpeed * deltaTime;
-        m_position.z += moveZ / length * moveSpeed * deltaTime;
+        const float localX = moveX / length;
+        const float localZ = moveZ / length;
+        const float sinYaw = std::sin(m_rotation.y);
+        const float cosYaw = std::cos(m_rotation.y);
+        const float worldX = localX * cosYaw + localZ * sinYaw;
+        const float worldZ = -localX * sinYaw + localZ * cosYaw;
+        m_position.x += worldX * moveSpeed * deltaTime;
+        m_position.z += worldZ * moveSpeed * deltaTime;
     }
 }
 

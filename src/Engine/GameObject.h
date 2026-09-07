@@ -40,6 +40,8 @@ public:
 
     void SetPosition(float x, float y, float z) { m_position = { x, y, z }; }
     const DirectX::XMFLOAT3& GetPosition() const { return m_position; }
+    void SetRotation(float x, float y, float z) { m_rotation = { x, y, z }; }
+    const DirectX::XMFLOAT3& GetRotation() const { return m_rotation; }
 
     DirectX::XMFLOAT4X4 CreateWorldMatrix() const
     {

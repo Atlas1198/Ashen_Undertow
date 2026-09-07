@@ -8,6 +8,7 @@ public:
     void SetTarget(const DirectX::XMFLOAT3& target) { m_target = target; }
     void Rotate(float mouseX, float mouseY);
     const DirectX::XMFLOAT3& GetTarget() const { return m_target; }
+    float GetYaw() const { return m_yaw; }
     DirectX::XMFLOAT3 GetPosition() const;
 
 private:

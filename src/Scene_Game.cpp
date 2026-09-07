@@ -29,6 +29,7 @@ bool Scene_Game::Initialize()
 void Scene_Game::OnUpdate(float)
 {
     m_camera.Rotate(m_input.LookX(), m_input.LookY());
+    m_player->SetRotation(0.0f, -m_camera.GetYaw(), 0.0f);
 }
 
 void Scene_Game::OnAfterUpdate(float)
