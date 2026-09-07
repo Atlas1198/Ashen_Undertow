@@ -1,0 +1,503 @@
+#include "RendererInternal.h"
+
+using namespace DirectX;
+using namespace RendererDetail;
+
+bool Renderer::CreateVertexBuffer()
+{
+    if (!m_model || !m_model->Valid())
+    {
+        OutputDebugStringA("assets/model.glb の読み込みに失敗しました\n");
+        return false;
+    }
+
+    D3D12_HEAP_PROPERTIES heapProps = {};
+    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+    D3D12_RESOURCE_DESC resourceDesc = {};
+    resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    resourceDesc.Height = 1;
+    resourceDesc.DepthOrArraySize = 1;
+    resourceDesc.MipLevels = 1;
+    resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+    resourceDesc.SampleDesc.Count = 1;
+    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+    D3D12_RANGE readRange = { 0, 0 };
+
+    m_meshes.reserve(m_model->primitives.size());
+
+    for (const GltfPrimitive& prim : m_model->primitives)
+    {
+        if (prim.vertices.empty() || prim.indices.empty()) continue;
+
+        MeshPrimitive mesh;
+        mesh.material = prim.material;
+        mesh.indexCount = (UINT)prim.indices.size();
+
+        // マテリアルからアルファと両面の設定を取り出しておく。
+        // 描画時にマテリアル配列を引き直さずに済む
+        if (prim.material >= 0 && (size_t)prim.material < m_model->materials.size())
+        {
+            const GltfMaterial& mat = m_model->materials[(size_t)prim.material];
+            // MASK 以外は「常に通る」ことを表す負の値にする。
+            // こうするとシェーダ側に分岐が要らない
+            mesh.alphaCutoff = (mat.alphaMode == GltfMaterial::AlphaMode::Mask)
+                ? mat.alphaCutoff : -1.0f;
+            mesh.doubleSided = mat.doubleSided;
+        }
+
+        const UINT vertexBufferSize = (UINT)(prim.vertices.size() * sizeof(GltfVertex));
+        const UINT indexBufferSize = (UINT)(prim.indices.size() * sizeof(uint32_t));
+
+        // --- 頂点バッファ ---
+        resourceDesc.Width = vertexBufferSize;
+        if (!Check(m_device->CreateCommittedResource(
+            &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+            IID_PPV_ARGS(&mesh.vertexBuffer))))
+        {
+            return false;
+        }
+
+        void* mapped = nullptr;
+        if (!Check(mesh.vertexBuffer->Map(0, &readRange, &mapped))) return false;
+        memcpy(mapped, prim.vertices.data(), vertexBufferSize);
+        mesh.vertexBuffer->Unmap(0, nullptr);
+
+        mesh.vertexBufferView.BufferLocation = mesh.vertexBuffer->GetGPUVirtualAddress();
+        mesh.vertexBufferView.StrideInBytes = sizeof(Vertex);
+        mesh.vertexBufferView.SizeInBytes = vertexBufferSize;
+
+        // --- インデックスバッファ ---
+        resourceDesc.Width = indexBufferSize;
+        if (!Check(m_device->CreateCommittedResource(
+            &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+            IID_PPV_ARGS(&mesh.indexBuffer))))
+        {
+            return false;
+        }
+
+        void* mappedIndex = nullptr;
+        if (!Check(mesh.indexBuffer->Map(0, &readRange, &mappedIndex))) return false;
+        memcpy(mappedIndex, prim.indices.data(), indexBufferSize);
+        mesh.indexBuffer->Unmap(0, nullptr);
+
+        mesh.indexBufferView.BufferLocation = mesh.indexBuffer->GetGPUVirtualAddress();
+        mesh.indexBufferView.SizeInBytes = indexBufferSize;
+        mesh.indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+
+        m_meshes.push_back(std::move(mesh));
+    }
+
+    // ※ 本来この規模のデータは DEFAULT ヒープへコピーすべき。
+    //    UPLOAD ヒープのままだと GPU からの読み出しが遅い。
+    //    正しさより手順の単純さを優先している箇所
+    return !m_meshes.empty();
+}
+
+bool Renderer::UploadTexture(const void* pixels, UINT width, UINT height,
+    DXGI_FORMAT format, ComPtr<ID3D12Resource>& outResource)
+{
+    // --- 1. ミップレベル数を決める ---
+ // 長辺が 1 になるまで半分にできる回数 + 1
+    UINT mipCount = 1;
+    for (UINT size = (width > height ? width : height); size > 1; size >>= 1)
+        ++mipCount;
+
+    // baseColor や emissive は sRGB 格納。縮小時の平均を
+    // リニア空間で行う必要があるので、フォーマットから判定する
+    const bool isSrgb = (format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+
+    // --- 2. CPU 側でミップチェーンを作る ---
+    // levels[0] が原寸、以降 1/2 ずつ
+    std::vector<std::vector<uint8_t>> levels(mipCount);
+    std::vector<UINT> levelWidth(mipCount), levelHeight(mipCount);
+
+    levelWidth[0] = width;
+    levelHeight[0] = height;
+    levels[0].assign((const uint8_t*)pixels,
+        (const uint8_t*)pixels + (size_t)width * height * 4);
+
+    for (UINT mip = 1; mip < mipCount; ++mip)
+    {
+        const UINT srcW = levelWidth[mip - 1];
+        const UINT srcH = levelHeight[mip - 1];
+        const UINT dstW = (srcW > 1) ? srcW / 2 : 1;
+        const UINT dstH = (srcH > 1) ? srcH / 2 : 1;
+
+        levelWidth[mip] = dstW;
+        levelHeight[mip] = dstH;
+        levels[mip].resize((size_t)dstW * dstH * 4);
+
+        const std::vector<uint8_t>& src = levels[mip - 1];
+        std::vector<uint8_t>& dst = levels[mip];
+
+        for (UINT y = 0; y < dstH; ++y)
+        {
+            // 元が 1 ピクセルしかない軸は、同じ行/列を 2 回読む
+            const UINT y0 = (srcH > 1) ? y * 2 : 0;
+            const UINT y1 = (srcH > 1) ? y * 2 + 1 : 0;
+
+            for (UINT x = 0; x < dstW; ++x)
+            {
+                const UINT x0 = (srcW > 1) ? x * 2 : 0;
+                const UINT x1 = (srcW > 1) ? x * 2 + 1 : 0;
+
+                const size_t s00 = ((size_t)y0 * srcW + x0) * 4;
+                const size_t s01 = ((size_t)y0 * srcW + x1) * 4;
+                const size_t s10 = ((size_t)y1 * srcW + x0) * 4;
+                const size_t s11 = ((size_t)y1 * srcW + x1) * 4;
+                const size_t d = ((size_t)y * dstW + x) * 4;
+
+                for (int c = 0; c < 4; ++c)
+                {
+                    // アルファ(c == 3)は常にリニア扱い
+                    const bool convert = isSrgb && (c < 3);
+                    const float* toLinear = SrgbToLinearTable();
+
+                    float v0, v1, v2, v3;
+                    if (convert)
+                    {
+                        // 表を引くだけ。powf は呼ばれない
+                        v0 = toLinear[src[s00 + c]];
+                        v1 = toLinear[src[s01 + c]];
+                        v2 = toLinear[src[s10 + c]];
+                        v3 = toLinear[src[s11 + c]];
+                    }
+                    else
+                    {
+                        v0 = src[s00 + c] / 255.0f;
+                        v1 = src[s01 + c] / 255.0f;
+                        v2 = src[s10 + c] / 255.0f;
+                        v3 = src[s11 + c] / 255.0f;
+                    }
+
+                    const float avg = (v0 + v1 + v2 + v3) * 0.25f;
+                    dst[d + c] = convert ? LinearToSrgbByte(avg)
+                        : (uint8_t)(avg * 255.0f + 0.5f);
+                }
+            }
+        }
+    }
+
+    // --- 3. テクスチャ本体(ミップ付き) ---
+    D3D12_HEAP_PROPERTIES defaultHeap = {};
+    defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+    D3D12_RESOURCE_DESC texDesc = {};
+    texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    texDesc.Width = width;
+    texDesc.Height = height;
+    texDesc.DepthOrArraySize = 1;
+    texDesc.MipLevels = (UINT16)mipCount;
+    texDesc.Format = format;
+    texDesc.SampleDesc.Count = 1;
+    texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+    if (!Check(m_device->CreateCommittedResource(
+        &defaultHeap, D3D12_HEAP_FLAG_NONE, &texDesc,
+        D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+        IID_PPV_ARGS(&outResource))))
+    {
+        return false;
+    }
+
+    // --- 4. 全ミップぶんの配置を一括で問い合わせる ---
+    // 第 3 引数がサブリソース数。ミップ 1 枚ごとに 1 サブリソース
+    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(mipCount);
+    std::vector<UINT>   numRows(mipCount);
+    std::vector<UINT64> rowSizes(mipCount);
+    UINT64 uploadSize = 0;
+    m_device->GetCopyableFootprints(&texDesc, 0, mipCount, 0,
+        footprints.data(), numRows.data(),
+        rowSizes.data(), &uploadSize);
+
+    D3D12_HEAP_PROPERTIES uploadHeap = {};
+    uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+    D3D12_RESOURCE_DESC bufDesc = {};
+    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufDesc.Width = uploadSize;
+    bufDesc.Height = 1;
+    bufDesc.DepthOrArraySize = 1;
+    bufDesc.MipLevels = 1;
+    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufDesc.SampleDesc.Count = 1;
+    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+    ComPtr<ID3D12Resource> uploadBuffer;
+    if (!Check(m_device->CreateCommittedResource(
+        &uploadHeap, D3D12_HEAP_FLAG_NONE, &bufDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+        IID_PPV_ARGS(&uploadBuffer))))
+    {
+        return false;
+    }
+
+    // --- 5. 中継バッファへ全ミップを書き込む ---
+    uint8_t* mapped = nullptr;
+    D3D12_RANGE readRange = { 0, 0 };
+    if (!Check(uploadBuffer->Map(0, &readRange, reinterpret_cast<void**>(&mapped))))
+    {
+        return false;
+    }
+    for (UINT mip = 0; mip < mipCount; ++mip)
+    {
+        for (UINT y = 0; y < numRows[mip]; ++y)
+        {
+            memcpy(mapped + footprints[mip].Offset
+                + (SIZE_T)y * footprints[mip].Footprint.RowPitch,
+                levels[mip].data() + (size_t)y * levelWidth[mip] * 4,
+                (size_t)rowSizes[mip]);
+        }
+    }
+    uploadBuffer->Unmap(0, nullptr);
+
+    // --- 6. ミップごとにコピーコマンドを積む ---
+    m_commandAllocators[m_frameIndex]->Reset();
+    m_commandList->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr);
+
+    for (UINT mip = 0; mip < mipCount; ++mip)
+    {
+        D3D12_TEXTURE_COPY_LOCATION dst = {};
+        dst.pResource = outResource.Get();
+        dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dst.SubresourceIndex = mip;   // ミップ番号 = サブリソース番号
+
+        D3D12_TEXTURE_COPY_LOCATION src = {};
+        src.pResource = uploadBuffer.Get();
+        src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        src.PlacedFootprint = footprints[mip];
+
+        m_commandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+    }
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = outResource.Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    m_commandList->ResourceBarrier(1, &barrier);
+
+    m_commandList->Close();
+    ID3D12CommandList* lists[] = { m_commandList.Get() };
+    m_commandQueue->ExecuteCommandLists(1, lists);
+    WaitForGpu();
+
+    return true;
+}
+
+bool Renderer::CreateMaterialTextures()
+{
+    const uint8_t whitePixel[4] = { 255, 255, 255, 255 };
+    const uint8_t flatNormalPixel[4] = { 128, 128, 255, 255 };
+
+    const UINT step = m_device->GetDescriptorHandleIncrementSize(
+        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    const D3D12_CPU_DESCRIPTOR_HANDLE heapStart =
+        m_srvHeap->GetCPUDescriptorHandleForHeapStart();
+
+    // 画像添字から実体を引く。無効なら nullptr
+    auto findImage = [&](int index) -> const GltfImage*
+        {
+            if (index < 0 || (size_t)index >= m_model->images.size()) return nullptr;
+            const GltfImage& img = m_model->images[(size_t)index];
+            return img.Valid() ? &img : nullptr;
+        };
+
+    auto createSrv = [&](ID3D12Resource* resource, DXGI_FORMAT format, UINT slot)
+        {
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format = format;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            // -1 は「このリソースが持つ全ミップを使う」の意味。
+            // ここを 1 のままにするとミップを作っても使われない
+            srvDesc.Texture2D.MipLevels = (UINT)-1;
+
+            D3D12_CPU_DESCRIPTOR_HANDLE handle = heapStart;
+            handle.ptr += (SIZE_T)slot * step;
+            m_device->CreateShaderResourceView(resource, &srvDesc, handle);
+        };
+
+    // 同じ画像を複数のマテリアルが参照することがある。
+    // 一度アップロードしたものは使い回して、VRAM と起動時間を節約する
+    std::map<std::pair<int, DXGI_FORMAT>, ComPtr<ID3D12Resource>> cache;
+
+    // テクスチャ 1 枚を用意して、指定スロットに SRV を作る
+    auto loadInto = [&](int imageIndex, DXGI_FORMAT format,
+        const uint8_t* fallback, UINT slot) -> bool
+        {
+            const GltfImage* img = findImage(imageIndex);
+
+            // テクスチャが無い場合は 1x1 の無害な値。キャッシュ対象外
+            if (img == nullptr)
+            {
+                ComPtr<ID3D12Resource> tex;
+                if (!UploadTexture(fallback, 1, 1, format, tex)) return false;
+                createSrv(tex.Get(), format, slot);
+                m_materialTextures.push_back(tex);
+                return true;
+            }
+
+            const auto key = std::make_pair(imageIndex, format);
+            auto it = cache.find(key);
+            if (it == cache.end())
+            {
+                ComPtr<ID3D12Resource> tex;
+                if (!UploadTexture(img->pixels.data(), img->width, img->height, format, tex))
+                    return false;
+                m_materialTextures.push_back(tex);
+                it = cache.emplace(key, tex).first;
+            }
+            createSrv(it->second.Get(), format, slot);
+            return true;
+        };
+
+    // --- 各マテリアルのテクスチャ 5 枚を、5 個ずつ並べていく ---
+    for (size_t i = 0; i < m_model->materials.size(); ++i)
+    {
+        const GltfMaterial& mat = m_model->materials[i];
+        const UINT base = kSrvMaterialStart + (UINT)i * kTexturesPerMaterial;
+
+        // 色として見えるものは sRGB、数値として使うものはリニア
+        if (!loadInto(mat.baseColorImage, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+            whitePixel, base + 0)) return false;
+        if (!loadInto(mat.metallicRoughnessImage, DXGI_FORMAT_R8G8B8A8_UNORM,
+            whitePixel, base + 1)) return false;
+        if (!loadInto(mat.normalImage, DXGI_FORMAT_R8G8B8A8_UNORM,
+            flatNormalPixel, base + 2)) return false;
+        if (!loadInto(mat.occlusionImage, DXGI_FORMAT_R8G8B8A8_UNORM,
+            whitePixel, base + 3)) return false;
+        if (!loadInto(mat.emissiveImage, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+            whitePixel, base + 4)) return false;
+    }
+
+    // --- 既定マテリアル(床や、マテリアルを持たないプリミティブ用) ---
+    if (!UploadTexture(whitePixel, 1, 1,
+        DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, m_defaultWhiteSrgb)) return false;
+    if (!UploadTexture(whitePixel, 1, 1,
+        DXGI_FORMAT_R8G8B8A8_UNORM, m_defaultWhite))     return false;
+    if (!UploadTexture(flatNormalPixel, 1, 1,
+        DXGI_FORMAT_R8G8B8A8_UNORM, m_defaultNormal))    return false;
+
+    createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvDefaultMaterial + 0);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvDefaultMaterial + 1);
+    createSrv(m_defaultNormal.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvDefaultMaterial + 2);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvDefaultMaterial + 3);
+    createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvDefaultMaterial + 4);
+
+    return true;
+}
+
+bool Renderer::CreateFloor()
+{
+    const float kHalfSize = 12.0f;   // 一辺の半分
+    const float kY = -1.05f;  // ヘルメットの底あたり
+
+    // 法線は真上、接線は +X 方向
+    const Vertex vertices[] =
+    {
+        { { -kHalfSize, kY, -kHalfSize }, { 0, 1, 0 }, { 1, 0, 0, 1 }, { 0.0f, 0.0f } },
+        { { -kHalfSize, kY,  kHalfSize }, { 0, 1, 0 }, { 1, 0, 0, 1 }, { 0.0f, 1.0f } },
+        { {  kHalfSize, kY,  kHalfSize }, { 0, 1, 0 }, { 1, 0, 0, 1 }, { 1.0f, 1.0f } },
+        { {  kHalfSize, kY, -kHalfSize }, { 0, 1, 0 }, { 1, 0, 0, 1 }, { 1.0f, 0.0f } },
+    };
+
+    // 上から見て時計回り = 表面(バックフェイスカリングが有効なので重要)
+    const uint32_t indices[] = { 0, 1, 2,  0, 2, 3 };
+
+    m_floorIndexCount = _countof(indices);
+    const UINT vertexBufferSize = sizeof(vertices);
+    const UINT indexBufferSize = sizeof(indices);
+
+    D3D12_HEAP_PROPERTIES heapProps = {};
+    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+    D3D12_RESOURCE_DESC resourceDesc = {};
+    resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    resourceDesc.Width = vertexBufferSize;
+    resourceDesc.Height = 1;
+    resourceDesc.DepthOrArraySize = 1;
+    resourceDesc.MipLevels = 1;
+    resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+    resourceDesc.SampleDesc.Count = 1;
+    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+    if (!Check(m_device->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+        IID_PPV_ARGS(&m_floorVertexBuffer))))
+    {
+        return false;
+    }
+
+    void* mapped = nullptr;
+    D3D12_RANGE readRange = { 0, 0 };
+    if (!Check(m_floorVertexBuffer->Map(0, &readRange, &mapped))) return false;
+    memcpy(mapped, vertices, vertexBufferSize);
+    m_floorVertexBuffer->Unmap(0, nullptr);
+
+    m_floorVertexBufferView.BufferLocation = m_floorVertexBuffer->GetGPUVirtualAddress();
+    m_floorVertexBufferView.StrideInBytes = sizeof(Vertex);
+    m_floorVertexBufferView.SizeInBytes = vertexBufferSize;
+
+    resourceDesc.Width = indexBufferSize;
+    if (!Check(m_device->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+        IID_PPV_ARGS(&m_floorIndexBuffer))))
+    {
+        return false;
+    }
+
+    void* mappedIndex = nullptr;
+    if (!Check(m_floorIndexBuffer->Map(0, &readRange, &mappedIndex))) return false;
+    memcpy(mappedIndex, indices, indexBufferSize);
+    m_floorIndexBuffer->Unmap(0, nullptr);
+
+    m_floorIndexBufferView.BufferLocation = m_floorIndexBuffer->GetGPUVirtualAddress();
+    m_floorIndexBufferView.SizeInBytes = indexBufferSize;
+    m_floorIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
+
+    return true;
+}
+
+bool Renderer::CreateConstantBuffer()
+{
+    // 1 オブジェクトぶんのサイズ。256 バイト境界に揃える必要がある
+    m_cbStride = (sizeof(SceneConstants) + 255) & ~255u;
+
+    // メッシュ群 + 床の領域をフレーム数ぶん確保し、GPU使用中の領域を上書きしない。
+    m_objectCount = kMaxDrawMeshCount + 1;
+    const UINT bufferSize = m_cbStride * m_objectCount * kFrameCount;
+
+    D3D12_HEAP_PROPERTIES heapProps = {};
+    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+    D3D12_RESOURCE_DESC resourceDesc = {};
+    resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    resourceDesc.Width = bufferSize;
+    resourceDesc.Height = 1;
+    resourceDesc.DepthOrArraySize = 1;
+    resourceDesc.MipLevels = 1;
+    resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+    resourceDesc.SampleDesc.Count = 1;
+    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+    if (!Check(m_device->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+        IID_PPV_ARGS(&m_constantBuffer))))
+    {
+        return false;
+    }
+
+    // Map したポインタを Unmap せずに保持する。
+    // 毎フレーム memcpy するだけで GPU に値が届く。
+    D3D12_RANGE readRange = { 0, 0 };   // CPU からは読まない宣言
+    return Check(m_constantBuffer->Map(0, &readRange, &m_cbMapped));
+}

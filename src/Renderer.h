@@ -19,9 +19,10 @@
 #include <dxgi1_6.h>
 #include <wrl/client.h>   // ComPtr (COM オブジェクトのスマートポインタ)
 #include <cstdint>
-#include "HdrLoader.h"
 #include "GltfLoader.h"
-#include "ModelManager.h"
+#include "ModelHandle.h"
+
+class ModelManager;
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -34,12 +35,18 @@ class Renderer
 public:
     ~Renderer();
 
-    bool Initialize(HWND hwnd, uint32_t width, uint32_t height, ModelManager& modelManager);
-    void SetCameraTarget(const DirectX::XMFLOAT3& target) { m_cameraTarget = target; }
+    bool Initialize(HWND hwnd, uint32_t width, uint32_t height,
+        ModelManager& modelManager, ModelHandle model);
+    void SetCamera(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& target)
+    {
+        m_cameraPosition = position;
+        m_cameraTarget = target;
+    }
     void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world);
     void Render();
 
 private:
+    void DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS constantBase);
     // 初期化を段階ごとに分けたもの。Initialize から順番に呼ばれる。
     bool CreateDevice();
     bool CreateCommandObjects();
@@ -76,8 +83,7 @@ private:
     static constexpr uint32_t kFrameCount = 2;
     static constexpr uint32_t kMaxDrawMeshCount = 4096;
 
-    // 定数バッファに載せるオブジェクト数(メッシュ数 + 床)。
-    // モデル読み込み後に決まるので実行時に求める
+    // 1フレームの定数スロット数（描画メッシュの最大数 + 床）。
     uint32_t m_objectCount = 0;
 
     // シャドウマップの解像度。上げるほど影の輪郭が精細になるが重くなる
@@ -101,14 +107,7 @@ private:
     uint32_t m_width  = 0;
     uint32_t m_height = 0;
     DirectX::XMFLOAT3 m_cameraTarget { 0.0f, 0.0f, 0.0f };
-    HWND m_window = nullptr;
-    POINT m_lastMousePosition {};
-    bool m_cameraDragging = false;
-    bool m_cameraControlEnabled = true;
-    bool m_leftMouseWasDown = false;
-    int m_cursorHideCalls = 0;
-    float m_cameraYaw = 0.0f;
-    float m_cameraPitch = 0.39479112f; // atan2(2.5, 6): 初期の視点を維持
+    DirectX::XMFLOAT3 m_cameraPosition { 0.0f, 2.5f, -6.0f };
 
     // --- コアオブジェクト ---
     ComPtr<IDXGIFactory6>              m_factory;

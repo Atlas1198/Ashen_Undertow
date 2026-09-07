@@ -1,19 +1,20 @@
 #pragma once
 
 #include "GameObject.h"
-#include "ModelManager.h"
+#include "ModelHandle.h"
+
+class Input;
 
 class Player final : public GameObject
 {
 public:
-    Player() = default;
+    explicit Player(const Input& input) : m_input(input) {}
     ~Player() override = default;
 
     bool Initialize(ModelManager& modelManager) override;
     void Update(float deltaTime) override;
-    void Draw(Renderer& renderer) override;
-    ModelHandle GetModelHandle() const { return m_modelHandle; }
+    ModelHandle GetModelHandle() const;
 
 private:
-    ModelHandle m_modelHandle;
+    const Input& m_input;
 };

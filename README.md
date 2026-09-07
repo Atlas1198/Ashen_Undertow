@@ -206,7 +206,19 @@ Sponza(103 プリミティブ / 25 マテリアル / 65 テクスチャ / 262,26
 ```
 src/
   main.cpp        Win32 ウィンドウとメインループ
-  Renderer.h/cpp  DX12 の初期化と描画パス一式
+  Manager.*      入力・シーン・描画の実行順序と寿命管理
+  Scene_*.h/cpp  シーンごとの配置とカメラ制御
+  ObjectManager.* GameObject の所有・更新・描画・当たり判定
+  ComponentManager.* オブジェクトに付ける機能の所有・実行
+  Input.* / Camera.* 入力取得と追従カメラの計算
+  ModelManager.* モデルデータを正規化したパス単位で共有
+  ModelComponent.* モデルの読み込みと個別ワールド行列による描画
+  *Collider.* / CollisionManager.* 球・Y軸カプセル・AABB の接触判定
+  Renderer.h/cpp  DX12 の初期化手順とリソース解放
+  RendererDevice.cpp / RendererModels.cpp デバイスとモデルリソース
+  RendererEnvironment.cpp IBL の事前計算
+  RendererPipelines.cpp / RendererPostProcess.cpp 描画・後処理の準備
+  RendererFrame.cpp フレーム描画と同期
   GltfLoader.*    glTF 2.0 の読み込み(WIC による画像デコードを含む)
   Json.*          JSON パーサ
   HdrLoader.*     Radiance HDR の読み込み
@@ -221,4 +233,30 @@ shaders/
   Tonemap.hlsl    トーンマップ
   BloomBright.hlsl / BloomBlur.hlsl  ブルーム
 docs/screenshots/ スクリーンショット
+tests/           コンポーネント・衝突・カメラ・モデル共有の回帰テスト
 ```
+
+## ゲーム側の追加方法
+
+`Scene_Game::Initialize()` で `AddGameObject<T>(...)` を呼ぶと、初期化・更新・描画と寿命管理をまとめて登録します。
+`GameObject` 派生クラスには `AddComponent<T>(...)` で機能を追加できます。
+モデル表示は `ModelComponent`、当たり判定は `SphereCollider` / `CapsuleCollider` / `BoxCollider` が担当します。
+オブジェクト・コンポーネントは所有側の破棄時に自動解放され、取得したポインタは所有側より長く保持できません。
+
+更新順は入力取得 → シーンの `OnUpdate` → 全オブジェクト → 全コンポーネント → 接触判定 → `OnAfterUpdate` → 描画です。
+接触結果を当フレーム中に使う場合は `OnAfterUpdate` で参照します。更新中に追加したオブジェクトの更新は次フレームからです。
+カメラはプレイヤーの移動後に追従し、定数バッファはバックバッファごとに書き込み領域を分けています。
+
+現時点の制約: GPU に登録できるモデルは1種類（複数配置は可能）。FBX は未対応です。
+箱は軸平行、カプセルはY軸固定で、コライダー寸法はワールド単位（オブジェクトの回転・拡縮とは独立）です。
+当たり判定は接触検出のみで、押し戻し・ダメージ処理は含みません。
+
+## 回帰テスト
+
+Visual Studio の C++ 開発ツール導入後、プロジェクト直下で実行します。描画ウィンドウや外部モデルは不要です。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/RunTests.ps1
+```
+
+コンポーネントの寿命・有効無効・描画呼び出し、更新中の追加、球・カプセル・箱の全組合せ、カメラの距離・角度制限、モデルキャッシュのパス共有を確認します。

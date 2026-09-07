@@ -2,6 +2,7 @@
 
 class GameObject;
 class ComponentManager;
+class Renderer;
 
 // GameObjectへ追加する機能の基底。所有者の設定後にInitializeが呼ばれる。
 class Component
@@ -10,6 +11,7 @@ public:
     virtual ~Component() = default;
     virtual bool Initialize() { return true; }
     virtual void Update(float deltaTime) { (void)deltaTime; }
+    virtual void Draw(Renderer& renderer) { (void)renderer; }
 
     GameObject& GetOwner() { return *m_owner; }
     const GameObject& GetOwner() const { return *m_owner; }

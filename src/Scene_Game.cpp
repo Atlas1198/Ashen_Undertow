@@ -1,17 +1,19 @@
 #include "Scene_Game.h"
 
 #include "Enemy.h"
+#include "Player.h"
+#include "Input.h"
 
 #include "Renderer.h"
 
-GameScene::GameScene(ModelManager& modelManager)
-    : SceneManager(modelManager)
+Scene_Game::Scene_Game(ModelManager& modelManager, const Input& input)
+    : SceneManager(modelManager), m_input(input)
 {
 }
 
-bool GameScene::Initialize()
+bool Scene_Game::Initialize()
 {
-    m_player = AddGameObject<Player>();
+    m_player = AddGameObject<Player>(m_input);
     if (!m_player) return false;
 
     auto* enemy = AddGameObject<Enemy>();
@@ -20,7 +22,17 @@ bool GameScene::Initialize()
     return true;
 }
 
-void GameScene::OnDraw(Renderer& renderer)
+void Scene_Game::OnUpdate(float)
 {
-    renderer.SetCameraTarget(m_player->GetPosition());
+    m_camera.Rotate(m_input.LookX(), m_input.LookY());
+}
+
+void Scene_Game::OnAfterUpdate(float)
+{
+    m_camera.SetTarget(m_player->GetPosition());
+}
+
+void Scene_Game::OnDraw(Renderer& renderer)
+{
+    renderer.SetCamera(m_camera.GetPosition(), m_camera.GetTarget());
 }

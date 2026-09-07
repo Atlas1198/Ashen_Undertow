@@ -47,6 +47,24 @@ public:
     }
 
     void Update(float deltaTime);
+    void Draw(Renderer& renderer);
+
+    template<class T>
+    void CollectComponents(std::vector<T*>& result)
+    {
+        static_assert(std::is_base_of_v<Component, T>, "T must inherit from Component");
+        for (const auto& component : m_components)
+            if (auto* match = dynamic_cast<T*>(component.get())) result.push_back(match);
+    }
+
+    template<class T>
+    std::vector<T*> GetComponents()
+    {
+        static_assert(std::is_base_of_v<Component, T>, "T must inherit from Component");
+        std::vector<T*> result;
+        CollectComponents(result);
+        return result;
+    }
 
 private:
     GameObject& m_owner;

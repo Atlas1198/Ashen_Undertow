@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------
 // main.cpp
 // Win32 ウィンドウの作成とメインループ。
-// DX12 そのものはここには出てこない。ウィンドウ(HWND)を Renderer に渡すだけ。
+// ゲーム側の初期化・毎フレーム処理はManagerに委譲する。
 //----------------------------------------------------------------------------
 #include <Windows.h>
 #include "Manager.h"
@@ -38,9 +38,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
     wc.hInstance     = hInstance;
     wc.hCursor       = LoadCursor(nullptr, IDC_ARROW);
     wc.lpszClassName = kWindowClassName;
-    RegisterClassEx(&wc);
+    if (!RegisterClassEx(&wc)) return -1;
 
-    // 2. クライアント領域(描画領域)がちょうど 1280x720 になるように
+    // 2. 指定したクライアント領域にウィンドウ枠を加える
     //    ウィンドウ枠込みのサイズを逆算する
     RECT rect = { 0, 0, (LONG)kClientWidth, (LONG)kClientHeight };
     AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
@@ -51,6 +51,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
         CW_USEDEFAULT, CW_USEDEFAULT,
         rect.right - rect.left, rect.bottom - rect.top,
         nullptr, nullptr, hInstance, nullptr);
+    if (!hwnd) return -1;
 
     // 3. ゲーム全体を管理する最上層を初期化
     Manager manager;
@@ -59,7 +60,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow)
         // 失敗の詳細はデバッグレイヤーが「出力」ウィンドウに書いている。
         // Visual Studio の [デバッグ] → [ウィンドウ] → [出力] を必ず確認する
         MessageBox(hwnd,
-            L"DX12 の初期化に失敗しました。\n"
+            L"ゲームの初期化に失敗しました。\n"
             L"Visual Studio の「出力」ウィンドウにデバッグレイヤーの詳細が出ています。",
             L"Error", MB_OK | MB_ICONERROR);
         return -1;

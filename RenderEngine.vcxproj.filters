@@ -17,6 +17,12 @@
       <UniqueIdentifier>{a1b2c3d4-e5f6-4a5b-8c7d-9e0f1a2b3c4d}</UniqueIdentifier>
       <Extensions>hlsl;hlsli</Extensions>
     </Filter>
+    <Filter Include="ソース ファイル\Engine">
+      <UniqueIdentifier>{8E26720F-2A0A-4BBD-AE88-25451185205B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\Engine">
+      <UniqueIdentifier>{B9104A9D-8992-4F38-87B3-7D7B12A0EA8A}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -26,16 +32,22 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\Manager.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\ModelManager.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\ObjectManager.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\ComponentManager.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Collider.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CollisionManager.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Player.cpp">
       <Filter>ソース ファイル</Filter>
@@ -44,45 +56,105 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\Renderer.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Camera.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ModelComponent.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RendererDevice.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RendererModels.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RendererEnvironment.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RendererPipelines.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RendererPostProcess.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RendererFrame.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Scene_Title.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\HdrLoader.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Json.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\GltfLoader.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Renderer.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Input.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Camera.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ModelComponent.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ModelHandle.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GameAssets.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RendererInternal.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\GameObject.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Scene_Game.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="src\Manager.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\ModelManager.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\ObjectManager.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Component.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\ComponentManager.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Collider.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SphereCollider.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CapsuleCollider.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\BoxCollider.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CollisionManager.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Player.h">
       <Filter>ヘッダー ファイル</Filter>
@@ -91,19 +163,19 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="src\SceneManager.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Scene_Title.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="src\HdrLoader.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Json.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\GltfLoader.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

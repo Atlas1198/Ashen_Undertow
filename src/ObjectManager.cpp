@@ -2,16 +2,24 @@
 
 void ObjectManager::Update(float deltaTime)
 {
-    for (const auto& gameObject : m_gameObjects)
-        gameObject->Update(deltaTime);
+    const auto count = m_gameObjects.size();
+    for (size_t i = 0; i < count; ++i)
+        m_gameObjects[i]->Update(deltaTime);
 
     // 全オブジェクトの位置更新後に、追加された機能を更新する。
-    for (const auto& gameObject : m_gameObjects)
-        gameObject->UpdateComponents(deltaTime);
+    for (size_t i = 0; i < count; ++i)
+        m_gameObjects[i]->UpdateComponents(deltaTime);
+
+    m_collisionManager.Update(m_gameObjects);
 }
 
 void ObjectManager::Draw(Renderer& renderer)
 {
-    for (const auto& gameObject : m_gameObjects)
-        gameObject->Draw(renderer);
+    const auto count = m_gameObjects.size();
+    for (size_t i = 0; i < count; ++i)
+    {
+        auto* object = m_gameObjects[i].get();
+        object->Draw(renderer);
+        object->DrawComponents(renderer);
+    }
 }

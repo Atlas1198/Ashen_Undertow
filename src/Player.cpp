@@ -1,25 +1,21 @@
 #include "Player.h"
+#include "CapsuleCollider.h"
 
-#include <Windows.h>
 #include <cmath>
-
-#include "Renderer.h"
+#include "Input.h"
+#include "ModelComponent.h"
+#include "GameAssets.h"
 
 bool Player::Initialize(ModelManager& modelManager)
 {
-    m_modelHandle = modelManager.Load("assets/model.glb");
-    return m_modelHandle.IsValid();
+    if (!AddComponent<ModelComponent>(modelManager, GameAssets::CharacterModel)) return false;
+    return AddComponent<CapsuleCollider>(0.5f, 0.5f) != nullptr;
 }
 
 void Player::Update(float deltaTime)
 {
-    float moveX = 0.0f;
-    float moveZ = 0.0f;
-
-    if (GetAsyncKeyState('W') & 0x8000) moveZ += 1.0f;
-    if (GetAsyncKeyState('S') & 0x8000) moveZ -= 1.0f;
-    if (GetAsyncKeyState('A') & 0x8000) moveX -= 1.0f;
-    if (GetAsyncKeyState('D') & 0x8000) moveX += 1.0f;
+    const float moveX = m_input.MoveX();
+    const float moveZ = m_input.MoveZ();
 
     const float length = std::sqrt(moveX * moveX + moveZ * moveZ);
     if (length > 0.0f)
@@ -30,7 +26,8 @@ void Player::Update(float deltaTime)
     }
 }
 
-void Player::Draw(Renderer& renderer)
+ModelHandle Player::GetModelHandle() const
 {
-    renderer.DrawModel(m_modelHandle, CreateWorldMatrix());
+    const auto* model = GetComponent<ModelComponent>();
+    return model ? model->GetModelHandle() : ModelHandle {};
 }

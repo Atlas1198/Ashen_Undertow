@@ -7,14 +7,7 @@
 #include <vector>
 
 #include "GltfLoader.h"
-
-struct ModelHandle
-{
-    static constexpr uint32_t InvalidValue = UINT32_MAX;
-    uint32_t value = InvalidValue;
-
-    bool IsValid() const { return value != InvalidValue; }
-};
+#include "ModelHandle.h"
 
 // モデルをパス単位で一度だけ読み込み、ハンドルで共有する。
 class ModelManager

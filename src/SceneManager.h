@@ -22,6 +22,7 @@ public:
     {
         OnUpdate(deltaTime);
         m_objectManager.Update(deltaTime);
+        OnAfterUpdate(deltaTime);
     }
 
     void Draw(Renderer& renderer)
@@ -38,6 +39,7 @@ protected:
     }
 
     virtual void OnUpdate(float deltaTime) { (void)deltaTime; }
+    virtual void OnAfterUpdate(float deltaTime) { (void)deltaTime; }
     virtual void OnDraw(Renderer& renderer) { (void)renderer; }
 
 private:

@@ -1,6 +1,6 @@
 #include "Scene_Title.h"
 
-bool Title::Initialize()
+bool Scene_Title::Initialize()
 {
     return true;
 }

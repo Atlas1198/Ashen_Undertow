@@ -8,6 +8,7 @@
 #include "Renderer.h"
 #include "SceneManager.h"
 #include "ModelManager.h"
+#include "Input.h"
 
 // ゲーム全体の最上層。main.cpp はこのクラスだけを操作する。
 class Manager
@@ -18,6 +19,7 @@ public:
 
 private:
     ModelManager m_modelManager;
+    Input m_input;
     Renderer m_renderer;
     std::unique_ptr<SceneManager> m_currentScene;
     std::chrono::steady_clock::time_point m_lastFrameTime;

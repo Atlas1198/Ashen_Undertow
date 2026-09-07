@@ -1,17 +1,24 @@
 #pragma once
 
-#include "Player.h"
+#include "Camera.h"
 #include "SceneManager.h"
 
-class GameScene final : public SceneManager
+class Player;
+class Input;
+
+class Scene_Game final : public SceneManager
 {
 public:
-    explicit GameScene(ModelManager& modelManager);
+    Scene_Game(ModelManager& modelManager, const Input& input);
 
     bool Initialize() override;
 
 private:
+    void OnUpdate(float deltaTime) override;
+    void OnAfterUpdate(float deltaTime) override;
     void OnDraw(Renderer& renderer) override;
 
     Player* m_player = nullptr;
+    const Input& m_input;
+    Camera m_camera;
 };
