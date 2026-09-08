@@ -18,14 +18,27 @@ Renderer::~Renderer()
 }
 
 bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height,
-    ModelManager& modelManager, ModelHandle model)
+    ModelManager& modelManager)
 {
     m_width  = width;
     m_height = height;
 
-    m_modelHandle = model;
-    m_model = modelManager.GetModel(m_modelHandle);
-    if (!m_model) return false;
+    uint32_t materialStart = kSrvMaterialStart;
+    for (size_t i = 0; i < modelManager.GetModelCount(); ++i)
+    {
+        const ModelHandle handle { static_cast<uint32_t>(i) };
+        const auto* model = modelManager.GetModel(handle);
+        if (!model || !model->Valid()) continue;
+
+        GpuModel gpuModel;
+        gpuModel.model = model;
+        gpuModel.handle = handle;
+        gpuModel.materialStart = materialStart;
+        materialStart += static_cast<uint32_t>(model->materials.size()) *
+            kTexturesPerMaterial;
+        m_models.push_back(std::move(gpuModel));
+    }
+    if (m_models.empty()) return false;
 
     if (!CreateDevice())            return false;
     if (!CreateCommandObjects())    return false;

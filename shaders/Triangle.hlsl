@@ -11,6 +11,8 @@ struct VSInput
     float3 normal   : NORMAL;
     float4 tangent  : TANGENT;
     float2 uv       : TEXCOORD0;
+    uint4 joints    : BLENDINDICES;
+    float4 weights  : BLENDWEIGHT;
 };
 
 struct PSInput
@@ -28,18 +30,32 @@ struct PSInput
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.position = mul(float4(input.position, 1.0), mvp);
+    float3 localPosition = input.position;
+    float3 localNormal = input.normal;
+    float3 localTangent = input.tangent.xyz;
+    if (jointCount > 0)
+    {
+        float4x4 skin =
+            input.weights.x * jointMatrices[input.joints.x] +
+            input.weights.y * jointMatrices[input.joints.y] +
+            input.weights.z * jointMatrices[input.joints.z] +
+            input.weights.w * jointMatrices[input.joints.w];
+        localPosition = mul(float4(localPosition, 1.0), skin).xyz;
+        localNormal = mul(float4(localNormal, 0.0), skin).xyz;
+        localTangent = mul(float4(localTangent, 0.0), skin).xyz;
+    }
+    output.position = mul(float4(localPosition, 1.0), mvp);
 
     // 法線は w = 0 で掛けて平行移動の影響を除く
-    output.normal = mul(float4(input.normal, 0.0), world).xyz;
+    output.normal = mul(float4(localNormal, 0.0), world).xyz;
     // 位置は w = 1。ピクセルごとの視線ベクトルを作るのに使う
-    output.worldPos = mul(float4(input.position, 1.0), world).xyz;
+    output.worldPos = mul(float4(localPosition, 1.0), world).xyz;
     
     // UV はそのまま
     output.uv = input.uv;
     
     // 接線もワールド空間へ。w(従法線の向き)はそのまま運ぶ
-    output.tangent = float4(mul(float4(input.tangent.xyz, 0.0), world).xyz,
+    output.tangent = float4(mul(float4(localTangent, 0.0), world).xyz,
                             input.tangent.w);
 
     return output;

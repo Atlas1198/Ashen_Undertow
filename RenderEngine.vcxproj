@@ -153,10 +153,12 @@
     <ClCompile Include="src\Engine\ModelManager.cpp" />
     <ClCompile Include="src\Engine\ObjectManager.cpp" />
     <ClCompile Include="src\Engine\ComponentManager.cpp" />
+    <ClCompile Include="src\Engine\AnimationComponent.cpp" />
     <ClCompile Include="src\Engine\Collider.cpp" />
     <ClCompile Include="src\Engine\CollisionManager.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Enemy.cpp" />
+    <ClCompile Include="src\Tree.cpp" />
     <ClCompile Include="src\Engine\Renderer.cpp" />
     <ClCompile Include="src\Engine\Input.cpp" />
     <ClCompile Include="src\Engine\Camera.cpp" />
@@ -187,6 +189,7 @@
     <ClInclude Include="src\Engine\ObjectManager.h" />
     <ClInclude Include="src\Engine\Component.h" />
     <ClInclude Include="src\Engine\ComponentManager.h" />
+    <ClInclude Include="src\Engine\AnimationComponent.h" />
     <ClInclude Include="src\Engine\Collider.h" />
     <ClInclude Include="src\Engine\SphereCollider.h" />
     <ClInclude Include="src\Engine\CapsuleCollider.h" />
@@ -194,6 +197,7 @@
     <ClInclude Include="src\Engine\CollisionManager.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Enemy.h" />
+    <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\Engine\SceneManager.h" />
     <ClInclude Include="src\Scene_Title.h" />
     <ClInclude Include="src\Engine\HdrLoader.h" />

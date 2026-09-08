@@ -5,11 +5,12 @@
 // 対応範囲:
 //   ・.gltf(外部 .bin / 外部画像)と .glb(単一ファイル)
 //   ・data: URI(base64 埋め込み)
-//   ・POSITION / NORMAL / TANGENT / TEXCOORD_0
+//   ・POSITION / NORMAL / TANGENT / TEXCOORD_0 / JOINTS_0 / WEIGHTS_0
 //   ・pbrMetallicRoughness マテリアル
 //   ・シーングラフのノード変換(頂点に焼き込む)
+//   ・Skin と線形キーフレームアニメーション
 // 非対応:
-//   ・アニメーション、スキニング、sparse accessor、Draco 圧縮
+//   ・sparse accessor、Draco 圧縮、CUBICSPLINE 補間
 //----------------------------------------------------------------------------
 #include "GltfLoader.h"
 #include "Json.h"
@@ -21,6 +22,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
+#include <limits>
 #include <map>
 
 #pragma comment(lib, "windowscodecs.lib")
@@ -435,7 +438,7 @@ namespace
         // mode 4 = TRIANGLES 以外は非対応(既定値も 4)
         if (primJson["mode"].AsInt(4) != 4) return false;
 
-        std::vector<float> positions, normals, tangents, uvs;
+        std::vector<float> positions, normals, tangents, uvs, joints, weights;
         int cc = 0;
 
         if (!ReadAccessorFloats(ctx, attributes["POSITION"].AsInt(), positions, cc) || cc != 3)
@@ -454,6 +457,14 @@ namespace
         bool hasUvs = false;
         if (attributes.Has("TEXCOORD_0"))
             hasUvs = ReadAccessorFloats(ctx, attributes["TEXCOORD_0"].AsInt(), uvs, cc) && cc == 2;
+
+        bool hasSkin = false;
+        if (attributes.Has("JOINTS_0") && attributes.Has("WEIGHTS_0"))
+        {
+            hasSkin = ReadAccessorFloats(ctx, attributes["JOINTS_0"].AsInt(), joints, cc) && cc == 4;
+            hasSkin = hasSkin &&
+                ReadAccessorFloats(ctx, attributes["WEIGHTS_0"].AsInt(), weights, cc) && cc == 4;
+        }
 
         // 法線変換用の逆転置行列(非等倍スケールに対応するため)
         XMVECTOR det;
@@ -505,6 +516,12 @@ namespace
 
             v.uv[0] = hasUvs ? uvs[i * 2 + 0] : 0.0f;
             v.uv[1] = hasUvs ? uvs[i * 2 + 1] : 0.0f;
+            for (size_t influence = 0; influence < 4; ++influence)
+            {
+                v.joints[influence] = hasSkin
+                    ? static_cast<uint32_t>(joints[i * 4 + influence]) : 0;
+                v.weights[influence] = hasSkin ? weights[i * 4 + influence] : 0.0f;
+            }
         }
 
         // インデックス
@@ -553,8 +570,13 @@ namespace
                 for (size_t i = 0; i < primitives.Size(); ++i)
                 {
                     GltfPrimitive prim;
-                    if (LoadPrimitive(ctx, primitives[i], world, prim))
+                    const int skin = node["skin"].AsInt(-1);
+                    const XMMATRIX meshTransform = skin >= 0 ? XMMatrixIdentity() : world;
+                    if (LoadPrimitive(ctx, primitives[i], meshTransform, prim))
+                    {
+                        prim.skin = skin;
                         out.primitives.push_back(std::move(prim));
+                    }
                 }
             }
         }
@@ -562,6 +584,130 @@ namespace
         const JsonValue& children = node["children"];
         for (size_t i = 0; i < children.Size(); ++i)
             TraverseNode(ctx, children[i].AsInt(), world, out, depth + 1);
+    }
+
+    void LoadNodes(const JsonValue& root, GltfModel& out)
+    {
+        const JsonValue& nodes = root["nodes"];
+        out.nodes.resize(nodes.Size());
+        for (size_t i = 0; i < nodes.Size(); ++i)
+        {
+            XMVECTOR scale, rotation, translation;
+            if (XMMatrixDecompose(&scale, &rotation, &translation, GetNodeMatrix(nodes[i])))
+            {
+                XMStoreFloat3(&out.nodes[i].scale, scale);
+                XMStoreFloat4(&out.nodes[i].rotation, rotation);
+                XMStoreFloat3(&out.nodes[i].translation, translation);
+            }
+
+            const JsonValue& children = nodes[i]["children"];
+            for (size_t child = 0; child < children.Size(); ++child)
+            {
+                const int childIndex = children[child].AsInt(-1);
+                if (childIndex >= 0 && static_cast<size_t>(childIndex) < out.nodes.size())
+                    out.nodes[childIndex].parent = static_cast<int>(i);
+            }
+        }
+    }
+
+    void LoadSkins(const GltfContext& ctx, GltfModel& out)
+    {
+        const JsonValue& skins = (*ctx.root)["skins"];
+        out.skins.resize(skins.Size());
+        for (size_t i = 0; i < skins.Size(); ++i)
+        {
+            const JsonValue& joints = skins[i]["joints"];
+            auto& skin = out.skins[i];
+            skin.joints.reserve(joints.Size());
+            for (size_t joint = 0; joint < joints.Size(); ++joint)
+                skin.joints.push_back(joints[joint].AsInt(-1));
+
+            std::vector<float> values;
+            int componentCount = 0;
+            if (skins[i].Has("inverseBindMatrices") &&
+                ReadAccessorFloats(ctx, skins[i]["inverseBindMatrices"].AsInt(),
+                    values, componentCount) && componentCount == 16)
+            {
+                skin.inverseBindMatrices.resize(values.size() / 16);
+                for (size_t matrix = 0; matrix < skin.inverseBindMatrices.size(); ++matrix)
+                    memcpy(&skin.inverseBindMatrices[matrix], values.data() + matrix * 16,
+                        sizeof(XMFLOAT4X4));
+            }
+            else
+            {
+                skin.inverseBindMatrices.resize(skin.joints.size());
+                for (auto& matrix : skin.inverseBindMatrices)
+                    XMStoreFloat4x4(&matrix, XMMatrixIdentity());
+            }
+        }
+    }
+
+    void LoadAnimations(const GltfContext& ctx, GltfModel& out)
+    {
+        const JsonValue& animations = (*ctx.root)["animations"];
+        for (size_t animationIndex = 0; animationIndex < animations.Size(); ++animationIndex)
+        {
+            const JsonValue& source = animations[animationIndex];
+            const JsonValue& samplers = source["samplers"];
+            GltfAnimation animation;
+            animation.name = source["name"].AsString();
+            animation.startTime = (std::numeric_limits<float>::max)();
+
+            const JsonValue& channels = source["channels"];
+            for (size_t channelIndex = 0; channelIndex < channels.Size(); ++channelIndex)
+            {
+                const JsonValue& sourceChannel = channels[channelIndex];
+                const int samplerIndex = sourceChannel["sampler"].AsInt(-1);
+                if (samplerIndex < 0 || static_cast<size_t>(samplerIndex) >= samplers.Size())
+                    continue;
+                const JsonValue& sampler = samplers[static_cast<size_t>(samplerIndex)];
+                if (sampler["interpolation"].AsString("LINEAR") == "CUBICSPLINE") continue;
+
+                GltfAnimationChannel channel;
+                channel.node = sourceChannel["target"]["node"].AsInt(-1);
+                const std::string path = sourceChannel["target"]["path"].AsString();
+                int expectedComponents = 3;
+                if (path == "rotation")
+                {
+                    channel.path = GltfAnimationChannel::Path::Rotation;
+                    expectedComponents = 4;
+                }
+                else if (path == "scale")
+                    channel.path = GltfAnimationChannel::Path::Scale;
+                else if (path != "translation")
+                    continue;
+
+                int componentCount = 0;
+                std::vector<float> values;
+                if (!ReadAccessorFloats(ctx, sampler["input"].AsInt(),
+                        channel.times, componentCount) || componentCount != 1 ||
+                    !ReadAccessorFloats(ctx, sampler["output"].AsInt(),
+                        values, componentCount) || componentCount != expectedComponents ||
+                    values.size() / static_cast<size_t>(componentCount) != channel.times.size())
+                {
+                    continue;
+                }
+
+                channel.values.resize(channel.times.size());
+                for (size_t key = 0; key < channel.times.size(); ++key)
+                {
+                    auto& value = channel.values[key];
+                    value.x = values[key * componentCount + 0];
+                    value.y = values[key * componentCount + 1];
+                    value.z = values[key * componentCount + 2];
+                    value.w = componentCount == 4 ? values[key * componentCount + 3] : 0.0f;
+                }
+                if (!channel.times.empty())
+                {
+                    animation.startTime = (std::min)(animation.startTime, channel.times.front());
+                    animation.endTime = (std::max)(animation.endTime, channel.times.back());
+                    animation.channels.push_back(std::move(channel));
+                }
+            }
+
+            if (!animation.channels.empty())
+                out.animations.push_back(std::move(animation));
+        }
     }
 
     //------------------------------------------------------------------------
@@ -746,6 +892,9 @@ bool LoadGltf(const char* path, GltfModel& out)
     }
 
     LoadMaterials(root, out);
+    LoadNodes(root, out);
+    LoadSkins(ctx, out);
+    LoadAnimations(ctx, out);
 
     // --- シーンをたどってメッシュを集める ---
     const int sceneIndex = root["scene"].AsInt(0);

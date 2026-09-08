@@ -23,7 +23,9 @@ namespace RendererDetail
         XMFLOAT3 normal;     // offset 12
         XMFLOAT4 tangent;    // offset 24 : xyz = 接線、w = 従法線の向き
         XMFLOAT2 uv;         // offset 40
-    };                       // 合計 48 バイト
+        XMUINT4 joints;      // offset 48
+        XMFLOAT4 weights;    // offset 64
+    };                       // 合計 80 バイト
 
     static_assert(sizeof(Vertex) == sizeof(GltfVertex),
         "Vertex と GltfVertex のメモリ配置が一致していません");
@@ -61,6 +63,9 @@ namespace RendererDetail
         float    padding8;
         float    padding9;
         float    padding10;
+        uint32_t jointCount;
+        float padding11[3];
+        XMFLOAT4X4 jointMatrices[GltfMaxSkinJoints];
     };
 
     static_assert(sizeof(SceneConstants) % 16 == 0,

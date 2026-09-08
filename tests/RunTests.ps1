@@ -8,7 +8,7 @@ $common = 'src\Engine\ComponentManager.cpp src\Engine\ObjectManager.cpp src\Engi
 $suites = @{
     ComponentManagerTests = $common
     CollisionTests = $common
-    EngineTests = "$common src\Engine\Camera.cpp src\Engine\ModelManager.cpp src\Engine\GltfLoader.cpp src\Engine\Json.cpp"
+    EngineTests = "$common src\Engine\Camera.cpp src\Engine\ModelManager.cpp src\Engine\GltfLoader.cpp src\Engine\Json.cpp src\Engine\AnimationComponent.cpp"
 }
 Push-Location $repoRoot
 try {

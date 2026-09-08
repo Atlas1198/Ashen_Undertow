@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include "AnimationComponent.h"
 #include "ModelManager.h"
 #include "ObjectManager.h"
 #include <cassert>
@@ -72,6 +73,57 @@ int main()
     assert(!models.Load("tests/fixtures/triangle.fbx").IsValid());
     assert(!models.GetModel({}));
     assert(models.GetModel(model) == data);
+
+    const auto tree = models.Load("assets/model/tree.gltf");
+    const auto* treeData = models.GetModel(tree);
+    assert(treeData && treeData->Valid());
+    assert(treeData->primitives[0].vertices.size() == 4);
+    assert(treeData->images.size() == 1 && treeData->images[0].Valid());
+
+    const auto playerModel = models.Load(
+        "assets/model/SwordMen/sword_and_shield.glb");
+    const auto* playerData = models.GetModel(playerModel);
+    assert(playerData && playerData->Valid());
+    assert(playerData->skins.size() == 1);
+    assert(playerData->skins[0].joints.size() == 69);
+    assert(playerData->animations.size() == 2);
+    assert(playerData->animations[0].name == "Idle");
+    assert(playerData->animations[1].name == "Walk");
+    assert(!playerData->animations[0].channels.empty());
+
+    AnimationComponent idleAnimation(models,
+        "assets/model/SwordMen/sword_and_shield.glb");
+    assert(idleAnimation.Initialize());
+    const auto initialPose = idleAnimation.GetSkinMatrices();
+    idleAnimation.Update(0.5f);
+    const auto& animatedPose = idleAnimation.GetSkinMatrices();
+    assert(animatedPose.size() == 69);
+    bool poseChanged = false;
+    for (size_t joint = 0; joint < animatedPose.size(); ++joint)
+    {
+        const float* before = &initialPose[joint]._11;
+        const float* after = &animatedPose[joint]._11;
+        for (size_t element = 0; element < 16; ++element)
+        {
+            assert(std::isfinite(after[element]));
+            poseChanged = poseChanged || !Near(before[element], after[element]);
+        }
+    }
+    assert(poseChanged);
+    const auto idlePose = animatedPose;
+    assert(idleAnimation.Play("Walk"));
+    assert(!idleAnimation.Play("Missing"));
+    idleAnimation.Update(0.3f);
+    const auto& walkPose = idleAnimation.GetSkinMatrices();
+    bool clipChanged = false;
+    for (size_t joint = 0; joint < walkPose.size(); ++joint)
+    {
+        const float* idle = &idlePose[joint]._11;
+        const float* walk = &walkPose[joint]._11;
+        for (size_t element = 0; element < 16; ++element)
+            clipChanged = clipChanged || !Near(idle[element], walk[element]);
+    }
+    assert(clipChanged);
 
     ObjectManager objects(models);
     auto* spawner = objects.AddGameObject<Spawner>(objects);

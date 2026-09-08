@@ -5,6 +5,7 @@
 
 class Player;
 class Enemy;
+class Tree;
 class Input;
 
 class Scene_Game final : public SceneManager
@@ -21,6 +22,7 @@ private:
 
     Player* m_player = nullptr;
     Enemy* m_enemy = nullptr;
+    Tree* m_tree = nullptr;
     const Input& m_input;
     Camera m_camera;
 };

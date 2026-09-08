@@ -5,12 +5,6 @@ using namespace RendererDetail;
 
 bool Renderer::CreateVertexBuffer()
 {
-    if (!m_model || !m_model->Valid())
-    {
-        OutputDebugStringA("assets/model.glb の読み込みに失敗しました\n");
-        return false;
-    }
-
     D3D12_HEAP_PROPERTIES heapProps = {};
     heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
 
@@ -25,76 +19,81 @@ bool Renderer::CreateVertexBuffer()
 
     D3D12_RANGE readRange = { 0, 0 };
 
-    m_meshes.reserve(m_model->primitives.size());
-
-    for (const GltfPrimitive& prim : m_model->primitives)
+    bool hasMesh = false;
+    for (auto& gpuModel : m_models)
     {
-        if (prim.vertices.empty() || prim.indices.empty()) continue;
+        const auto& model = *gpuModel.model;
+        gpuModel.meshes.reserve(model.primitives.size());
+        for (const GltfPrimitive& prim : model.primitives)
+        {
+            if (prim.vertices.empty() || prim.indices.empty()) continue;
 
-        MeshPrimitive mesh;
-        mesh.material = prim.material;
-        mesh.indexCount = (UINT)prim.indices.size();
+            MeshPrimitive mesh;
+            mesh.material = prim.material;
+            mesh.indexCount = (UINT)prim.indices.size();
 
         // マテリアルからアルファと両面の設定を取り出しておく。
         // 描画時にマテリアル配列を引き直さずに済む
-        if (prim.material >= 0 && (size_t)prim.material < m_model->materials.size())
-        {
-            const GltfMaterial& mat = m_model->materials[(size_t)prim.material];
+            if (prim.material >= 0 && (size_t)prim.material < model.materials.size())
+            {
+                const GltfMaterial& mat = model.materials[(size_t)prim.material];
             // MASK 以外は「常に通る」ことを表す負の値にする。
             // こうするとシェーダ側に分岐が要らない
-            mesh.alphaCutoff = (mat.alphaMode == GltfMaterial::AlphaMode::Mask)
-                ? mat.alphaCutoff : -1.0f;
-            mesh.doubleSided = mat.doubleSided;
-        }
+                mesh.alphaCutoff = (mat.alphaMode == GltfMaterial::AlphaMode::Mask)
+                    ? mat.alphaCutoff : -1.0f;
+                mesh.doubleSided = mat.doubleSided;
+            }
 
-        const UINT vertexBufferSize = (UINT)(prim.vertices.size() * sizeof(GltfVertex));
-        const UINT indexBufferSize = (UINT)(prim.indices.size() * sizeof(uint32_t));
+            const UINT vertexBufferSize = (UINT)(prim.vertices.size() * sizeof(GltfVertex));
+            const UINT indexBufferSize = (UINT)(prim.indices.size() * sizeof(uint32_t));
 
         // --- 頂点バッファ ---
-        resourceDesc.Width = vertexBufferSize;
-        if (!Check(m_device->CreateCommittedResource(
-            &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-            IID_PPV_ARGS(&mesh.vertexBuffer))))
-        {
-            return false;
-        }
+            resourceDesc.Width = vertexBufferSize;
+            if (!Check(m_device->CreateCommittedResource(
+                &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+                D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                IID_PPV_ARGS(&mesh.vertexBuffer))))
+            {
+                return false;
+            }
 
-        void* mapped = nullptr;
-        if (!Check(mesh.vertexBuffer->Map(0, &readRange, &mapped))) return false;
-        memcpy(mapped, prim.vertices.data(), vertexBufferSize);
-        mesh.vertexBuffer->Unmap(0, nullptr);
+            void* mapped = nullptr;
+            if (!Check(mesh.vertexBuffer->Map(0, &readRange, &mapped))) return false;
+            memcpy(mapped, prim.vertices.data(), vertexBufferSize);
+            mesh.vertexBuffer->Unmap(0, nullptr);
 
-        mesh.vertexBufferView.BufferLocation = mesh.vertexBuffer->GetGPUVirtualAddress();
-        mesh.vertexBufferView.StrideInBytes = sizeof(Vertex);
-        mesh.vertexBufferView.SizeInBytes = vertexBufferSize;
+            mesh.vertexBufferView.BufferLocation = mesh.vertexBuffer->GetGPUVirtualAddress();
+            mesh.vertexBufferView.StrideInBytes = sizeof(Vertex);
+            mesh.vertexBufferView.SizeInBytes = vertexBufferSize;
 
         // --- インデックスバッファ ---
-        resourceDesc.Width = indexBufferSize;
-        if (!Check(m_device->CreateCommittedResource(
-            &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-            IID_PPV_ARGS(&mesh.indexBuffer))))
-        {
-            return false;
+            resourceDesc.Width = indexBufferSize;
+            if (!Check(m_device->CreateCommittedResource(
+                &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+                D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                IID_PPV_ARGS(&mesh.indexBuffer))))
+            {
+                return false;
+            }
+
+            void* mappedIndex = nullptr;
+            if (!Check(mesh.indexBuffer->Map(0, &readRange, &mappedIndex))) return false;
+            memcpy(mappedIndex, prim.indices.data(), indexBufferSize);
+            mesh.indexBuffer->Unmap(0, nullptr);
+
+            mesh.indexBufferView.BufferLocation = mesh.indexBuffer->GetGPUVirtualAddress();
+            mesh.indexBufferView.SizeInBytes = indexBufferSize;
+            mesh.indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+
+            gpuModel.meshes.push_back(std::move(mesh));
+            hasMesh = true;
         }
-
-        void* mappedIndex = nullptr;
-        if (!Check(mesh.indexBuffer->Map(0, &readRange, &mappedIndex))) return false;
-        memcpy(mappedIndex, prim.indices.data(), indexBufferSize);
-        mesh.indexBuffer->Unmap(0, nullptr);
-
-        mesh.indexBufferView.BufferLocation = mesh.indexBuffer->GetGPUVirtualAddress();
-        mesh.indexBufferView.SizeInBytes = indexBufferSize;
-        mesh.indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-
-        m_meshes.push_back(std::move(mesh));
     }
 
     // ※ 本来この規模のデータは DEFAULT ヒープへコピーすべき。
     //    UPLOAD ヒープのままだと GPU からの読み出しが遅い。
     //    正しさより手順の単純さを優先している箇所
-    return !m_meshes.empty();
+    return hasMesh;
 }
 
 bool Renderer::UploadTexture(const void* pixels, UINT width, UINT height,
@@ -300,22 +299,12 @@ bool Renderer::CreateMaterialTextures()
     const D3D12_CPU_DESCRIPTOR_HANDLE heapStart =
         m_srvHeap->GetCPUDescriptorHandleForHeapStart();
 
-    // 画像添字から実体を引く。無効なら nullptr
-    auto findImage = [&](int index) -> const GltfImage*
-        {
-            if (index < 0 || (size_t)index >= m_model->images.size()) return nullptr;
-            const GltfImage& img = m_model->images[(size_t)index];
-            return img.Valid() ? &img : nullptr;
-        };
-
     auto createSrv = [&](ID3D12Resource* resource, DXGI_FORMAT format, UINT slot)
         {
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
             srvDesc.Format = format;
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            // -1 は「このリソースが持つ全ミップを使う」の意味。
-            // ここを 1 のままにするとミップを作っても使われない
             srvDesc.Texture2D.MipLevels = (UINT)-1;
 
             D3D12_CPU_DESCRIPTOR_HANDLE handle = heapStart;
@@ -323,13 +312,25 @@ bool Renderer::CreateMaterialTextures()
             m_device->CreateShaderResourceView(resource, &srvDesc, handle);
         };
 
+    for (auto& gpuModel : m_models)
+    {
+        const auto* model = gpuModel.model;
+
+        // 画像添字から実体を引く。無効なら nullptr
+        auto findImage = [&](int index) -> const GltfImage*
+        {
+            if (index < 0 || (size_t)index >= model->images.size()) return nullptr;
+            const GltfImage& img = model->images[(size_t)index];
+            return img.Valid() ? &img : nullptr;
+        };
+
     // 同じ画像を複数のマテリアルが参照することがある。
     // 一度アップロードしたものは使い回して、VRAM と起動時間を節約する
-    std::map<std::pair<int, DXGI_FORMAT>, ComPtr<ID3D12Resource>> cache;
+        std::map<std::pair<int, DXGI_FORMAT>, ComPtr<ID3D12Resource>> cache;
 
     // テクスチャ 1 枚を用意して、指定スロットに SRV を作る
-    auto loadInto = [&](int imageIndex, DXGI_FORMAT format,
-        const uint8_t* fallback, UINT slot) -> bool
+        auto loadInto = [&](int imageIndex, DXGI_FORMAT format,
+            const uint8_t* fallback, UINT slot) -> bool
         {
             const GltfImage* img = findImage(imageIndex);
 
@@ -339,7 +340,7 @@ bool Renderer::CreateMaterialTextures()
                 ComPtr<ID3D12Resource> tex;
                 if (!UploadTexture(fallback, 1, 1, format, tex)) return false;
                 createSrv(tex.Get(), format, slot);
-                m_materialTextures.push_back(tex);
+                gpuModel.materialTextures.push_back(tex);
                 return true;
             }
 
@@ -350,7 +351,7 @@ bool Renderer::CreateMaterialTextures()
                 ComPtr<ID3D12Resource> tex;
                 if (!UploadTexture(img->pixels.data(), img->width, img->height, format, tex))
                     return false;
-                m_materialTextures.push_back(tex);
+                gpuModel.materialTextures.push_back(tex);
                 it = cache.emplace(key, tex).first;
             }
             createSrv(it->second.Get(), format, slot);
@@ -358,22 +359,23 @@ bool Renderer::CreateMaterialTextures()
         };
 
     // --- 各マテリアルのテクスチャ 5 枚を、5 個ずつ並べていく ---
-    for (size_t i = 0; i < m_model->materials.size(); ++i)
-    {
-        const GltfMaterial& mat = m_model->materials[i];
-        const UINT base = kSrvMaterialStart + (UINT)i * kTexturesPerMaterial;
+        for (size_t i = 0; i < model->materials.size(); ++i)
+        {
+            const GltfMaterial& mat = model->materials[i];
+            const UINT base = gpuModel.materialStart + (UINT)i * kTexturesPerMaterial;
 
         // 色として見えるものは sRGB、数値として使うものはリニア
-        if (!loadInto(mat.baseColorImage, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-            whitePixel, base + 0)) return false;
-        if (!loadInto(mat.metallicRoughnessImage, DXGI_FORMAT_R8G8B8A8_UNORM,
-            whitePixel, base + 1)) return false;
-        if (!loadInto(mat.normalImage, DXGI_FORMAT_R8G8B8A8_UNORM,
-            flatNormalPixel, base + 2)) return false;
-        if (!loadInto(mat.occlusionImage, DXGI_FORMAT_R8G8B8A8_UNORM,
-            whitePixel, base + 3)) return false;
-        if (!loadInto(mat.emissiveImage, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-            whitePixel, base + 4)) return false;
+            if (!loadInto(mat.baseColorImage, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+                whitePixel, base + 0)) return false;
+            if (!loadInto(mat.metallicRoughnessImage, DXGI_FORMAT_R8G8B8A8_UNORM,
+                whitePixel, base + 1)) return false;
+            if (!loadInto(mat.normalImage, DXGI_FORMAT_R8G8B8A8_UNORM,
+                flatNormalPixel, base + 2)) return false;
+            if (!loadInto(mat.occlusionImage, DXGI_FORMAT_R8G8B8A8_UNORM,
+                whitePixel, base + 3)) return false;
+            if (!loadInto(mat.emissiveImage, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+                whitePixel, base + 4)) return false;
+        }
     }
 
     // --- 既定マテリアル(床や、マテリアルを持たないプリミティブ用) ---

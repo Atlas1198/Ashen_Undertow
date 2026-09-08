@@ -14,11 +14,20 @@ struct PSInput
     float2 uv : TEXCOORD0;
 };
 
-PSInput VSMain(float3 position : POSITION, float2 uv : TEXCOORD0)
+PSInput VSMain(float3 position : POSITION, float2 uv : TEXCOORD0,
+    uint4 joints : BLENDINDICES, float4 weights : BLENDWEIGHT)
 {
     PSInput output;
-    // ワールド行列は単位行列なので、ライトのビュー射影を掛けるだけ
-    output.position = mul(float4(position, 1.0), lightViewProj);
+    if (jointCount > 0)
+    {
+        float4x4 skin =
+            weights.x * jointMatrices[joints.x] +
+            weights.y * jointMatrices[joints.y] +
+            weights.z * jointMatrices[joints.z] +
+            weights.w * jointMatrices[joints.w];
+        position = mul(float4(position, 1.0), skin).xyz;
+    }
+    output.position = mul(mul(float4(position, 1.0), world), lightViewProj);
     output.uv = uv;
     return output;
 }

@@ -1,7 +1,6 @@
 #include "Manager.h"
 
 #include "Scene_Game.h"
-#include "GameAssets.h"
 
 bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
 {
@@ -10,8 +9,7 @@ bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
     if (!m_currentScene->Initialize())
         return false;
 
-    const auto model = m_modelManager.Load(GameAssets::CharacterModel);
-    if (!m_renderer.Initialize(hwnd, width, height, m_modelManager, model))
+    if (!m_renderer.Initialize(hwnd, width, height, m_modelManager))
         return false;
 
     m_lastFrameTime = std::chrono::steady_clock::now();

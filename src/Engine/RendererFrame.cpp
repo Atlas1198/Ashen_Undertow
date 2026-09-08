@@ -1,5 +1,7 @@
 #include "RendererInternal.h"
 
+#include <algorithm>
+
 using namespace DirectX;
 using namespace RendererDetail;
 
@@ -9,9 +11,11 @@ void Renderer::DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS consta
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     const auto heapStart = m_srvHeap->GetGPUDescriptorHandleForHeapStart();
     size_t constantIndex = 0;
-    for (size_t instance = 0; instance < m_drawCommands.size(); ++instance)
+    for (const auto& command : m_drawCommands)
     {
-        for (const auto& mesh : m_meshes)
+        if (command.modelIndex >= m_models.size()) continue;
+        const auto& model = m_models[command.modelIndex];
+        for (const auto& mesh : model.meshes)
         {
             if (!shadowPass)
                 m_commandList->SetPipelineState(mesh.doubleSided
@@ -19,7 +23,7 @@ void Renderer::DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS consta
             m_commandList->SetGraphicsRootConstantBufferView(
                 0, constantBase + constantIndex++ * m_cbStride);
             const UINT slot = mesh.material >= 0
-                ? kSrvMaterialStart + UINT(mesh.material) * kTexturesPerMaterial
+                ? model.materialStart + UINT(mesh.material) * kTexturesPerMaterial
                 : kSrvDefaultMaterial;
             auto material = heapStart;
             material.ptr += SIZE_T(slot) * srvStep;
@@ -31,13 +35,22 @@ void Renderer::DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS consta
     }
 }
 
-void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world)
+void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
+    const std::vector<XMFLOAT4X4>* skinMatrices)
 {
-    // 現在GPUへ転送済みのモデルだけを受け付ける。
-    if (modelHandle.value != m_modelHandle.value) return;
-    if ((m_drawCommands.size() + 1) * m_meshes.size() > kMaxDrawMeshCount) return;
+    for (uint32_t i = 0; i < m_models.size(); ++i)
+    {
+        const auto& model = m_models[i];
+        if (model.handle.value != modelHandle.value) continue;
+        if (m_drawMeshCount + model.meshes.size() > kMaxDrawMeshCount) return;
 
-    m_drawCommands.push_back({ modelHandle, world });
+        DrawCommand command { i, world };
+        if (skinMatrices)
+            command.skinMatrices = *skinMatrices;
+        m_drawCommands.push_back(std::move(command));
+        m_drawMeshCount += model.meshes.size();
+        return;
+    }
 }
 
 void Renderer::Render()
@@ -120,16 +133,26 @@ void Renderer::Render()
     size_t drawConstantIndex = 0;
     for (const DrawCommand& command : m_drawCommands)
     {
+        if (command.modelIndex >= m_models.size()) continue;
+        const auto& gpuModel = m_models[command.modelIndex];
+        const auto& model = *gpuModel.model;
         const XMMATRIX objectWorld = XMLoadFloat4x4(&command.world);
         XMStoreFloat4x4(&cb.mvp, XMMatrixTranspose(objectWorld * view * proj));
         XMStoreFloat4x4(&cb.world, XMMatrixTranspose(objectWorld));
-
-        for (size_t i = 0; i < m_meshes.size(); ++i)
+        cb.jointCount = static_cast<uint32_t>(std::min<size_t>(
+            command.skinMatrices.size(), GltfMaxSkinJoints));
+        for (uint32_t joint = 0; joint < cb.jointCount; ++joint)
         {
-            const int matIndex = m_meshes[i].material;
-            if (matIndex >= 0 && (size_t)matIndex < m_model->materials.size())
+            XMStoreFloat4x4(&cb.jointMatrices[joint], XMMatrixTranspose(
+                XMLoadFloat4x4(&command.skinMatrices[joint])));
+        }
+
+        for (size_t i = 0; i < gpuModel.meshes.size(); ++i)
+        {
+            const int matIndex = gpuModel.meshes[i].material;
+            if (matIndex >= 0 && (size_t)matIndex < model.materials.size())
             {
-                const GltfMaterial& mat = m_model->materials[(size_t)matIndex];
+                const GltfMaterial& mat = model.materials[(size_t)matIndex];
                 cb.albedo = { mat.baseColorFactor[0], mat.baseColorFactor[1],
                     mat.baseColorFactor[2] };
                 cb.metallic = mat.metallicFactor;
@@ -147,7 +170,7 @@ void Renderer::Render()
                 cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
             }
 
-            cb.alphaCutoff = m_meshes[i].alphaCutoff;
+            cb.alphaCutoff = gpuModel.meshes[i].alphaCutoff;
             cb.padding8 = cb.padding9 = cb.padding10 = 0.0f;
             memcpy(frameConstants + drawConstantIndex * m_cbStride,
                 &cb, sizeof(cb));
@@ -164,6 +187,7 @@ void Renderer::Render()
     cb.metallic = 0.0f;
     cb.roughness = 0.70f;
     cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
+    cb.jointCount = 0;
     memcpy(frameConstants + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 1. このフレーム用のアロケータを Reset。
@@ -472,4 +496,5 @@ void Renderer::Render()
     }
     m_fenceValues[m_frameIndex] = currentFenceValue + 1;
     m_drawCommands.clear();
+    m_drawMeshCount = 0;
 }

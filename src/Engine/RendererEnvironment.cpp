@@ -123,10 +123,11 @@ bool Renderer::CreateEnvironmentTexture()
 
     // --- 6. シェーダから見えるヒープに SRV を作る ---
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-    // マテリアル数に応じて必要な数が変わる。
-    // モデルが未読み込みでも 1 個ぶんは確保しておく
-    const uint32_t materialCount =
-        m_model->materials.empty() ? 1u : (uint32_t)m_model->materials.size();
+    // 全モデルのマテリアル数に応じて必要な数が変わる。
+    uint32_t materialCount = 0;
+    for (const auto& model : m_models)
+        materialCount += static_cast<uint32_t>(model.model->materials.size());
+    if (materialCount == 0) materialCount = 1;
     heapDesc.NumDescriptors = kSrvMaterialStart + kTexturesPerMaterial * materialCount;
 
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;

@@ -31,6 +31,7 @@ Release/
 #   - Sponza は Crytek の Cryengine Limited License Agreement 下にあり再配布不可
 #   - HDRI はサイズが大きいためリポジトリに置かない
 assets/
+.tools/
 
 # ---- 個人用の読解メモ ----
 # 公開したくなければこの行を有効のままに。

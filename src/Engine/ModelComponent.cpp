@@ -1,4 +1,5 @@
 #include "ModelComponent.h"
+#include "AnimationComponent.h"
 #include "ModelManager.h"
 #include "GameObject.h"
 #include "Renderer.h"
@@ -11,5 +12,12 @@ bool ModelComponent::Initialize()
 
 void ModelComponent::Draw(Renderer& renderer)
 {
-    renderer.DrawModel(m_model, GetOwner().CreateWorldMatrix());
+    const auto* animation = GetOwner().GetComponent<AnimationComponent>();
+    const auto ownerWorld = GetOwner().CreateWorldMatrix();
+    DirectX::XMFLOAT4X4 modelWorld;
+    DirectX::XMStoreFloat4x4(&modelWorld,
+        DirectX::XMMatrixTranslation(m_offset.x, m_offset.y, m_offset.z) *
+        DirectX::XMLoadFloat4x4(&ownerWorld));
+    renderer.DrawModel(m_model, modelWorld,
+        animation ? &animation->GetSkinMatrices() : nullptr);
 }

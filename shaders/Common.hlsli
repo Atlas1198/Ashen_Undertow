@@ -38,6 +38,9 @@ cbuffer SceneConstants : register(b0)
     float pad8;
     float pad9;
     float pad10;
+    uint jointCount;
+    float3 pad11;
+    float4x4 jointMatrices[80];
 };
 
 // 環境マップ(等距円筒図法の HDR)とサンプラ

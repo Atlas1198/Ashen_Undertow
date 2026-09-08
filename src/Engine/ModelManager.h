@@ -15,6 +15,7 @@ class ModelManager
 public:
     ModelHandle Load(const std::string& path);
     const GltfModel* GetModel(ModelHandle handle) const;
+    size_t GetModelCount() const { return m_models.size(); }
 
 private:
     std::unordered_map<std::string, ModelHandle> m_handles;

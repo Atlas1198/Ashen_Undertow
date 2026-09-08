@@ -25,9 +25,12 @@
 //----------------------------------------------------------------------------
 #pragma once
 
+#include <DirectXMath.h>
 #include <cstdint>
 #include <string>
 #include <vector>
+
+inline constexpr uint32_t GltfMaxSkinJoints = 80;
 
 struct GltfVertex
 {
@@ -35,6 +38,8 @@ struct GltfVertex
     float normal[3];
     float tangent[4];   // xyz = 接線、w = 従法線の向き(±1)
     float uv[2];
+    uint32_t joints[4];
+    float weights[4];
 };
 
 struct GltfImage
@@ -77,6 +82,38 @@ struct GltfPrimitive
     std::vector<GltfVertex> vertices;
     std::vector<uint32_t>   indices;
     int                     material = -1;   // materials への添字
+    int                     skin = -1;
+};
+
+struct GltfNode
+{
+    int parent = -1;
+    DirectX::XMFLOAT3 translation { 0, 0, 0 };
+    DirectX::XMFLOAT4 rotation { 0, 0, 0, 1 };
+    DirectX::XMFLOAT3 scale { 1, 1, 1 };
+};
+
+struct GltfSkin
+{
+    std::vector<int> joints;
+    std::vector<DirectX::XMFLOAT4X4> inverseBindMatrices;
+};
+
+struct GltfAnimationChannel
+{
+    enum class Path { Translation, Rotation, Scale };
+    int node = -1;
+    Path path = Path::Translation;
+    std::vector<float> times;
+    std::vector<DirectX::XMFLOAT4> values;
+};
+
+struct GltfAnimation
+{
+    std::string name;
+    std::vector<GltfAnimationChannel> channels;
+    float startTime = 0;
+    float endTime = 0;
 };
 
 struct GltfModel
@@ -84,6 +121,9 @@ struct GltfModel
     std::vector<GltfPrimitive> primitives;
     std::vector<GltfMaterial>  materials;
     std::vector<GltfImage>     images;
+    std::vector<GltfNode> nodes;
+    std::vector<GltfSkin> skins;
+    std::vector<GltfAnimation> animations;
 
     bool Valid() const { return !primitives.empty(); }
 };

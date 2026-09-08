@@ -36,13 +36,14 @@ public:
     ~Renderer();
 
     bool Initialize(HWND hwnd, uint32_t width, uint32_t height,
-        ModelManager& modelManager, ModelHandle model);
+        ModelManager& modelManager);
     void SetCamera(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& target)
     {
         m_cameraPosition = position;
         m_cameraTarget = target;
     }
-    void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world);
+    void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world,
+        const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr);
     void Render();
 
 private:
@@ -156,14 +157,24 @@ private:
         float                    alphaCutoff = -1.0f;   // 負なら常に通る(不透明)
         bool                     doubleSided = false;
     };
-    std::vector<MeshPrimitive> m_meshes;
+    struct GpuModel
+    {
+        const GltfModel* model = nullptr;
+        ModelHandle handle;
+        uint32_t materialStart = 0;
+        std::vector<MeshPrimitive> meshes;
+        std::vector<ComPtr<ID3D12Resource>> materialTextures;
+    };
+    std::vector<GpuModel> m_models;
 
     struct DrawCommand
     {
-        ModelHandle modelHandle;
+        uint32_t modelIndex;
         DirectX::XMFLOAT4X4 world;
+        std::vector<DirectX::XMFLOAT4X4> skinMatrices;
     };
     std::vector<DrawCommand> m_drawCommands;
+    size_t m_drawMeshCount = 0;
 
     // --- 環境マップ(IBL の元になる HDRI) ---
 	ComPtr<ID3D12DescriptorHeap> m_srvHeap;         // SRV 用ディスクリプタヒープ
@@ -175,13 +186,6 @@ private:
     ComPtr<ID3D12DescriptorHeap> m_prefilterRtvHeap;  // ミップ数ぶんの RTV
     ComPtr<ID3D12Resource>       m_brdfLut;         // split-sum 後半の項のテーブル
     ComPtr<ID3D12DescriptorHeap> m_brdfLutRtvHeap;  // それに描き込むための RTV
-
-    // --- モデル ---
-    const GltfModel*       m_model = nullptr;
-    ModelHandle            m_modelHandle;
-    // 全マテリアルぶんのテクスチャ。
-    // SRV はヒープが持っているので、ここは寿命を保つためだけの入れ物
-    std::vector<ComPtr<ID3D12Resource>> m_materialTextures;
 
     // テクスチャを持たないマテリアル用の既定テクスチャ
     ComPtr<ID3D12Resource> m_defaultWhiteSrgb;

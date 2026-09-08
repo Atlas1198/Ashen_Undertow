@@ -4,6 +4,7 @@
 #include "ModelHandle.h"
 
 class Input;
+class AnimationComponent;
 
 class Player final : public GameObject
 {
@@ -15,6 +16,7 @@ public:
     void Update(float deltaTime) override;
     ModelHandle GetModelHandle() const;
 
-private:
+private:    
     const Input& m_input;
+    AnimationComponent* m_animation = nullptr;
 };
