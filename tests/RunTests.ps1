@@ -9,6 +9,7 @@ $suites = @{
     ComponentManagerTests = $common
     CollisionTests = $common
     EngineTests = "$common src\Engine\Camera.cpp src\Engine\ModelManager.cpp src\Engine\GltfLoader.cpp src\Engine\Json.cpp src\Engine\AnimationComponent.cpp"
+    RigidbodyTests = "$common src\Engine\Rigidbody.cpp"
 }
 Push-Location $repoRoot
 try {

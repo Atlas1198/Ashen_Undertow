@@ -156,6 +156,7 @@
     <ClCompile Include="src\Engine\AnimationComponent.cpp" />
     <ClCompile Include="src\Engine\Collider.cpp" />
     <ClCompile Include="src\Engine\CollisionManager.cpp" />
+    <ClCompile Include="src\Engine\Rigidbody.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Enemy.cpp" />
     <ClCompile Include="src\Tree.cpp" />
@@ -195,6 +196,7 @@
     <ClInclude Include="src\Engine\CapsuleCollider.h" />
     <ClInclude Include="src\Engine\BoxCollider.h" />
     <ClInclude Include="src\Engine\CollisionManager.h" />
+    <ClInclude Include="src\Engine\Rigidbody.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Enemy.h" />
     <ClInclude Include="src\Tree.h" />
