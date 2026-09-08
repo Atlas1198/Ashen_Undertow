@@ -86,10 +86,17 @@ int main()
     assert(playerData && playerData->Valid());
     assert(playerData->skins.size() == 1);
     assert(playerData->skins[0].joints.size() == 69);
-    assert(playerData->animations.size() == 2);
-    assert(playerData->animations[0].name == "Idle");
-    assert(playerData->animations[1].name == "Walk");
-    assert(!playerData->animations[0].channels.empty());
+    assert(playerData->animations.size() == 4);
+    bool hasIdle = false, hasWalk = false, hasRun = false, hasAttack = false;
+    for (const auto& animation : playerData->animations)
+    {
+        assert(!animation.channels.empty());
+        hasIdle = hasIdle || animation.name == "Idle";
+        hasWalk = hasWalk || animation.name == "Walk";
+        hasRun = hasRun || animation.name == "Run";
+        hasAttack = hasAttack || animation.name == "Attack";
+    }
+    assert(hasIdle && hasWalk && hasRun && hasAttack);
 
     AnimationComponent idleAnimation(models,
         "assets/model/SwordMen/sword_and_shield.glb");
@@ -124,6 +131,26 @@ int main()
             clipChanged = clipChanged || !Near(idle[element], walk[element]);
     }
     assert(clipChanged);
+    const auto beforeRun = walkPose;
+    assert(idleAnimation.Play("Run"));
+    idleAnimation.Update(0.3f);
+    bool runChanged = false;
+    const auto& runPose = idleAnimation.GetSkinMatrices();
+    for (size_t joint = 0; joint < runPose.size(); ++joint)
+    {
+        const float* before = &beforeRun[joint]._11;
+        const float* after = &runPose[joint]._11;
+        for (size_t element = 0; element < 16; ++element)
+        {
+            assert(std::isfinite(after[element]));
+            runChanged = runChanged || !Near(before[element], after[element]);
+        }
+    }
+    assert(runChanged);
+    assert(idleAnimation.Play("Attack", false));
+    assert(!idleAnimation.IsFinished());
+    idleAnimation.Update(10.0f);
+    assert(idleAnimation.IsFinished());
 
     ObjectManager objects(models);
     auto* spawner = objects.AddGameObject<Spawner>(objects);

@@ -19,7 +19,8 @@ public:
 
     bool Initialize() override;
     void Update(float deltaTime) override;
-    bool Play(const char* name);
+    bool Play(const char* name, bool loop = true);
+    bool IsFinished() const { return m_finished; }
     const std::vector<DirectX::XMFLOAT4X4>& GetSkinMatrices() const
     {
         return m_skinMatrices;
@@ -34,6 +35,8 @@ private:
     const GltfModel* m_model = nullptr;
     size_t m_animationIndex = 0;
     float m_time = 0;
+    bool m_loop = true;
+    bool m_finished = false;
     std::vector<DirectX::XMFLOAT3> m_translations;
     std::vector<DirectX::XMFLOAT4> m_rotations;
     std::vector<DirectX::XMFLOAT3> m_scales;

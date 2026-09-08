@@ -23,10 +23,16 @@ void Player::Update(float deltaTime)
     const float moveZ = m_input.MoveZ();
 
     const float length = std::sqrt(moveX * moveX + moveZ * moveZ);
-    m_animation->Play(length > 0.0f ? "Walk" : "Idle");
+    const bool dashing = length > 0.0f && m_input.DashHeld();
+    if (m_attacking && m_animation->IsFinished())
+        m_attacking = false;
+    if (m_input.AttackPressed() && !m_attacking)
+        m_attacking = m_animation->Play("Attack", false);
+    if (!m_attacking)
+        m_animation->Play(length > 0.0f ? (dashing ? "Run" : "Walk") : "Idle");
     if (length > 0.0f)
     {
-        constexpr float moveSpeed = 3.0f;
+        const float moveSpeed = dashing ? 6.0f : 3.0f;
         const float localX = moveX / length;
         const float localZ = moveZ / length;
         const float sinYaw = std::sin(m_rotation.y);

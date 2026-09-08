@@ -19,4 +19,5 @@ public:
 private:    
     const Input& m_input;
     AnimationComponent* m_animation = nullptr;
+    bool m_attacking = false;
 };

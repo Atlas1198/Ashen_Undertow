@@ -44,7 +44,17 @@ void AnimationComponent::Update(float deltaTime)
     const float duration = animation.endTime - animation.startTime;
     m_time += deltaTime;
     if (duration > 0.0f)
-        m_time = animation.startTime + std::fmod(m_time - animation.startTime, duration);
+    {
+        if (m_loop)
+            m_time = animation.startTime + std::fmod(m_time - animation.startTime, duration);
+        else if (m_time >= animation.endTime)
+        {
+            m_time = animation.endTime;
+            m_finished = true;
+        }
+    }
+    else if (!m_loop)
+        m_finished = true;
 
     for (size_t i = 0; i < m_model->nodes.size(); ++i)
     {
@@ -126,16 +136,18 @@ void AnimationComponent::Update(float deltaTime)
     }
 }
 
-bool AnimationComponent::Play(const char* name)
+bool AnimationComponent::Play(const char* name, bool loop)
 {
     for (size_t i = 0; i < m_model->animations.size(); ++i)
     {
         if (m_model->animations[i].name != name) continue;
-        if (m_animationIndex != i)
+        if (m_animationIndex != i || m_finished)
         {
             m_animationIndex = i;
             m_time = m_model->animations[i].startTime;
         }
+        m_loop = loop;
+        m_finished = false;
         return true;
     }
     return false;
