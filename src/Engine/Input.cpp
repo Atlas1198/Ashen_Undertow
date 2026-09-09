@@ -16,9 +16,11 @@ void Input::Update()
     m_moveX = m_moveZ = m_lookX = m_lookY = 0;
     m_dashHeld = false;
     m_attackPressed = false;
+    m_jumpPressed = false;
     const bool focused = m_window && GetForegroundWindow() == m_window;
     const auto down = [](int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; };
     const bool leftDown = down(VK_LBUTTON);
+    const bool spaceDown = down(VK_SPACE);
     const bool escapeDown = down(VK_ESCAPE);
     if (!focused || escapeDown) m_controlEnabled = false;
 
@@ -32,6 +34,8 @@ void Input::Update()
         ScreenToClient(m_window, &client) && PtInRect(&rect, client))
         m_controlEnabled = true;
     m_leftWasDown = leftDown;
+    m_jumpPressed = focused && spaceDown && !m_spaceWasDown;
+    m_spaceWasDown = spaceDown;
 
     if (focused)
     {

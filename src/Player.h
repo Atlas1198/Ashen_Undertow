@@ -5,6 +5,7 @@
 
 class Input;
 class AnimationComponent;
+class Rigidbody;
 
 class Player final : public GameObject
 {
@@ -19,5 +20,7 @@ public:
 private:    
     const Input& m_input;
     AnimationComponent* m_animation = nullptr;
+    Rigidbody* m_rigidbody = nullptr;
     bool m_attacking = false;
+    bool m_jumping = false;
 };

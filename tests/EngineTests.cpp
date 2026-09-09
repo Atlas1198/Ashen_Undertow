@@ -86,8 +86,8 @@ int main()
     assert(playerData && playerData->Valid());
     assert(playerData->skins.size() == 1);
     assert(playerData->skins[0].joints.size() == 69);
-    assert(playerData->animations.size() == 4);
-    bool hasIdle = false, hasWalk = false, hasRun = false, hasAttack = false;
+    assert(playerData->animations.size() == 5);
+    bool hasIdle = false, hasWalk = false, hasRun = false, hasAttack = false, hasJump = false;
     for (const auto& animation : playerData->animations)
     {
         assert(!animation.channels.empty());
@@ -95,8 +95,19 @@ int main()
         hasWalk = hasWalk || animation.name == "Walk";
         hasRun = hasRun || animation.name == "Run";
         hasAttack = hasAttack || animation.name == "Attack";
+        hasJump = hasJump || animation.name == "Jump";
     }
-    assert(hasIdle && hasWalk && hasRun && hasAttack);
+    assert(hasIdle && hasWalk && hasRun && hasAttack && hasJump);
+
+    const auto enemyModel = models.Load("assets/model/Mutant/mutant_idle.glb");
+    const auto* enemyData = models.GetModel(enemyModel);
+    assert(enemyData && enemyData->Valid());
+    assert(enemyData->skins.size() == 1);
+    assert(enemyData->animations.size() == 1);
+    assert(enemyData->animations[0].name == "Idle");
+    assert(!enemyData->animations[0].channels.empty());
+    AnimationComponent enemyAnimation(models, "assets/model/Mutant/mutant_idle.glb");
+    assert(enemyAnimation.Initialize());
 
     AnimationComponent idleAnimation(models,
         "assets/model/SwordMen/sword_and_shield.glb");
@@ -151,6 +162,7 @@ int main()
     assert(!idleAnimation.IsFinished());
     idleAnimation.Update(10.0f);
     assert(idleAnimation.IsFinished());
+    assert(idleAnimation.Play("Jump", false));
 
     ObjectManager objects(models);
     auto* spawner = objects.AddGameObject<Spawner>(objects);
