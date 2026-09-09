@@ -44,6 +44,8 @@ public:
     }
     void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world,
         const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr);
+    void DrawCollider(const DirectX::XMFLOAT3& center,
+        const DirectX::XMFLOAT3& halfExtents, float radius, bool colliding);
     void Render();
 
 private:
@@ -64,6 +66,8 @@ private:
     bool CreateTonemapPipeline();   // HDR → バックバッファ の変換パス
     bool CreateBloomResources();    // 1/4 解像度の作業用バッファ 2 枚
     bool CreateBloomPipelines();    // 輝度抽出とぼかしの PSO
+    bool CreateColliderDebugResources();
+    void DrawColliderDebug(const DirectX::XMMATRIX& viewProjection);
 
     // テクスチャ 1 枚を GPU に転送する共通処理。
     // ピクセルは RGBA8(1 ピクセル 4 バイト)であることを前提とする
@@ -175,6 +179,25 @@ private:
     };
     std::vector<DrawCommand> m_drawCommands;
     size_t m_drawMeshCount = 0;
+
+    struct DebugColliderCommand
+    {
+        DirectX::XMFLOAT3 center;
+        DirectX::XMFLOAT3 halfExtents;
+        float radius;
+        bool colliding;
+    };
+    struct DebugLineVertex
+    {
+        DirectX::XMFLOAT3 position;
+        DirectX::XMFLOAT4 color;
+    };
+    static constexpr uint32_t kMaxDebugLineVertices = 16384;
+    std::vector<DebugColliderCommand> m_debugColliders;
+    ComPtr<ID3D12RootSignature> m_debugLineRootSignature;
+    ComPtr<ID3D12PipelineState> m_debugLinePSO;
+    ComPtr<ID3D12Resource> m_debugLineVertexBuffers[kFrameCount];
+    void* m_debugLineMapped[kFrameCount] = {};
 
     // --- 環境マップ(IBL の元になる HDRI) ---
 	ComPtr<ID3D12DescriptorHeap> m_srvHeap;         // SRV 用ディスクリプタヒープ

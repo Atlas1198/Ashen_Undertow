@@ -94,6 +94,9 @@
     <ClCompile Include="src\Engine\RendererFrame.cpp">
       <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\RendererDebug.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Scene_Title.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -156,15 +159,6 @@
     <ClInclude Include="src\Engine\Collider.h">
       <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="src\Engine\SphereCollider.h">
-      <Filter>ヘッダー ファイル\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\CapsuleCollider.h">
-      <Filter>ヘッダー ファイル\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\BoxCollider.h">
-      <Filter>ヘッダー ファイル\Engine</Filter>
-    </ClInclude>
     <ClInclude Include="src\Engine\CollisionManager.h">
       <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
@@ -198,6 +192,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Triangle.hlsl">
+      <Filter>シェーダー</Filter>
+    </None>
+    <None Include="shaders\ColliderDebug.hlsl">
       <Filter>シェーダー</Filter>
     </None>
     <None Include="shaders\Common.hlsli">

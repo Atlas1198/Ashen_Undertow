@@ -1,5 +1,5 @@
 #include "Player.h"
-#include "CapsuleCollider.h"
+#include "Collider.h"
 #include "AnimationComponent.h"
 #include "Rigidbody.h"
 
@@ -21,7 +21,7 @@ bool Player::Initialize(ModelManager& modelManager)
     model->SetOffset(0.0f, -1.05f, 0.0f);
     m_animation = AddComponent<AnimationComponent>(modelManager, GameAssets::PlayerModel);
     if (!m_animation) return false;
-    if (!AddComponent<CapsuleCollider>(0.5f, 0.5f)) return false;
+    if (!AddComponent<CapsuleCollider>(0.3f, 0.3f)) return false;
     m_rigidbody = AddComponent<Rigidbody>();
     if (!m_rigidbody) return false;
     m_rigidbody->SetUseGravity(false);

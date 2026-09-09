@@ -170,6 +170,7 @@
     <ClCompile Include="src\Engine\RendererPipelines.cpp" />
     <ClCompile Include="src\Engine\RendererPostProcess.cpp" />
     <ClCompile Include="src\Engine\RendererFrame.cpp" />
+    <ClCompile Include="src\Engine\RendererDebug.cpp" />
     <ClCompile Include="src\Scene_Title.cpp" />
     <ClCompile Include="src\Engine\HdrLoader.cpp" />
     <ClCompile Include="src\Engine\Json.cpp" />
@@ -192,9 +193,6 @@
     <ClInclude Include="src\Engine\ComponentManager.h" />
     <ClInclude Include="src\Engine\AnimationComponent.h" />
     <ClInclude Include="src\Engine\Collider.h" />
-    <ClInclude Include="src\Engine\SphereCollider.h" />
-    <ClInclude Include="src\Engine\CapsuleCollider.h" />
-    <ClInclude Include="src\Engine\BoxCollider.h" />
     <ClInclude Include="src\Engine\CollisionManager.h" />
     <ClInclude Include="src\Engine\Rigidbody.h" />
     <ClInclude Include="src\Player.h" />
@@ -210,6 +208,7 @@
     <!-- HLSL は実行時に D3DCompileFromFile で読むため、ビルドでは何もしない -->
     <None Include="shaders\Common.hlsli" />
     <None Include="shaders\Triangle.hlsl" />
+    <None Include="shaders\ColliderDebug.hlsl" />
     <None Include="shaders\Skybox.hlsl" />
   </ItemGroup>
   <ItemGroup>

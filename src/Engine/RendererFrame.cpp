@@ -329,6 +329,8 @@ void Renderer::Render()
         m_commandList->DrawIndexedInstanced(m_floorIndexCount, 1, 0, 0, 0);
     }
 
+    DrawColliderDebug(view * proj);
+
     // ===== ブルーム =====
     {
         // HDR バッファ: 描画先 → テクスチャとして読める状態へ
@@ -497,4 +499,5 @@ void Renderer::Render()
     m_fenceValues[m_frameIndex] = currentFenceValue + 1;
     m_drawCommands.clear();
     m_drawMeshCount = 0;
+    m_debugColliders.clear();
 }

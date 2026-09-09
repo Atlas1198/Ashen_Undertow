@@ -46,6 +46,7 @@ bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height,
     if (!CreateRenderTargets())     return false;
     if (!CreateFence())             return false;
     if (!CreateTrianglePipeline())  return false;
+    if (!CreateColliderDebugResources()) return false;
     if (!CreateVertexBuffer())      return false;
     if (!CreateConstantBuffer())     return false;
 	if (!CreateDepthBuffer())        return false;

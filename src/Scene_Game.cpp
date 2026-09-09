@@ -3,8 +3,7 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "Tree.h"
-#include "CapsuleCollider.h"
-#include "SphereCollider.h"
+#include "Collider.h"
 #include "Input.h"
 
 #include <algorithm>
@@ -33,6 +32,8 @@ bool Scene_Game::Initialize()
 
 void Scene_Game::OnUpdate(float)
 {
+    if (m_input.ColliderVisualizationPressed())
+        m_showColliders = !m_showColliders;
     m_camera.Rotate(m_input.LookX(), m_input.LookY());
     m_player->SetRotation(0.0f, -m_camera.GetYaw(), 0.0f);
 }
@@ -40,7 +41,7 @@ void Scene_Game::OnUpdate(float)
 void Scene_Game::OnAfterUpdate(float)
 {
     const auto* playerCollider = m_player->GetComponent<CapsuleCollider>();
-    const auto* enemyCollider = m_enemy->GetComponent<SphereCollider>();
+    const auto* enemyCollider = m_enemy->GetComponent<BoxCollider>();
     for (const auto* contact : playerCollider->GetContacts())
     {
         if (&contact->GetOwner() != m_enemy) continue;
@@ -86,4 +87,14 @@ void Scene_Game::OnAfterUpdate(float)
 void Scene_Game::OnDraw(Renderer& renderer)
 {
     renderer.SetCamera(m_camera.GetPosition(), m_camera.GetTarget());
+    if (!m_showColliders) return;
+
+    const auto* playerCollider = m_player->GetComponent<CapsuleCollider>();
+    const auto* enemyCollider = m_enemy->GetComponent<BoxCollider>();
+    const auto playerShape = playerCollider->GetShape();
+    const auto enemyShape = enemyCollider->GetShape();
+    renderer.DrawCollider(playerShape.center, playerShape.halfExtents,
+        playerShape.radius, playerCollider->IsColliding());
+    renderer.DrawCollider(enemyShape.center, enemyShape.halfExtents,
+        enemyShape.radius, enemyCollider->IsColliding());
 }

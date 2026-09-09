@@ -1,8 +1,6 @@
 #include "ObjectManager.h"
 #include "ModelManager.h"
-#include "SphereCollider.h"
-#include "CapsuleCollider.h"
-#include "BoxCollider.h"
+#include "Collider.h"
 #include <cassert>
 #include <limits>
 

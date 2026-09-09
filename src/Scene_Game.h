@@ -25,4 +25,5 @@ private:
     Tree* m_tree = nullptr;
     const Input& m_input;
     Camera m_camera;
+    bool m_showColliders = false;
 };
