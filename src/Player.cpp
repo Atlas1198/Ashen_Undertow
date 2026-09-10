@@ -17,6 +17,10 @@ constexpr float JumpSpeed = 3.0f;
 constexpr float AttackPlaybackSpeed = 2.0f;
 constexpr float AnimationBlendDuration = 0.2f;
 constexpr float RotationResponsiveness = 12.0f;
+constexpr float AttackColliderRadius = 0.7f;
+constexpr float AttackColliderDistance = 0.9f;
+constexpr float AttackColliderHeightOffset = -0.15f;
+constexpr int AttackDamage = 100;
 }
 
 bool Player::Initialize(ModelManager& modelManager)
@@ -31,6 +35,10 @@ bool Player::Initialize(ModelManager& modelManager)
     auto* collider = AddComponent<CapsuleCollider>(0.4f, 0.4f);
     if (!collider) return false;
     collider->SetOffset(0.0f, -0.3f, 0.0f);
+    m_attackCollider = AddComponent<SphereCollider>(AttackColliderRadius);
+    if (!m_attackCollider) return false;
+    m_attackCollider->SetTrigger(true);
+    m_attackCollider->SetEnabled(false);
     m_rigidbody = AddComponent<Rigidbody>();
     if (!m_rigidbody) return false;
     m_rigidbody->SetUseGravity(false);
@@ -62,6 +70,7 @@ void Player::Update(float deltaTime)
     if (grounded && m_input.JumpPressed())
     {
         m_attacking = false;
+        m_attackCollider->SetEnabled(false);
         m_jumping = m_animation->Play(
             "Jump", false, 0.0f, AnimationBlendDuration);
         m_rigidbody->SetUseGravity(true);
@@ -79,10 +88,20 @@ void Player::Update(float deltaTime)
     if (!m_jumping)
     {
         if (m_attacking && m_animation->IsFinished())
+        {
             m_attacking = false;
+            m_attackCollider->SetEnabled(false);
+        }
         if (m_input.AttackPressed() && !m_attacking)
+        {
             m_attacking = m_animation->Play(
                 "Attack", false, AttackPlaybackSpeed, AnimationBlendDuration);
+            if (m_attacking)
+            {
+                m_attackHit = false;
+                m_attackCollider->SetEnabled(true);
+            }
+        }
         if (!m_attacking)
         {
             const bool blendFromCurrent = m_animation->IsPlaying("Idle") ||
@@ -114,6 +133,22 @@ void Player::Update(float deltaTime)
         m_position.x += worldX * moveSpeed * deltaTime;
         m_position.z += worldZ * moveSpeed * deltaTime;
     }
+
+    m_attackCollider->SetOffset(
+        std::sin(m_rotation.y) * AttackColliderDistance,
+        AttackColliderHeightOffset,
+        std::cos(m_rotation.y) * AttackColliderDistance);
+}
+
+void Player::ResolveAttackHit(GameObject& target)
+{
+    if (!m_attackCollider->IsEnabled() || m_attackHit ||
+        !m_attackCollider->HasContactWith(target))
+    {
+        return;
+    }
+    target.TakeDamage(AttackDamage);
+    m_attackHit = true;
 }
 
 void Player::ResolveTerrainContact()
