@@ -52,6 +52,9 @@
     <ClCompile Include="src\Engine\CollisionManager.cpp">
       <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\CollisionResolver.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\Rigidbody.cpp">
       <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
@@ -160,6 +163,9 @@
       <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\CollisionManager.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\CollisionResolver.h">
       <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Rigidbody.h">

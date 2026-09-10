@@ -8,6 +8,13 @@ DirectX::XMFLOAT3 Collider::GetCenter() const
     return { p.x + m_offset.x, p.y + m_offset.y, p.z + m_offset.z };
 }
 
+bool Collider::HasContactWith(const GameObject& object) const
+{
+    for (const auto* contact : m_contacts)
+        if (&contact->GetOwner() == &object) return true;
+    return false;
+}
+
 bool Collider::Intersects(const Collider& a, const Collider& b)
 {
     if (!a.IsEnabled() || !b.IsEnabled()) return false;

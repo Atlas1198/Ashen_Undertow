@@ -21,9 +21,13 @@ public:
     virtual CollisionShape GetShape() const = 0;
     DirectX::XMFLOAT3 GetCenter() const;
     void SetOffset(float x, float y, float z) { m_offset = { x, y, z }; }
+    void SetTrigger(bool trigger) { m_isTrigger = trigger; }
+    bool IsTrigger() const { return m_isTrigger; }
 
     // 最新のCollisionManager::Update結果。ポインタは所有オブジェクトの寿命内のみ有効。
     bool IsColliding() const { return IsEnabled() && !m_contacts.empty(); }
+    bool IsTriggering() const { return m_isTrigger && IsColliding(); }
+    bool HasContactWith(const GameObject& object) const;
     const std::vector<Collider*>& GetContacts() const { return m_contacts; }
     static bool Intersects(const Collider& a, const Collider& b);
 
@@ -31,6 +35,7 @@ private:
     friend class CollisionManager;
     // サイズ・オフセットはワールド単位。描画の回転・拡縮からは独立。
     DirectX::XMFLOAT3 m_offset { 0, 0, 0 };
+    bool m_isTrigger = false;
     std::vector<Collider*> m_contacts;
 };
 

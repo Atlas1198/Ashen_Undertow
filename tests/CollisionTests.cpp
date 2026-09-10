@@ -1,6 +1,7 @@
 #include "ObjectManager.h"
 #include "ModelManager.h"
 #include "Collider.h"
+#include "Rigidbody.h"
 #include <cassert>
 #include <limits>
 
@@ -105,4 +106,40 @@ int main()
     assert(a->AddComponent<SphereCollider>());
     objects.Update(0);
     assert(cb->GetContacts().size() == 3); // 後から追加した判定も自動収集
+
+    // Rigidbody付きObjectは自動で押し出され、衝突面へ向かう速度も除去される。
+    {
+        ObjectManager resolution(models);
+        auto* dynamic = resolution.AddGameObject<TestObject>();
+        auto* fixed = resolution.AddGameObject<TestObject>();
+        auto* dynamicCollider = dynamic->AddComponent<SphereCollider>();
+        auto* fixedCollider = fixed->AddComponent<BoxCollider>();
+        auto* body = dynamic->AddComponent<Rigidbody>();
+        body->SetUseGravity(false);
+        body->SetVelocity(1.0f, 0.0f, 0.0f);
+        fixed->SetPosition(0.75f, 0.0f, 0.0f);
+        resolution.Update(0.0f);
+        assert(std::abs(dynamic->GetPosition().x + 0.25f) < 0.001f);
+        assert(std::abs(body->GetVelocity().x) < 0.001f);
+        assert(dynamicCollider->HasContactWith(*fixed));
+        assert(fixedCollider->HasContactWith(*dynamic));
+    }
+
+    // Triggerは接触情報を残すが、物体を押し出さない。
+    {
+        ObjectManager triggers(models);
+        auto* dynamic = triggers.AddGameObject<TestObject>();
+        auto* sensor = triggers.AddGameObject<TestObject>();
+        auto* dynamicCollider = dynamic->AddComponent<SphereCollider>();
+        auto* trigger = sensor->AddComponent<BoxCollider>();
+        auto* body = dynamic->AddComponent<Rigidbody>();
+        body->SetUseGravity(false);
+        trigger->SetTrigger(true);
+        sensor->SetPosition(0.75f, 0.0f, 0.0f);
+        triggers.Update(0.0f);
+        assert(std::abs(dynamic->GetPosition().x) < 0.001f);
+        assert(trigger->IsTrigger() && trigger->IsTriggering());
+        assert(trigger->HasContactWith(*dynamic));
+        assert(dynamicCollider->HasContactWith(*sensor));
+    }
 }

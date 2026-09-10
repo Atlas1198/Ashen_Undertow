@@ -11,6 +11,7 @@ void ObjectManager::Update(float deltaTime)
         m_gameObjects[i]->UpdateComponents(deltaTime);
 
     m_collisionManager.Update(m_gameObjects);
+    m_collisionResolver.Update(m_gameObjects);
 }
 
 void ObjectManager::Draw(Renderer& renderer)

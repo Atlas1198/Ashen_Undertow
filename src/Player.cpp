@@ -21,7 +21,9 @@ bool Player::Initialize(ModelManager& modelManager)
     model->SetOffset(0.0f, -1.05f, 0.0f);
     m_animation = AddComponent<AnimationComponent>(modelManager, GameAssets::PlayerModel);
     if (!m_animation) return false;
-    if (!AddComponent<CapsuleCollider>(0.3f, 0.3f)) return false;
+    auto* collider = AddComponent<CapsuleCollider>(0.4f, 0.4f);
+    if (!collider) return false;
+    collider->SetOffset(0.0f, -0.3f, 0.0f);
     m_rigidbody = AddComponent<Rigidbody>();
     if (!m_rigidbody) return false;
     m_rigidbody->SetUseGravity(false);

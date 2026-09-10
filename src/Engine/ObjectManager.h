@@ -7,6 +7,7 @@
 
 #include "GameObject.h"
 #include "CollisionManager.h"
+#include "CollisionResolver.h"
 
 class ModelManager;
 class Renderer;
@@ -42,4 +43,5 @@ private:
     ModelManager& m_modelManager;
     std::vector<std::unique_ptr<GameObject>> m_gameObjects;
     CollisionManager m_collisionManager;
+    CollisionResolver m_collisionResolver;
 };

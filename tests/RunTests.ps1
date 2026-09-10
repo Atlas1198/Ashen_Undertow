@@ -4,12 +4,12 @@ $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer
 $installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
 if (!$installation) { throw 'Visual Studio C++ tools were not found.' }
 $devCmd = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
-$common = 'src\Engine\ComponentManager.cpp src\Engine\ObjectManager.cpp src\Engine\Collider.cpp src\Engine\CollisionManager.cpp'
+$common = 'src\Engine\ComponentManager.cpp src\Engine\ObjectManager.cpp src\Engine\Collider.cpp src\Engine\CollisionManager.cpp src\Engine\CollisionResolver.cpp src\Engine\Rigidbody.cpp'
 $suites = @{
     ComponentManagerTests = $common
     CollisionTests = $common
     EngineTests = "$common src\Engine\Camera.cpp src\Engine\ModelManager.cpp src\Engine\GltfLoader.cpp src\Engine\Json.cpp src\Engine\AnimationComponent.cpp"
-    RigidbodyTests = "$common src\Engine\Rigidbody.cpp"
+    RigidbodyTests = $common
 }
 Push-Location $repoRoot
 try {

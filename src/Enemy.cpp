@@ -9,5 +9,8 @@ bool Enemy::Initialize(ModelManager& modelManager)
 {
     if (!AddComponent<ModelComponent>(modelManager, GameAssets::EnemyModel)) return false;
     if (!AddComponent<AnimationComponent>(modelManager, GameAssets::EnemyModel)) return false;
-    return AddComponent<BoxCollider>(0.5f) != nullptr;
+    auto* collider = AddComponent<CapsuleCollider>(0.4, 0.4);
+    if (!collider) return false;
+    collider->SetOffset(0.0f, 0.8f, 0.0f);
+    return collider != nullptr;
 }
