@@ -99,20 +99,15 @@ void Scene_Game::OnDraw(Renderer& renderer)
     renderer.SetCamera(m_camera.GetPosition(), m_camera.GetTarget());
     if (!m_showColliders) return;
 
-    const auto* playerCollider = m_player->GetComponent<CapsuleCollider>();
     const auto* enemyCollider = m_enemy->GetComponent<CapsuleCollider>();
-    const auto playerShape = playerCollider->GetShape();
     const auto enemyShape = enemyCollider->GetShape();
-    renderer.DrawCollider(playerShape.center, playerShape.halfExtents,
-        playerShape.radius, playerCollider->IsColliding());
+    for (const auto* playerCollider : m_player->GetComponents<Collider>())
+    {
+        if (!playerCollider->IsEnabled()) continue;
+        const auto playerShape = playerCollider->GetShape();
+        renderer.DrawCollider(playerShape.center, playerShape.halfExtents,
+            playerShape.radius, playerCollider->IsColliding());
+    }
     renderer.DrawCollider(enemyShape.center, enemyShape.halfExtents,
         enemyShape.radius, enemyCollider->IsColliding());
-
-    const auto* attackCollider = m_player->GetComponent<SphereCollider>();
-    if (attackCollider && attackCollider->IsEnabled())
-    {
-        const auto attackShape = attackCollider->GetShape();
-        renderer.DrawCollider(attackShape.center, attackShape.halfExtents,
-            attackShape.radius, attackCollider->IsColliding());
-    }
 }

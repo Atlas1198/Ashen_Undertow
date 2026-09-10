@@ -5,8 +5,10 @@
 
 class Input;
 class AnimationComponent;
+class CapsuleCollider;
 class Collider;
 class Rigidbody;
+class SphereCollider;
 
 class Player final : public GameObject
 {
@@ -24,10 +26,15 @@ public:
 private:    
     const Input& m_input;
     AnimationComponent* m_animation = nullptr;
+    CapsuleCollider* m_bodyCollider = nullptr;
+    SphereCollider* m_evasionCollider = nullptr;
     Collider* m_attackCollider = nullptr;
     Rigidbody* m_rigidbody = nullptr;
     float m_movementYaw = 0.0f;
+    float m_evasionDirectionX = 0.0f;
+    float m_evasionDirectionZ = 0.0f;
     bool m_attacking = false;
     bool m_attackHit = false;
+    bool m_evading = false;
     bool m_jumping = false;
 };
