@@ -7,6 +7,7 @@
 #include "Input.h"
 
 #include "Renderer.h"
+#include "Terrain.h"
 
 Scene_Game::Scene_Game(ModelManager& modelManager, const Input& input)
     : SceneManager(modelManager), m_input(input)
@@ -20,11 +21,11 @@ bool Scene_Game::Initialize()
 
     m_enemy = AddGameObject<Enemy>();
     if (!m_enemy) return false;
-    m_enemy->SetPosition(3.0f, -1.05f, 3.0f);
+    m_enemy->SetPosition(3.0f, Terrain::HeightAt(3.0f, 3.0f), 3.0f);
 
     m_tree = AddGameObject<Tree>();
     if (!m_tree) return false;
-    m_tree->SetPosition(-3.0f, -1.05f, 3.0f);
+    m_tree->SetPosition(-3.0f, Terrain::HeightAt(-3.0f, 3.0f), 3.0f);
     return true;
 }
 
@@ -55,6 +56,7 @@ void Scene_Game::OnUpdate(float)
 
 void Scene_Game::OnAfterUpdate(float)
 {
+    m_player->ResolveTerrainContact();
     m_camera.SetTarget(m_player->GetPosition());
     m_tree->FaceCamera(m_camera.GetPosition());
 }

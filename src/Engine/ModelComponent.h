@@ -15,10 +15,13 @@ public:
     void Draw(Renderer& renderer) override;
     ModelHandle GetModelHandle() const { return m_model; }
     void SetOffset(float x, float y, float z) { m_offset = { x, y, z }; }
+    // モデルの正面補正用。Objectの移動方向には影響しない（ラジアン）。
+    void SetLocalRotation(float x, float y, float z) { m_localRotation = { x, y, z }; }
 
 private:
     ModelManager& m_models;
     std::string m_path;
     ModelHandle m_model;
     DirectX::XMFLOAT3 m_offset { 0, 0, 0 };
+    DirectX::XMFLOAT3 m_localRotation { 0, 0, 0 };
 };

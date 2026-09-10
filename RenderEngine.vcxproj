@@ -180,6 +180,7 @@
     <ClCompile Include="src\Engine\GltfLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Engine\Terrain.h" />
     <ClInclude Include="src\Engine\Renderer.h" />
     <ClInclude Include="src\Engine\UIManager.h" />
     <ClInclude Include="src\Engine\Input.h" />

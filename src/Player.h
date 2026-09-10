@@ -15,6 +15,7 @@ public:
 
     bool Initialize(ModelManager& modelManager) override;
     void Update(float deltaTime) override;
+    void ResolveTerrainContact();
     ModelHandle GetModelHandle() const;
 
 private:    

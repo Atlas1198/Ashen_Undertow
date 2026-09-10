@@ -38,6 +38,24 @@ public:
     virtual void Update(float deltaTime) { (void)deltaTime; }
     virtual void Draw(Renderer& renderer) { (void)renderer; }
 
+    int GetHP() const { return m_hp; }
+    int GetMaxHP() const { return m_maxHP; }
+    bool IsDead() const { return m_hp == 0; }
+
+    void TakeDamage(int amount)
+    {
+        if (amount <= 0) return;
+        m_hp -= amount < m_hp ? amount : m_hp;
+    }
+
+    // HPゼロからも回復可能。死亡時のゲーム処理は呼び出し側が決める。
+    void Heal(int amount)
+    {
+        if (amount <= 0) return;
+        const int missing = m_maxHP - m_hp;
+        m_hp += amount < missing ? amount : missing;
+    }
+
     void SetPosition(float x, float y, float z) { m_position = { x, y, z }; }
     const DirectX::XMFLOAT3& GetPosition() const { return m_position; }
     void SetRotation(float x, float y, float z) { m_rotation = { x, y, z }; }
@@ -57,10 +75,19 @@ public:
     }
 
 protected:
+    // 各ObjectのInitializeで呼び、最大HPと現在HPを同時に設定する。
+    void InitializeHP(int maxHP)
+    {
+        m_maxHP = maxHP > 0 ? maxHP : 0;
+        m_hp = m_maxHP;
+    }
+
     DirectX::XMFLOAT3 m_position { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_rotation { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_scale { 1.0f, 1.0f, 1.0f };
 
 private:
+    int m_maxHP = 1;
+    int m_hp = 1;
     ComponentManager m_componentManager;
 };

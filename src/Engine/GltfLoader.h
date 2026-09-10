@@ -129,3 +129,5 @@ struct GltfModel
 };
 
 bool LoadGltf(const char* path, GltfModel& out);
+// PNG/JPEGを既存のWICデコーダでRGBA8へ読み込む。
+bool LoadTextureImage(const char* path, GltfImage& out);

@@ -1,4 +1,5 @@
 #include "RendererInternal.h"
+#include "Terrain.h"
 
 using namespace DirectX;
 using namespace RendererDetail;
@@ -392,29 +393,51 @@ bool Renderer::CreateMaterialTextures()
     createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvDefaultMaterial + 3);
     createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvDefaultMaterial + 4);
 
+    GltfImage ground;
+    if (!LoadTextureImage("assets/texture/terrain_ground.png", ground) ||
+        !UploadTexture(ground.pixels.data(), ground.width, ground.height,
+            DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, m_floorTexture)) return false;
+    createSrv(m_floorTexture.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvTerrainMaterial);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvTerrainMaterial + 1);
+    createSrv(m_defaultNormal.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvTerrainMaterial + 2);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvTerrainMaterial + 3);
+    createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvTerrainMaterial + 4);
+
     return true;
 }
 
 bool Renderer::CreateFloor()
 {
-    const float kHalfSize = 12.0f;   // 一辺の半分
-    const float kY = -1.05f;  // ヘルメットの底あたり
+    constexpr int stride = Terrain::Cells + 1;
+    std::vector<Vertex> vertices(stride * stride);
+    std::vector<uint32_t> indices;
+    indices.reserve(Terrain::Cells * Terrain::Cells * 6);
+    for (int z = 0; z < stride; ++z)
+        for (int x = 0; x < stride; ++x)
+        {
+            auto& vertex = vertices[z * stride + x];
+            const float px = x * Terrain::CellSize - Terrain::HalfSize;
+            const float pz = z * Terrain::CellSize - Terrain::HalfSize;
+            vertex.position = { px, Terrain::VertexHeight(x, z), pz };
+            const float dx = (Terrain::VertexHeight(x + 1, z) - Terrain::VertexHeight(x - 1, z))
+                / (2.0f * Terrain::CellSize);
+            const float dz = (Terrain::VertexHeight(x, z + 1) - Terrain::VertexHeight(x, z - 1))
+                / (2.0f * Terrain::CellSize);
+            XMStoreFloat3(&vertex.normal, XMVector3Normalize(XMVectorSet(-dx, 1, -dz, 0)));
+            XMStoreFloat4(&vertex.tangent, XMVector3Normalize(XMVectorSet(1, dx, 0, 0)));
+            vertex.tangent.w = -1.0f; // UVの+Vはワールド+Z。
+            vertex.uv = { px / 4.0f, pz / 4.0f };
+        }
+    for (int z = 0; z < Terrain::Cells; ++z)
+        for (int x = 0; x < Terrain::Cells; ++x)
+        {
+            const uint32_t a = z * stride + x, b = a + stride;
+            indices.insert(indices.end(), { a, b, b + 1, a, b + 1, a + 1 });
+        }
 
-    // 法線は真上、接線は +X 方向
-    const Vertex vertices[] =
-    {
-        { { -kHalfSize, kY, -kHalfSize }, { 0, 1, 0 }, { 1, 0, 0, 1 }, { 0.0f, 0.0f } },
-        { { -kHalfSize, kY,  kHalfSize }, { 0, 1, 0 }, { 1, 0, 0, 1 }, { 0.0f, 1.0f } },
-        { {  kHalfSize, kY,  kHalfSize }, { 0, 1, 0 }, { 1, 0, 0, 1 }, { 1.0f, 1.0f } },
-        { {  kHalfSize, kY, -kHalfSize }, { 0, 1, 0 }, { 1, 0, 0, 1 }, { 1.0f, 0.0f } },
-    };
-
-    // 上から見て時計回り = 表面(バックフェイスカリングが有効なので重要)
-    const uint32_t indices[] = { 0, 1, 2,  0, 2, 3 };
-
-    m_floorIndexCount = _countof(indices);
-    const UINT vertexBufferSize = sizeof(vertices);
-    const UINT indexBufferSize = sizeof(indices);
+    m_floorIndexCount = static_cast<UINT>(indices.size());
+    const UINT vertexBufferSize = static_cast<UINT>(vertices.size() * sizeof(Vertex));
+    const UINT indexBufferSize = static_cast<UINT>(indices.size() * sizeof(uint32_t));
 
     D3D12_HEAP_PROPERTIES heapProps = {};
     heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -440,7 +463,7 @@ bool Renderer::CreateFloor()
     void* mapped = nullptr;
     D3D12_RANGE readRange = { 0, 0 };
     if (!Check(m_floorVertexBuffer->Map(0, &readRange, &mapped))) return false;
-    memcpy(mapped, vertices, vertexBufferSize);
+    memcpy(mapped, vertices.data(), vertexBufferSize);
     m_floorVertexBuffer->Unmap(0, nullptr);
 
     m_floorVertexBufferView.BufferLocation = m_floorVertexBuffer->GetGPUVirtualAddress();
@@ -458,7 +481,7 @@ bool Renderer::CreateFloor()
 
     void* mappedIndex = nullptr;
     if (!Check(m_floorIndexBuffer->Map(0, &readRange, &mappedIndex))) return false;
-    memcpy(mappedIndex, indices, indexBufferSize);
+    memcpy(mappedIndex, indices.data(), indexBufferSize);
     m_floorIndexBuffer->Unmap(0, nullptr);
 
     m_floorIndexBufferView.BufferLocation = m_floorIndexBuffer->GetGPUVirtualAddress();

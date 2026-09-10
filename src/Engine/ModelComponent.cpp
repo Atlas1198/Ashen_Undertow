@@ -16,6 +16,7 @@ void ModelComponent::Draw(Renderer& renderer)
     const auto ownerWorld = GetOwner().CreateWorldMatrix();
     DirectX::XMFLOAT4X4 modelWorld;
     DirectX::XMStoreFloat4x4(&modelWorld,
+        DirectX::XMMatrixRotationRollPitchYaw(m_localRotation.x, m_localRotation.y, m_localRotation.z) *
         DirectX::XMMatrixTranslation(m_offset.x, m_offset.y, m_offset.z) *
         DirectX::XMLoadFloat4x4(&ownerWorld));
     renderer.DrawModel(m_model, modelWorld,

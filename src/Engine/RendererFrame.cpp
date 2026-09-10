@@ -117,10 +117,10 @@ void Renderer::Render(const UIManager& ui)
 
     XMMATRIX lightView = XMMatrixLookAtLH(lightEye, sceneCenter,
         XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-    // シーン全体(対角約 35 ユニット)を覆う範囲。
+    // 地形と外周の丘を覆う範囲。
     // 広げるほど 1 テクセルが担当する面積が増えて影が粗くなるので、
     // 「全部入る最小の広さ」を狙うのが定石
-    XMMATRIX lightProj = XMMatrixOrthographicLH(40.0f, 40.0f, 0.1f, 100.0f);
+    XMMATRIX lightProj = XMMatrixOrthographicLH(80.0f, 80.0f, 0.1f, 100.0f);
     XMMATRIX lightViewProj = lightView * lightProj;
 
     XMStoreFloat3(&cb.lightDirection, lightDir);
@@ -190,10 +190,10 @@ void Renderer::Render(const UIManager& ui)
     const size_t floorConstantIndex = kMaxDrawMeshCount;
     XMStoreFloat4x4(&cb.mvp, XMMatrixTranspose(world * view * proj));
     XMStoreFloat4x4(&cb.world, XMMatrixTranspose(world));
-    cb.albedo = { 0.18f, 0.18f, 0.19f };
+    cb.albedo = { 1.0f, 1.0f, 1.0f };
     cb.alphaCutoff = -1.0f;
     cb.metallic = 0.0f;
-    cb.roughness = 0.70f;
+    cb.roughness = 0.95f;
     cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
     cb.jointCount = 0;
     memcpy(frameConstants + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
@@ -239,6 +239,17 @@ void Renderer::Render(const UIManager& ui)
         m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         DrawSceneMeshes(true, frameCbBase);
+
+        // 起伏のある地形自身も影を落とす。
+        m_commandList->SetGraphicsRootConstantBufferView(0,
+            frameCbBase + floorConstantIndex * m_cbStride);
+        auto terrainSrv = m_srvHeap->GetGPUDescriptorHandleForHeapStart();
+        terrainSrv.ptr += SIZE_T(kSrvTerrainMaterial) * m_device->GetDescriptorHandleIncrementSize(
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        m_commandList->SetGraphicsRootDescriptorTable(2, terrainSrv);
+        m_commandList->IASetVertexBuffers(0, 1, &m_floorVertexBufferView);
+        m_commandList->IASetIndexBuffer(&m_floorIndexBufferView);
+        m_commandList->DrawIndexedInstanced(m_floorIndexCount, 1, 0, 0, 0);
 
         // 深度書き込み → テクスチャとして読める状態へ戻す
         shadowBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -329,7 +340,7 @@ void Renderer::Render(const UIManager& ui)
             0, cbBase + floorConstantIndex * m_cbStride);
 
         D3D12_GPU_DESCRIPTOR_HANDLE material = heapStart;
-        material.ptr += kSrvDefaultMaterial * srvStep;
+        material.ptr += kSrvTerrainMaterial * srvStep;
         m_commandList->SetGraphicsRootDescriptorTable(2, material);
 
         m_commandList->IASetVertexBuffers(0, 1, &m_floorVertexBufferView);

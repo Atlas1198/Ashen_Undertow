@@ -774,6 +774,13 @@ namespace
 }
 
 //----------------------------------------------------------------------------
+bool LoadTextureImage(const char* path, GltfImage& out)
+{
+    out = {};
+    std::vector<uint8_t> bytes;
+    return path && ReadFileBytes(path, bytes) && DecodeImage(bytes.data(), bytes.size(), out);
+}
+
 bool LoadGltf(const char* path, GltfModel& out)
 {
     out = GltfModel{};

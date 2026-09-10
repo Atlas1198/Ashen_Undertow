@@ -6,6 +6,8 @@ if (!$installation) { throw 'Visual Studio C++ tools were not found.' }
 $devCmd = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
 $common = 'src\Engine\ComponentManager.cpp src\Engine\ObjectManager.cpp src\Engine\Collider.cpp src\Engine\CollisionManager.cpp src\Engine\CollisionResolver.cpp src\Engine\Rigidbody.cpp'
 $suites = @{
+    TerrainTests = ''
+    GameObjectHPTests = $common
     UIManagerTests = 'src\Engine\UIManager.cpp'
     ComponentManagerTests = $common
     CollisionTests = $common

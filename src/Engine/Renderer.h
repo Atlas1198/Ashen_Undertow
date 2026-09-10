@@ -121,7 +121,8 @@ private:
     static constexpr uint32_t kSrvBloomA = 6;   // トーンマップの t1
     static constexpr uint32_t kSrvBloomB = 7;
     static constexpr uint32_t kSrvDefaultMaterial = 8;   // 8〜12 : テクスチャ無し用
-    static constexpr uint32_t kSrvMaterialStart = 13;  // 13〜 : 5 個 × マテリアル数
+    static constexpr uint32_t kSrvTerrainMaterial = 13; // 13〜17 : 地形
+    static constexpr uint32_t kSrvMaterialStart = 18;  // 18〜 : 5 個 × マテリアル数
     static constexpr uint32_t kTexturesPerMaterial = 5;   // baseColor/MR/normal/AO/emissive
 
     uint32_t m_width  = 0;
@@ -233,6 +234,7 @@ private:
     // --- 床 ---
     ComPtr<ID3D12Resource>   m_floorVertexBuffer;
     ComPtr<ID3D12Resource>   m_floorIndexBuffer;
+    ComPtr<ID3D12Resource>   m_floorTexture;
     D3D12_VERTEX_BUFFER_VIEW m_floorVertexBufferView = {};
     D3D12_INDEX_BUFFER_VIEW  m_floorIndexBufferView = {};
     UINT                     m_floorIndexCount = 0;

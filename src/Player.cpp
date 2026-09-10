@@ -7,18 +7,21 @@
 #include "Input.h"
 #include "ModelComponent.h"
 #include "GameAssets.h"
+#include "Terrain.h"
 
 namespace
 {
-constexpr float GroundHeight = 0.0f;
+constexpr float FootOffset = 1.05f;
 constexpr float JumpSpeed = 3.0f;
 }
 
 bool Player::Initialize(ModelManager& modelManager)
 {
+    InitializeHP(100);
     auto* model = AddComponent<ModelComponent>(modelManager, GameAssets::PlayerModel);
     if (!model) return false;
     model->SetOffset(0.0f, -1.05f, 0.0f);
+    model->SetLocalRotation(0.0f, DirectX::XM_PI, 0.0f);
     m_animation = AddComponent<AnimationComponent>(modelManager, GameAssets::PlayerModel);
     if (!m_animation) return false;
     auto* collider = AddComponent<CapsuleCollider>(0.4f, 0.4f);
@@ -27,6 +30,7 @@ bool Player::Initialize(ModelManager& modelManager)
     m_rigidbody = AddComponent<Rigidbody>();
     if (!m_rigidbody) return false;
     m_rigidbody->SetUseGravity(false);
+    m_position.y = Terrain::HeightAt(m_position.x, m_position.z) + FootOffset;
     return true;
 }
 
@@ -39,10 +43,12 @@ void Player::Update(float deltaTime)
     const bool dashing = length > 0.0f && m_input.DashHeld();
 
     auto velocity = m_rigidbody->GetVelocity();
-    const bool grounded = m_position.y <= GroundHeight && velocity.y <= 0.0f;
+    const float groundHeight = Terrain::HeightAt(m_position.x, m_position.z) + FootOffset;
+    const bool grounded = !m_rigidbody->UsesGravity() ||
+        (m_position.y <= groundHeight && velocity.y <= 0.0f);
     if (grounded)
     {
-        m_position.y = GroundHeight;
+        m_position.y = groundHeight;
         velocity.y = 0.0f;
         m_rigidbody->SetVelocity(velocity.x, velocity.y, velocity.z);
         m_rigidbody->SetUseGravity(false);
@@ -77,6 +83,21 @@ void Player::Update(float deltaTime)
         const float worldZ = -localX * sinYaw + localZ * cosYaw;
         m_position.x += worldX * moveSpeed * deltaTime;
         m_position.z += worldZ * moveSpeed * deltaTime;
+    }
+}
+
+void Player::ResolveTerrainContact()
+{
+    // RigidbodyとObject同士の衝突解決後、最終位置を地面へ合わせる。
+    Terrain::ClampToArena(m_position.x, m_position.z);
+    const float ground = Terrain::HeightAt(m_position.x, m_position.z) + FootOffset;
+    const auto velocity = m_rigidbody->GetVelocity();
+    if (!m_rigidbody->UsesGravity() || (m_position.y <= ground && velocity.y <= 0.0f))
+    {
+        m_position.y = ground;
+        m_rigidbody->SetVelocity(velocity.x, 0.0f, velocity.z);
+        m_rigidbody->SetUseGravity(false);
+        m_jumping = false;
     }
 }
 

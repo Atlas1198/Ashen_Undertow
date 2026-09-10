@@ -237,4 +237,7 @@
     <ClInclude Include="src\Engine\UIManager.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
     <None Include="shaders\UI.hlsl"><Filter>シェーダー</Filter></None>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Engine\Terrain.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
+  </ItemGroup>
 </Project>

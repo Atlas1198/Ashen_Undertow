@@ -7,6 +7,7 @@
 
 bool Enemy::Initialize(ModelManager& modelManager)
 {
+    InitializeHP(1000);
     if (!AddComponent<ModelComponent>(modelManager, GameAssets::EnemyModel)) return false;
     if (!AddComponent<AnimationComponent>(modelManager, GameAssets::EnemyModel)) return false;
     auto* collider = AddComponent<CapsuleCollider>(0.4, 0.4);
