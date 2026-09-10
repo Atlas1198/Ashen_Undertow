@@ -244,5 +244,8 @@
     <CustomBuild Include="assets\model\SwordMen\PlayerAnimations.txt">
       <Filter>リソース ファイル</Filter>
     </CustomBuild>
+    <CustomBuild Include="assets\model\Mutant\EnemyAnimations.txt">
+      <Filter>リソース ファイル</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

@@ -21,6 +21,7 @@ public:
     void ResolveTerrainContact();
     void ResolveAttackHit(GameObject& target);
     void SetMovementYaw(float yaw) { m_movementYaw = yaw; }
+    bool IsAttacking() const { return m_attacking; }
     ModelHandle GetModelHandle() const;
 
 private:    

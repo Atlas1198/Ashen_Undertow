@@ -33,7 +33,7 @@ bool Scene_Game::Initialize()
     m_player = AddGameObject<Player>(m_input);
     if (!m_player) return false;
 
-    m_enemy = AddGameObject<Enemy>();
+    m_enemy = AddGameObject<Enemy>(*m_player);
     if (!m_enemy) return false;
     m_enemy->SetPosition(3.0f, Terrain::HeightAt(3.0f, 3.0f), 3.0f);
 
@@ -120,6 +120,7 @@ void Scene_Game::OnAfterUpdate(float)
 {
     m_player->ResolveTerrainContact();
     m_player->ResolveAttackHit(*m_enemy);
+    m_enemy->ResolveAttackHit(*m_player);
     m_camera.SetTarget(m_player->GetPosition());
     m_tree->FaceCamera(m_camera.GetPosition());
 }
@@ -129,8 +130,6 @@ void Scene_Game::OnDraw(Renderer& renderer)
     renderer.SetCamera(m_camera.GetPosition(), m_camera.GetTarget());
     if (!m_showColliders) return;
 
-    const auto* enemyCollider = m_enemy->GetComponent<CapsuleCollider>();
-    const auto enemyShape = enemyCollider->GetShape();
     for (const auto* playerCollider : m_player->GetComponents<Collider>())
     {
         if (!playerCollider->IsEnabled()) continue;
@@ -138,6 +137,11 @@ void Scene_Game::OnDraw(Renderer& renderer)
         renderer.DrawCollider(playerShape.center, playerShape.halfExtents,
             playerShape.radius, playerCollider->IsColliding());
     }
-    renderer.DrawCollider(enemyShape.center, enemyShape.halfExtents,
-        enemyShape.radius, enemyCollider->IsColliding());
+    for (const auto* enemyCollider : m_enemy->GetComponents<Collider>())
+    {
+        if (!enemyCollider->IsEnabled()) continue;
+        const auto enemyShape = enemyCollider->GetShape();
+        renderer.DrawCollider(enemyShape.center, enemyShape.halfExtents,
+            enemyShape.radius, enemyCollider->IsColliding());
+    }
 }

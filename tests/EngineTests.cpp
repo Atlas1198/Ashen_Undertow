@@ -105,11 +105,22 @@ int main()
     const auto* enemyData = models.GetModel(enemyModel);
     assert(enemyData && enemyData->Valid());
     assert(enemyData->skins.size() == 1);
-    assert(enemyData->animations.size() == 1);
-    assert(enemyData->animations[0].name == "Idle");
-    assert(!enemyData->animations[0].channels.empty());
+    assert(enemyData->animations.size() == 4);
+    bool enemyIdle = false, enemyWalk = false, enemyRun = false, enemyAttack = false;
+    for (const auto& animation : enemyData->animations)
+    {
+        assert(!animation.channels.empty());
+        enemyIdle = enemyIdle || animation.name == "Idle";
+        enemyWalk = enemyWalk || animation.name == "Walk";
+        enemyRun = enemyRun || animation.name == "Run";
+        enemyAttack = enemyAttack || animation.name == "Attack";
+    }
+    assert(enemyIdle && enemyWalk && enemyRun && enemyAttack);
     AnimationComponent enemyAnimation(models, "assets/model/Mutant/mutant_idle.glb");
     assert(enemyAnimation.Initialize());
+    assert(enemyAnimation.Play("Walk"));
+    assert(enemyAnimation.Play("Run", true, 1.0f, 0.2f));
+    assert(enemyAnimation.Play("Attack", false, 2.0f, 0.2f));
 
     AnimationComponent idleAnimation(models,
         "assets/model/SwordMen/sword_and_shield.glb");

@@ -226,6 +226,13 @@
       <AdditionalInputs>$(ProjectDir).tools\convert_swordmen.py;$(ProjectDir)assets\model\SwordMen\Paladin WProp J Nordstrom.fbx;%(AdditionalInputs)</AdditionalInputs>
       <Outputs>$(ProjectDir)assets\model\SwordMen\sword_and_shield.glb</Outputs>
     </CustomBuild>
+    <CustomBuild Include="assets\model\Mutant\EnemyAnimations.txt">
+      <FileType>Document</FileType>
+      <Command>&quot;$(ProjectDir).tools\BlenderPortable\blender-5.2.1-windows-x64\blender.exe&quot; --background --python &quot;$(ProjectDir).tools\convert_mutant.py&quot;</Command>
+      <Message>Enemyアニメーションをmutant_idle.glbへ変換しています...</Message>
+      <AdditionalInputs>$(ProjectDir).tools\convert_mutant.py;$(ProjectDir)assets\model\Mutant\Mutant Breathing Idle.fbx;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs>$(ProjectDir)assets\model\Mutant\mutant_idle.glb</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Irradiance.hlsl">
