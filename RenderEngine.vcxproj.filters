@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="ソース ファイル">
@@ -230,5 +230,11 @@
     <None Include="shaders\BloomBlur.hlsl">
       <Filter>シェーダー</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Engine\RendererUI.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
+    <ClCompile Include="src\Engine\UIManager.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
+    <ClInclude Include="src\Engine\UIManager.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
+    <None Include="shaders\UI.hlsl"><Filter>シェーダー</Filter></None>
   </ItemGroup>
 </Project>

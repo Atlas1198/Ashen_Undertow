@@ -8,6 +8,8 @@ bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
     m_currentScene = std::make_unique<Scene_Game>(m_modelManager, m_input);
     if (!m_currentScene->Initialize())
         return false;
+    if (!m_currentScene->InitializeUI(m_uiManager))
+        return false;
 
     if (!m_renderer.Initialize(hwnd, width, height, m_modelManager))
         return false;
@@ -28,5 +30,7 @@ void Manager::RunFrame()
     m_input.Update();
     m_currentScene->Update(deltaTime);
     m_currentScene->Draw(m_renderer);
-    m_renderer.Render();
+    m_uiManager.BeginFrame();
+    m_currentScene->DrawUI(m_uiManager);
+    m_renderer.Render(m_uiManager);
 }

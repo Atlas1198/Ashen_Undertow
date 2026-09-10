@@ -4,6 +4,7 @@
 
 class ModelManager;
 class Renderer;
+class UIManager;
 
 // 各シーンが共通して実装するインターフェース。
 class SceneManager
@@ -17,6 +18,8 @@ public:
     virtual ~SceneManager() = default;
 
     virtual bool Initialize() = 0;
+    virtual bool InitializeUI(UIManager&) { return true; }
+    void DrawUI(UIManager& ui) { OnDrawUI(ui); }
 
     void Update(float deltaTime)
     {
@@ -41,6 +44,7 @@ protected:
     virtual void OnUpdate(float deltaTime) { (void)deltaTime; }
     virtual void OnAfterUpdate(float deltaTime) { (void)deltaTime; }
     virtual void OnDraw(Renderer& renderer) { (void)renderer; }
+    virtual void OnDrawUI(UIManager&) {}
 
 private:
     ObjectManager m_objectManager;

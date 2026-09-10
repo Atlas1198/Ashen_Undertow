@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -172,6 +172,8 @@
     <ClCompile Include="src\Engine\RendererPostProcess.cpp" />
     <ClCompile Include="src\Engine\RendererFrame.cpp" />
     <ClCompile Include="src\Engine\RendererDebug.cpp" />
+    <ClCompile Include="src\Engine\RendererUI.cpp" />
+    <ClCompile Include="src\Engine\UIManager.cpp" />
     <ClCompile Include="src\Scene_Title.cpp" />
     <ClCompile Include="src\Engine\HdrLoader.cpp" />
     <ClCompile Include="src\Engine\Json.cpp" />
@@ -179,6 +181,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\Renderer.h" />
+    <ClInclude Include="src\Engine\UIManager.h" />
     <ClInclude Include="src\Engine\Input.h" />
     <ClInclude Include="src\Engine\Camera.h" />
     <ClInclude Include="src\Engine\ModelComponent.h" />
@@ -211,6 +214,7 @@
     <None Include="shaders\Common.hlsli" />
     <None Include="shaders\Triangle.hlsl" />
     <None Include="shaders\ColliderDebug.hlsl" />
+    <None Include="shaders\UI.hlsl" />
     <None Include="shaders\Skybox.hlsl" />
   </ItemGroup>
   <ItemGroup>

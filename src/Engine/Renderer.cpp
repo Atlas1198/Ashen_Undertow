@@ -63,6 +63,7 @@ bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height,
     if (!CreateTonemapPipeline())   return false;
     if (!CreateBloomResources())    return false;
     if (!CreateBloomPipelines())    return false;
+    if (!CreateUIResources())       return false;
     return true;
 }
 

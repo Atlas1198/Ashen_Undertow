@@ -23,6 +23,7 @@
 #include "ModelHandle.h"
 
 class ModelManager;
+class UIManager;
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -46,9 +47,23 @@ public:
         const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr);
     void DrawCollider(const DirectX::XMFLOAT3& center,
         const DirectX::XMFLOAT3& halfExtents, float radius, bool colliding);
-    void Render();
+    void Render(const UIManager& ui);
 
 private:
+    bool CreateUIResources();
+    bool PrepareUIImages(const UIManager& ui);
+    void DrawUI(const UIManager& ui);
+    struct UIVertex
+    {
+        DirectX::XMFLOAT2 position, uv;
+        DirectX::XMFLOAT4 color;
+    };
+    ComPtr<ID3D12RootSignature> m_uiRootSignature;
+    ComPtr<ID3D12PipelineState> m_uiPSO;
+    ComPtr<ID3D12DescriptorHeap> m_uiSrvHeap;
+    std::vector<ComPtr<ID3D12Resource>> m_uiTextures;
+    ComPtr<ID3D12Resource> m_uiVertexBuffers[2];
+    void* m_uiMapped[2] = {};
     void DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS constantBase);
     // 初期化を段階ごとに分けたもの。Initialize から順番に呼ばれる。
     bool CreateDevice();

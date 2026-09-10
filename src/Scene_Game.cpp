@@ -28,6 +28,23 @@ bool Scene_Game::Initialize()
     return true;
 }
 
+bool Scene_Game::InitializeUI(UIManager& ui)
+{
+    m_wonheeImage = ui.LoadImageFile("assets/texture/wonhee.jpg");
+    const auto* image = ui.GetImage(m_wonheeImage);
+    if (!image) return false;
+    m_wonheeHeight = 240.0f * image->height / image->width;
+    return true;
+}
+
+void Scene_Game::OnDrawUI(UIManager& ui)
+{
+    ui.DrawImage(m_wonheeImage, { 24, 24, 240, m_wonheeHeight });
+    // 4頂点を画面ピクセル座標で手打ちした四角形。
+    ui.DrawQuad({ DirectX::XMFLOAT2 { 300, 40 }, { 500, 40 },
+        { 500, 180 }, { 300, 180 } }, { 0.1f, 0.7f, 1.0f, 0.75f });
+}
+
 void Scene_Game::OnUpdate(float)
 {
     if (m_input.ColliderVisualizationPressed())

@@ -53,8 +53,16 @@ void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
     }
 }
 
-void Renderer::Render()
+void Renderer::Render(const UIManager& ui)
 {
+    if (!PrepareUIImages(ui))
+    {
+        OutputDebugStringA("UI texture upload failed.\n");
+        m_drawCommands.clear();
+        m_drawMeshCount = 0;
+        m_debugColliders.clear();
+        return;
+    }
     // --- 定数バッファの更新 ---
     // 床のワールド行列。各オブジェクトの行列は描画要求から取得する。
     XMMATRIX world = XMMatrixIdentity();
@@ -467,6 +475,8 @@ void Renderer::Render()
 
         m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_commandList->DrawInstanced(3, 1, 0, 0);
+
+        DrawUI(ui);
 
         // バックバッファ: 描画先 → 表示用へ
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
