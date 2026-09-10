@@ -3,6 +3,7 @@
 #include "AnimationComponent.h"
 #include "Rigidbody.h"
 
+#include <algorithm>
 #include <cmath>
 #include "Input.h"
 #include "ModelComponent.h"
@@ -13,6 +14,9 @@ namespace
 {
 constexpr float FootOffset = 1.05f;
 constexpr float JumpSpeed = 3.0f;
+constexpr float AttackPlaybackSpeed = 2.0f;
+constexpr float AnimationBlendDuration = 0.2f;
+constexpr float RotationResponsiveness = 12.0f;
 }
 
 bool Player::Initialize(ModelManager& modelManager)
@@ -58,9 +62,18 @@ void Player::Update(float deltaTime)
     if (grounded && m_input.JumpPressed())
     {
         m_attacking = false;
-        m_jumping = m_animation->Play("Jump", false);
+        m_jumping = m_animation->Play(
+            "Jump", false, 0.0f, AnimationBlendDuration);
         m_rigidbody->SetUseGravity(true);
         m_rigidbody->SetVelocity(velocity.x, JumpSpeed, velocity.z);
+    }
+
+    if (m_jumping)
+    {
+        const float verticalVelocity = m_rigidbody->GetVelocity().y;
+        const float jumpProgress = std::clamp(
+            0.5f * (1.0f - verticalVelocity / JumpSpeed), 0.0f, 1.0f);
+        m_animation->SetNormalizedTime(jumpProgress);
     }
 
     if (!m_jumping)
@@ -68,19 +81,36 @@ void Player::Update(float deltaTime)
         if (m_attacking && m_animation->IsFinished())
             m_attacking = false;
         if (m_input.AttackPressed() && !m_attacking)
-            m_attacking = m_animation->Play("Attack", false);
+            m_attacking = m_animation->Play(
+                "Attack", false, AttackPlaybackSpeed, AnimationBlendDuration);
         if (!m_attacking)
-            m_animation->Play(length > 0.0f ? (dashing ? "Run" : "Walk") : "Idle");
+        {
+            const bool blendFromCurrent = m_animation->IsPlaying("Idle") ||
+                m_animation->IsPlaying("Walk") || m_animation->IsPlaying("Run") ||
+                m_animation->IsPlaying("Attack") || m_animation->IsPlaying("Jump");
+            const float blendDuration = blendFromCurrent ? AnimationBlendDuration : 0.0f;
+            if (dashing)
+                m_animation->Play("Run", true, 1.0f, blendDuration);
+            else if (length > 0.0f)
+                m_animation->Play("Walk", true, 1.0f, blendDuration);
+            else
+                m_animation->Play("Idle", true, 1.0f, blendDuration);
+        }
     }
-    if (length > 0.0f)
+    if (length > 0.0f && !m_attacking)
     {
         const float moveSpeed = dashing ? 6.0f : 3.0f;
         const float localX = moveX / length;
         const float localZ = moveZ / length;
-        const float sinYaw = std::sin(m_rotation.y);
-        const float cosYaw = std::cos(m_rotation.y);
+        const float sinYaw = std::sin(m_movementYaw);
+        const float cosYaw = std::cos(m_movementYaw);
         const float worldX = localX * cosYaw + localZ * sinYaw;
         const float worldZ = -localX * sinYaw + localZ * cosYaw;
+        const float targetYaw = std::atan2(worldX, worldZ);
+        const float angleDifference = std::remainder(
+            targetYaw - m_rotation.y, DirectX::XM_2PI);
+        const float rotationAmount = 1.0f - std::exp(-RotationResponsiveness * deltaTime);
+        m_rotation.y += angleDifference * rotationAmount;
         m_position.x += worldX * moveSpeed * deltaTime;
         m_position.z += worldZ * moveSpeed * deltaTime;
     }

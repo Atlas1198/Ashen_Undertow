@@ -240,4 +240,9 @@
   <ItemGroup>
     <ClInclude Include="src\Engine\Terrain.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="assets\model\SwordMen\PlayerAnimations.txt">
+      <Filter>リソース ファイル</Filter>
+    </CustomBuild>
+  </ItemGroup>
 </Project>

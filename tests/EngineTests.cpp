@@ -130,6 +130,7 @@ int main()
     assert(poseChanged);
     const auto idlePose = animatedPose;
     assert(idleAnimation.Play("Walk"));
+    assert(idleAnimation.IsPlaying("Walk"));
     assert(!idleAnimation.Play("Missing"));
     idleAnimation.Update(0.3f);
     const auto& walkPose = idleAnimation.GetSkinMatrices();
@@ -158,11 +159,19 @@ int main()
         }
     }
     assert(runChanged);
+    assert(idleAnimation.Play("Idle", true, 1.0f, 0.2f));
+    assert(idleAnimation.IsPlaying("Idle"));
+    idleAnimation.Update(0.1f);
+    idleAnimation.Update(0.1f);
     assert(idleAnimation.Play("Attack", false));
     assert(!idleAnimation.IsFinished());
     idleAnimation.Update(10.0f);
     assert(idleAnimation.IsFinished());
     assert(idleAnimation.Play("Jump", false));
+    idleAnimation.SetNormalizedTime(0.5f);
+    assert(!idleAnimation.IsFinished());
+    idleAnimation.SetNormalizedTime(1.0f);
+    assert(idleAnimation.IsFinished());
 
     ObjectManager objects(models);
     auto* spawner = objects.AddGameObject<Spawner>(objects);

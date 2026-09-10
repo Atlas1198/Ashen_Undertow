@@ -219,6 +219,15 @@
     <None Include="shaders\Skybox.hlsl" />
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="assets\model\SwordMen\PlayerAnimations.txt">
+      <FileType>Document</FileType>
+      <Command>&quot;$(ProjectDir).tools\BlenderPortable\blender-5.2.1-windows-x64\blender.exe&quot; --background --python &quot;$(ProjectDir).tools\convert_swordmen.py&quot;</Command>
+      <Message>Playerアニメーションをsword_and_shield.glbへ変換しています...</Message>
+      <AdditionalInputs>$(ProjectDir).tools\convert_swordmen.py;$(ProjectDir)assets\model\SwordMen\Paladin WProp J Nordstrom.fbx;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs>$(ProjectDir)assets\model\SwordMen\sword_and_shield.glb</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
     <None Include="shaders\Irradiance.hlsl">
       <FileType>Document</FileType>
     </None>

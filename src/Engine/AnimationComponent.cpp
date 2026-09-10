@@ -42,7 +42,7 @@ void AnimationComponent::Update(float deltaTime)
 {
     const auto& animation = m_model->animations[m_animationIndex];
     const float duration = animation.endTime - animation.startTime;
-    m_time += deltaTime;
+    m_time += deltaTime * m_playbackSpeed;
     if (duration > 0.0f)
     {
         if (m_loop)
@@ -117,6 +117,33 @@ void AnimationComponent::Update(float deltaTime)
         }
     }
 
+    if (m_blendDuration > 0.0f)
+    {
+        m_blendElapsed += std::max(deltaTime, 0.0f);
+        const float amount = std::min(m_blendElapsed / m_blendDuration, 1.0f);
+        for (size_t i = 0; i < m_translations.size(); ++i)
+        {
+            const auto& fromTranslation = m_blendTranslations[i];
+            auto& translation = m_translations[i];
+            translation = {
+                fromTranslation.x + (translation.x - fromTranslation.x) * amount,
+                fromTranslation.y + (translation.y - fromTranslation.y) * amount,
+                fromTranslation.z + (translation.z - fromTranslation.z) * amount
+            };
+            XMStoreFloat4(&m_rotations[i], XMQuaternionSlerp(
+                XMLoadFloat4(&m_blendRotations[i]), XMLoadFloat4(&m_rotations[i]), amount));
+            const auto& fromScale = m_blendScales[i];
+            auto& scale = m_scales[i];
+            scale = {
+                fromScale.x + (scale.x - fromScale.x) * amount,
+                fromScale.y + (scale.y - fromScale.y) * amount,
+                fromScale.z + (scale.z - fromScale.z) * amount
+            };
+        }
+        if (amount >= 1.0f)
+            m_blendDuration = 0.0f;
+    }
+
     std::fill(m_globalState.begin(), m_globalState.end(), uint8_t { 0 });
     const XMMATRIX mirrorZ = XMMatrixScaling(1.0f, 1.0f, -1.0f);
     for (size_t i = 0; i < skin.joints.size(); ++i)
@@ -136,21 +163,50 @@ void AnimationComponent::Update(float deltaTime)
     }
 }
 
-bool AnimationComponent::Play(const char* name, bool loop)
+bool AnimationComponent::Play(const char* name, bool loop, float playbackSpeed,
+    float blendDuration)
 {
     for (size_t i = 0; i < m_model->animations.size(); ++i)
     {
         if (m_model->animations[i].name != name) continue;
         if (m_animationIndex != i || m_finished)
         {
+            if (blendDuration > 0.0f && !m_translations.empty())
+            {
+                m_blendTranslations = m_translations;
+                m_blendRotations = m_rotations;
+                m_blendScales = m_scales;
+                m_blendDuration = blendDuration;
+                m_blendElapsed = 0.0f;
+            }
+            else
+            {
+                m_blendDuration = 0.0f;
+            }
             m_animationIndex = i;
             m_time = m_model->animations[i].startTime;
         }
         m_loop = loop;
+        m_playbackSpeed = playbackSpeed >= 0.0f ? playbackSpeed : 1.0f;
         m_finished = false;
         return true;
     }
     return false;
+}
+
+void AnimationComponent::SetNormalizedTime(float normalizedTime)
+{
+    if (!m_model || m_animationIndex >= m_model->animations.size()) return;
+    const auto& animation = m_model->animations[m_animationIndex];
+    const float amount = std::clamp(normalizedTime, 0.0f, 1.0f);
+    m_time = animation.startTime + (animation.endTime - animation.startTime) * amount;
+    m_finished = !m_loop && amount >= 1.0f;
+}
+
+bool AnimationComponent::IsPlaying(const char* name) const
+{
+    return m_model && m_animationIndex < m_model->animations.size() &&
+        m_model->animations[m_animationIndex].name == name;
 }
 
 XMMATRIX AnimationComponent::ComputeGlobal(size_t nodeIndex)

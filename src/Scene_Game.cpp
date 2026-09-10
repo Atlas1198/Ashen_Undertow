@@ -51,7 +51,7 @@ void Scene_Game::OnUpdate(float)
     if (m_input.ColliderVisualizationPressed())
         m_showColliders = !m_showColliders;
     m_camera.Rotate(m_input.LookX(), m_input.LookY());
-    m_player->SetRotation(0.0f, -m_camera.GetYaw(), 0.0f);
+    m_player->SetMovementYaw(-m_camera.GetYaw());
 }
 
 void Scene_Game::OnAfterUpdate(float)
