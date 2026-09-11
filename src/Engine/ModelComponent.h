@@ -14,6 +14,7 @@ public:
     bool Initialize() override;
     void Draw(Renderer& renderer) override;
     ModelHandle GetModelHandle() const { return m_model; }
+    DirectX::XMFLOAT4X4 CreateModelWorldMatrix() const;
     void SetOffset(float x, float y, float z) { m_offset = { x, y, z }; }
     // モデルの正面補正用。Objectの移動方向には影響しない（ラジアン）。
     void SetLocalRotation(float x, float y, float z) { m_localRotation = { x, y, z }; }

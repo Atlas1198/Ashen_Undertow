@@ -6,6 +6,15 @@
 #include "Component.h"
 
 class CollisionManager;
+class AnimationComponent;
+class ModelComponent;
+
+enum class ColliderRole
+{
+    Body,
+    Hurtbox,
+    Hitbox
+};
 
 // 軸平行な芯を半径分膨らませた形。球=点、カプセル=縦線分、箱=AABB。
 struct CollisionShape
@@ -23,11 +32,14 @@ public:
     void SetOffset(float x, float y, float z) { m_offset = { x, y, z }; }
     void SetTrigger(bool trigger) { m_isTrigger = trigger; }
     bool IsTrigger() const { return m_isTrigger; }
+    void SetRole(ColliderRole role) { m_role = role; }
+    ColliderRole GetRole() const { return m_role; }
 
     // 最新のCollisionManager::Update結果。ポインタは所有オブジェクトの寿命内のみ有効。
     bool IsColliding() const { return IsEnabled() && !m_contacts.empty(); }
     bool IsTriggering() const { return m_isTrigger && IsColliding(); }
     bool HasContactWith(const GameObject& object) const;
+    bool HasContactWith(const GameObject& object, ColliderRole role) const;
     const std::vector<Collider*>& GetContacts() const { return m_contacts; }
     static bool Intersects(const Collider& a, const Collider& b);
 
@@ -36,6 +48,7 @@ private:
     // サイズ・オフセットはワールド単位。描画の回転・拡縮からは独立。
     DirectX::XMFLOAT3 m_offset { 0, 0, 0 };
     bool m_isTrigger = false;
+    ColliderRole m_role = ColliderRole::Body;
     std::vector<Collider*> m_contacts;
 };
 
@@ -93,4 +106,24 @@ public:
 
 private:
     DirectX::XMFLOAT3 m_halfExtents;
+};
+
+// アニメーション済みボーンへCollider中心を追従させる。
+class BoneColliderAttachment final : public Component
+{
+public:
+    BoneColliderAttachment(AnimationComponent& animation, ModelComponent& model,
+        Collider& collider, const char* nodeName,
+        DirectX::XMFLOAT3 localOffset = { 0, 0, 0 })
+        : m_animation(animation), m_model(model), m_collider(collider),
+          m_nodeName(nodeName), m_localOffset(localOffset) {}
+    bool Initialize() override;
+    void Update(float deltaTime) override;
+
+private:
+    AnimationComponent& m_animation;
+    ModelComponent& m_model;
+    Collider& m_collider;
+    const char* m_nodeName;
+    DirectX::XMFLOAT3 m_localOffset;
 };

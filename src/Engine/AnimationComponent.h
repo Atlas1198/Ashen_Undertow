@@ -22,6 +22,9 @@ public:
     bool Play(const char* name, bool loop = true, float playbackSpeed = 1.0f,
         float blendDuration = 0.0f);
     void SetNormalizedTime(float normalizedTime);
+    float GetNormalizedTime() const;
+    bool GetNodeModelTransform(const char* name,
+        DirectX::XMFLOAT4X4& transform) const;
     bool IsPlaying(const char* name) const;
     bool IsFinished() const { return m_finished; }
     const std::vector<DirectX::XMFLOAT4X4>& GetSkinMatrices() const

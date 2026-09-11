@@ -203,6 +203,31 @@ void AnimationComponent::SetNormalizedTime(float normalizedTime)
     m_finished = !m_loop && amount >= 1.0f;
 }
 
+float AnimationComponent::GetNormalizedTime() const
+{
+    if (!m_model || m_animationIndex >= m_model->animations.size()) return 0.0f;
+    const auto& animation = m_model->animations[m_animationIndex];
+    const float duration = animation.endTime - animation.startTime;
+    return duration > 0.0f
+        ? std::clamp((m_time - animation.startTime) / duration, 0.0f, 1.0f)
+        : 0.0f;
+}
+
+bool AnimationComponent::GetNodeModelTransform(
+    const char* name, XMFLOAT4X4& transform) const
+{
+    if (!m_model || !name) return false;
+    for (size_t i = 0; i < m_model->nodes.size(); ++i)
+    {
+        if (m_model->nodes[i].name != name || i >= m_globals.size()) continue;
+        const XMMATRIX mirrorZ = XMMatrixScaling(1.0f, 1.0f, -1.0f);
+        XMStoreFloat4x4(&transform,
+            mirrorZ * XMLoadFloat4x4(&m_globals[i]) * mirrorZ);
+        return true;
+    }
+    return false;
+}
+
 bool AnimationComponent::IsPlaying(const char* name) const
 {
     return m_model && m_animationIndex < m_model->animations.size() &&

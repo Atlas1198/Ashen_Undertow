@@ -87,6 +87,7 @@ struct GltfPrimitive
 
 struct GltfNode
 {
+    std::string name;
     int parent = -1;
     DirectX::XMFLOAT3 translation { 0, 0, 0 };
     DirectX::XMFLOAT4 rotation { 0, 0, 0, 1 };

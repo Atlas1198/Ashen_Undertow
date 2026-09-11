@@ -49,6 +49,9 @@
     <ClCompile Include="src\Engine\Collider.cpp">
       <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\BoneColliderAttachment.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\CollisionManager.cpp">
       <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>

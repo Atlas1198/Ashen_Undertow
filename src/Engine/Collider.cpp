@@ -15,6 +15,13 @@ bool Collider::HasContactWith(const GameObject& object) const
     return false;
 }
 
+bool Collider::HasContactWith(const GameObject& object, ColliderRole role) const
+{
+    for (const auto* contact : m_contacts)
+        if (&contact->GetOwner() == &object && contact->GetRole() == role) return true;
+    return false;
+}
+
 bool Collider::Intersects(const Collider& a, const Collider& b)
 {
     if (!a.IsEnabled() || !b.IsEnabled()) return false;

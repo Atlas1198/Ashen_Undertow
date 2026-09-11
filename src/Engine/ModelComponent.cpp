@@ -13,12 +13,19 @@ bool ModelComponent::Initialize()
 void ModelComponent::Draw(Renderer& renderer)
 {
     const auto* animation = GetOwner().GetComponent<AnimationComponent>();
-    const auto ownerWorld = GetOwner().CreateWorldMatrix();
-    DirectX::XMFLOAT4X4 modelWorld;
-    DirectX::XMStoreFloat4x4(&modelWorld,
-        DirectX::XMMatrixRotationRollPitchYaw(m_localRotation.x, m_localRotation.y, m_localRotation.z) *
-        DirectX::XMMatrixTranslation(m_offset.x, m_offset.y, m_offset.z) *
-        DirectX::XMLoadFloat4x4(&ownerWorld));
+    const auto modelWorld = CreateModelWorldMatrix();
     renderer.DrawModel(m_model, modelWorld,
         animation ? &animation->GetSkinMatrices() : nullptr);
+}
+
+DirectX::XMFLOAT4X4 ModelComponent::CreateModelWorldMatrix() const
+{
+    const auto ownerWorld = GetOwner().CreateWorldMatrix();
+    DirectX::XMFLOAT4X4 result;
+    DirectX::XMStoreFloat4x4(&result,
+        DirectX::XMMatrixRotationRollPitchYaw(
+            m_localRotation.x, m_localRotation.y, m_localRotation.z) *
+        DirectX::XMMatrixTranslation(m_offset.x, m_offset.y, m_offset.z) *
+        DirectX::XMLoadFloat4x4(&ownerWorld));
+    return result;
 }

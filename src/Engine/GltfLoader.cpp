@@ -592,6 +592,7 @@ namespace
         out.nodes.resize(nodes.Size());
         for (size_t i = 0; i < nodes.Size(); ++i)
         {
+            out.nodes[i].name = nodes[i]["name"].AsString();
             XMVECTOR scale, rotation, translation;
             if (XMMatrixDecompose(&scale, &rotation, &translation, GetNodeMatrix(nodes[i])))
             {

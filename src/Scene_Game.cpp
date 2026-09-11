@@ -54,10 +54,10 @@ bool Scene_Game::InitializeUI(UIManager& ui)
 
 void Scene_Game::OnDrawUI(UIManager& ui)
 {
-    ui.DrawImage(m_wonheeImage, { 24, 24, 240, m_wonheeHeight });
-    // 4頂点を画面ピクセル座標で手打ちした四角形。
-    ui.DrawQuad({ DirectX::XMFLOAT2 { 300, 40 }, { 500, 40 },
-        { 500, 180 }, { 300, 180 } }, { 0.1f, 0.7f, 1.0f, 0.75f });
+    //ui.DrawImage(m_wonheeImage, { 24, 24, 240, m_wonheeHeight });
+    //// 4頂点を画面ピクセル座標で手打ちした四角形。
+    //ui.DrawQuad({ DirectX::XMFLOAT2 { 300, 40 }, { 500, 40 },
+    //    { 500, 180 }, { 300, 180 } }, { 0.1f, 0.7f, 1.0f, 0.75f });
 
     const float hpRatio = m_enemy->GetMaxHP() > 0
         ? static_cast<float>(m_enemy->GetHP()) / m_enemy->GetMaxHP() : 0.0f;

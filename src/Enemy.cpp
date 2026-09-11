@@ -22,8 +22,8 @@ constexpr float AnimationBlendDuration = 0.2f;
 constexpr float AttackPlaybackSpeed = 2.0f;
 constexpr float AttackCooldown = 0.5f;
 constexpr float AttackColliderRadius = 0.8f;
-constexpr float AttackColliderDistance = 1.0f;
-constexpr float AttackColliderHeight = 0.8f;
+constexpr float AttackHitStart = 0.25f;
+constexpr float AttackHitEnd = 0.70f;
 constexpr int AttackDamage = 10;
 }
 
@@ -41,7 +41,22 @@ bool Enemy::Initialize(ModelManager& modelManager)
     m_attackCollider = AddComponent<SphereCollider>(AttackColliderRadius);
     if (!m_attackCollider) return false;
     m_attackCollider->SetTrigger(true);
+    m_attackCollider->SetRole(ColliderRole::Hitbox);
     m_attackCollider->SetEnabled(false);
+    if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
+        *m_attackCollider, "mixamorig:RightHand")) return false;
+    auto* chest = AddComponent<SphereCollider>(0.55f);
+    if (!chest) return false;
+    chest->SetTrigger(true);
+    chest->SetRole(ColliderRole::Hurtbox);
+    if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
+        *chest, "mixamorig:Spine2")) return false;
+    auto* head = AddComponent<SphereCollider>(0.32f);
+    if (!head) return false;
+    head->SetTrigger(true);
+    head->SetRole(ColliderRole::Hurtbox);
+    if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
+        *head, "mixamorig:Head")) return false;
     return true;
 }
 
@@ -96,7 +111,7 @@ void Enemy::Update(float deltaTime)
             if (m_attacking)
             {
                 m_attackHit = false;
-                m_attackCollider->SetEnabled(true);
+                m_attackCollider->SetEnabled(false);
             }
         }
         else if (!m_attacking && distance > AttackDistance)
@@ -116,16 +131,18 @@ void Enemy::Update(float deltaTime)
         }
     }
 
-    m_attackCollider->SetOffset(
-        std::sin(m_rotation.y) * AttackColliderDistance,
-        AttackColliderHeight,
-        std::cos(m_rotation.y) * AttackColliderDistance);
+    if (m_attacking)
+    {
+        const float progress = m_animation->GetNormalizedTime();
+        m_attackCollider->SetEnabled(
+            progress >= AttackHitStart && progress <= AttackHitEnd);
+    }
 }
 
 void Enemy::ResolveAttackHit(GameObject& target)
 {
     if (!m_attackCollider->IsEnabled() || m_attackHit ||
-        !m_attackCollider->HasContactWith(target))
+        !m_attackCollider->HasContactWith(target, ColliderRole::Hurtbox))
     {
         return;
     }
