@@ -66,6 +66,34 @@ void AnimationComponent::Update(float deltaTime)
     const auto& skin = m_model->skins[0];
     const int rootJoint = skin.joints.empty() ? -1 : skin.joints.front();
 
+    // MixamoモデルごとにHipsのローカル上方向が異なるため、親変換から判定する。
+    if (m_rootVerticalAxis < 0 && rootJoint >= 0 &&
+        static_cast<size_t>(rootJoint) < m_model->nodes.size())
+    {
+        XMMATRIX parentGlobal = XMMatrixIdentity();
+        const int parent = m_model->nodes[static_cast<size_t>(rootJoint)].parent;
+        if (parent >= 0 && static_cast<size_t>(parent) < m_model->nodes.size())
+        {
+            std::fill(m_globalState.begin(), m_globalState.end(), uint8_t { 0 });
+            parentGlobal = ComputeGlobal(static_cast<size_t>(parent));
+        }
+        float bestAlignment = -1.0f;
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            const XMVECTOR localAxis = axis == 0 ? XMVectorSet(1, 0, 0, 0)
+                : axis == 1 ? XMVectorSet(0, 1, 0, 0)
+                : XMVectorSet(0, 0, 1, 0);
+            const XMVECTOR modelAxis = XMVector3Normalize(
+                XMVector3TransformNormal(localAxis, parentGlobal));
+            const float alignment = std::abs(XMVectorGetY(modelAxis));
+            if (alignment > bestAlignment)
+            {
+                bestAlignment = alignment;
+                m_rootVerticalAxis = axis;
+            }
+        }
+    }
+
     for (const auto& channel : animation.channels)
     {
         if (channel.node < 0 || static_cast<size_t>(channel.node) >= m_model->nodes.size() ||
@@ -103,12 +131,13 @@ void AnimationComponent::Update(float deltaTime)
             };
             if (channel.path == GltfAnimationChannel::Path::Translation)
             {
-                // This Mixamo skeleton's forward motion is stored in local Y.
-                // Player movement is handled by gameplay, so keep only the local Z bob.
+                // 水平ルートモーションはゲーム側で動かす。骨格固有の上下動だけ残す。
                 if (channel.node == rootJoint)
                 {
-                    value.x = channel.values.front().x;
-                    value.y = channel.values.front().y;
+                    const auto& first = channel.values.front();
+                    if (m_rootVerticalAxis != 0) value.x = first.x;
+                    if (m_rootVerticalAxis != 1) value.y = first.y;
+                    if (m_rootVerticalAxis != 2) value.z = first.z;
                 }
                 m_translations[node] = value;
             }

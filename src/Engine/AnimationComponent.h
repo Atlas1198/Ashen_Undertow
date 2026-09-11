@@ -46,6 +46,7 @@ private:
     float m_blendElapsed = 0.0f;
     bool m_loop = true;
     bool m_finished = false;
+    int m_rootVerticalAxis = -1;
     std::vector<DirectX::XMFLOAT3> m_translations;
     std::vector<DirectX::XMFLOAT4> m_rotations;
     std::vector<DirectX::XMFLOAT3> m_scales;
