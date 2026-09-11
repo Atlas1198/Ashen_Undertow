@@ -124,7 +124,7 @@ void Player::Update(float deltaTime)
                 m_rotation.y = std::atan2(
                     m_evasionDirectionX, m_evasionDirectionZ) + EvasionVisualYawOffset;
                 m_bodyCollider->SetEnabled(false);
-www                m_evasionCollider->SetEnabled(true);
+                m_evasionCollider->SetEnabled(true);
             }
         }
         else
