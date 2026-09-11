@@ -22,4 +22,5 @@ private:
     bool m_inCombat = false;
     bool m_attacking = false;
     bool m_attackHit = false;
+    bool m_running = false;
 };

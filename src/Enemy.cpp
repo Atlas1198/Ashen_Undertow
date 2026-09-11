@@ -13,7 +13,8 @@
 namespace
 {
 constexpr float SightRange = 10.0f;
-constexpr float RunStartDistance = 5.0f;
+constexpr float RunEnterDistance = 5.5f;
+constexpr float RunExitDistance = 4.5f;
 constexpr float AttackDistance = 1.8f;
 constexpr float WalkSpeed = 1.5f;
 constexpr float RunSpeed = 3.0f;
@@ -116,9 +117,12 @@ void Enemy::Update(float deltaTime)
         }
         else if (!m_attacking && distance > AttackDistance)
         {
-            const bool running = distance > RunStartDistance;
-            const float speed = running ? RunSpeed : WalkSpeed;
-            m_animation->Play(running ? "Run" : "Walk",
+            if (m_running)
+                m_running = distance > RunExitDistance;
+            else
+                m_running = distance > RunEnterDistance;
+            const float speed = m_running ? RunSpeed : WalkSpeed;
+            m_animation->Play(m_running ? "Run" : "Walk",
                 true, 1.0f, AnimationBlendDuration);
             m_position.x += directionX * speed * deltaTime;
             m_position.z += directionZ * speed * deltaTime;
