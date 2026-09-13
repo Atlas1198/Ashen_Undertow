@@ -36,10 +36,10 @@ cbuffer SceneConstants : register(b0)
     float4x4 lightViewProj;
     float alphaCutoff;
     float materialOpacity;
-    float pad9;
-    float pad10;
+    float windTime;
+    float windStrength;
     uint jointCount;
-    float3 pad11;
+    float3 windDirection;
     float4x4 jointMatrices[80];
 };
 

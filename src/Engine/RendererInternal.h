@@ -8,6 +8,7 @@
 #include <map>
 #include <utility>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 
@@ -61,10 +62,10 @@ namespace RendererDetail
         XMFLOAT4X4 lightViewProj;   // 64 : ライト視点のビュー射影行列
         float    alphaCutoff;        //  4 : 負なら常に通る
         float    materialOpacity;    // 半透明描画時の不透明度
-        float    padding9;
-        float    padding10;
+        float    windTime;
+        float    windStrength;
         uint32_t jointCount;
-        float padding11[3];
+        XMFLOAT3 windDirection;
         XMFLOAT4X4 jointMatrices[GltfMaxSkinJoints];
     };
 

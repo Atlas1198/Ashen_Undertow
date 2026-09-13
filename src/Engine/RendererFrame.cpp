@@ -94,6 +94,11 @@ void Renderer::Render(const UIManager& ui)
     SceneConstants cb {};
     XMStoreFloat4x4(&cb.mvp, XMMatrixTranspose(mvp));    // HLSL は列優先なので転置
     XMStoreFloat4x4(&cb.world, XMMatrixTranspose(world));  // 法線変換用
+    static const auto windStart = std::chrono::steady_clock::now();
+    cb.windTime = std::chrono::duration<float>(
+        std::chrono::steady_clock::now() - windStart).count();
+    cb.windStrength = 0.72f;
+    cb.windDirection = { 0.85f, 0.0f, 0.53f };
 
     // ビュー射影行列の逆行列。
     // スカイボックスが各ピクセルの視線方向を復元するのに使う
@@ -183,7 +188,6 @@ void Renderer::Render(const UIManager& ui)
 
             cb.alphaCutoff = gpuModel.meshes[i].alphaCutoff;
             cb.materialOpacity = 1.0f;
-            cb.padding9 = cb.padding10 = 0.0f;
             memcpy(frameConstants + drawConstantIndex * m_cbStride,
                 &cb, sizeof(cb));
             ++drawConstantIndex;
@@ -395,6 +399,14 @@ void Renderer::Render(const UIManager& ui)
         m_commandList->IASetVertexBuffers(0, 1, &m_waterVertexBufferView);
         m_commandList->IASetIndexBuffer(&m_waterIndexBufferView);
         m_commandList->DrawIndexedInstanced(m_waterIndexCount, 1, 0, 0, 0);
+
+        // 風筋は頂点バッファを持たず、GPU上で64本のリボンを生成・移動する。
+        m_commandList->SetPipelineState(m_windPipelineState.Get());
+        m_commandList->SetGraphicsRootConstantBufferView(
+            0, cbBase + floorConstantIndex * m_cbStride);
+        m_commandList->IASetVertexBuffers(0, 0, nullptr);
+        m_commandList->IASetIndexBuffer(nullptr);
+        m_commandList->DrawInstanced(8 * 6, 64, 0, 0);
     }
 
     DrawColliderDebug(view * proj);

@@ -166,6 +166,7 @@ private:
     ComPtr<ID3D12PipelineState>        m_pipelineState;
     ComPtr<ID3D12PipelineState>        m_pipelineStateNoCull;   // 両面マテリアル用
     ComPtr<ID3D12PipelineState>        m_waterPipelineState;    // 半透明水面用
+    ComPtr<ID3D12PipelineState>        m_windPipelineState;     // 風筋表示用
 
     // glTF のプリミティブ 1 個ぶん。
     // マテリアルごとに描画をまとめる必要があるので、

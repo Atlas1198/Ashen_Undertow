@@ -225,8 +225,31 @@ bool Renderer::CreateTrianglePipeline()
     waterBlend.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
     waterBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
     psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+    if (!Check(m_device->CreateGraphicsPipelineState(&psoDesc,
+        IID_PPV_ARGS(&m_waterPipelineState)))) return false;
+
+    ComPtr<ID3DBlob> windVs, windPs;
+    compileError.Reset();
+    if (!Check(D3DCompileFromFile(L"shaders/WindLines.hlsl", nullptr,
+        D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0,
+        &windVs, &compileError)))
+    {
+        if (compileError) OutputDebugStringA((char*)compileError->GetBufferPointer());
+        return false;
+    }
+    compileError.Reset();
+    if (!Check(D3DCompileFromFile(L"shaders/WindLines.hlsl", nullptr,
+        D3D_COMPILE_STANDARD_FILE_INCLUDE, "PSMain", "ps_5_0", compileFlags, 0,
+        &windPs, &compileError)))
+    {
+        if (compileError) OutputDebugStringA((char*)compileError->GetBufferPointer());
+        return false;
+    }
+    psoDesc.VS = { windVs->GetBufferPointer(), windVs->GetBufferSize() };
+    psoDesc.PS = { windPs->GetBufferPointer(), windPs->GetBufferSize() };
+    psoDesc.InputLayout = { nullptr, 0 };
     return Check(m_device->CreateGraphicsPipelineState(&psoDesc,
-        IID_PPV_ARGS(&m_waterPipelineState)));
+        IID_PPV_ARGS(&m_windPipelineState)));
 }
 
 bool Renderer::CreateShadowMap()
