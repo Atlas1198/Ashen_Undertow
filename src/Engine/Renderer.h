@@ -256,6 +256,7 @@ private:
     ComPtr<ID3D12Resource>   m_floorVertexBuffer;
     ComPtr<ID3D12Resource>   m_floorIndexBuffer;
     ComPtr<ID3D12Resource>   m_floorTexture;
+    ComPtr<ID3D12Resource>   m_floorGrassTexture;
     D3D12_VERTEX_BUFFER_VIEW m_floorVertexBufferView = {};
     D3D12_INDEX_BUFFER_VIEW  m_floorIndexBufferView = {};
     UINT                     m_floorIndexCount = 0;

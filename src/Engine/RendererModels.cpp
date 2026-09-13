@@ -401,7 +401,12 @@ bool Renderer::CreateMaterialTextures()
     createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvTerrainMaterial + 1);
     createSrv(m_defaultNormal.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvTerrainMaterial + 2);
     createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvTerrainMaterial + 3);
-    createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvTerrainMaterial + 4);
+    GltfImage terrainGrass;
+    if (!LoadTextureImage("assets/texture/terrain_grass.png", terrainGrass) ||
+        !UploadTexture(terrainGrass.pixels.data(), terrainGrass.width, terrainGrass.height,
+            DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, m_floorGrassTexture)) return false;
+    createSrv(m_floorGrassTexture.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+        kSrvTerrainMaterial + 4);
 
     GltfImage grass;
     if (!LoadTextureImage("assets/texture/grass_billboard.png", grass) ||

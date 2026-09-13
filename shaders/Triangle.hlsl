@@ -183,6 +183,18 @@ float4 PSMain(PSInput input) : SV_TARGET
     //------------------------------------------------------------------
     float4 baseColorSample = g_baseColorMap.Sample(g_modelSampler, input.uv);
 
+    if ((renderFlags & RenderFlagTerrain) != 0u)
+    {
+        const float boundaryNoise =
+            sin(input.worldPos.x * 0.31) * sin(input.worldPos.z * 0.27) * 0.16;
+        const float height = input.worldPos.y + boundaryNoise;
+        const float abovePondBed = smoothstep(-1.85, -1.18, height);
+        const float belowRockyHills = 1.0 - smoothstep(0.55, 1.65, height);
+        const float grassWeight = saturate(abovePondBed * belowRockyHills);
+        const float4 grassSample = g_emissiveMap.Sample(g_modelSampler, input.uv);
+        baseColorSample = lerp(baseColorSample, grassSample, grassWeight);
+    }
+
     // アルファテスト。しきい値未満のピクセルはここで捨てられ、
     // 色も深度も書き込まれない。
     // 不透明マテリアルは alphaCutoff が負なので常に通る

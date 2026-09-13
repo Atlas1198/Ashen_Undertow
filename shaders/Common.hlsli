@@ -50,6 +50,7 @@ cbuffer SceneConstants : register(b0)
 
 static const uint RenderFlagGrass = 1u;
 static const uint RenderFlagWater = 2u;
+static const uint RenderFlagTerrain = 4u;
 
 // 根元は固定し、葉先ほど強く曲げる草用の風変形。
 // 位置から位相を作るため、大量の草が同時に同じ動きにならない。

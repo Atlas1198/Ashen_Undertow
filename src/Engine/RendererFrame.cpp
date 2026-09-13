@@ -211,7 +211,7 @@ void Renderer::Render(const UIManager& ui)
     cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
     cb.jointCount = 0;
     cb.materialOpacity = 1.0f;
-    cb.renderFlags = 0;
+    cb.renderFlags = 4;
     memcpy(frameConstants + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 草は画像の透明部分を捨て、草葉の輪郭だけを描画する。
