@@ -22,6 +22,9 @@ struct CollisionShape
     DirectX::XMFLOAT3 center;
     DirectX::XMFLOAT3 halfExtents;
     float radius;
+    DirectX::XMFLOAT3 segmentStart { 0, 0, 0 };
+    DirectX::XMFLOAT3 segmentEnd { 0, 0, 0 };
+    bool hasSegment = false;
 };
 
 class Collider : public Component
@@ -50,6 +53,22 @@ private:
     bool m_isTrigger = false;
     ColliderRole m_role = ColliderRole::Body;
     std::vector<Collider*> m_contacts;
+};
+
+// 任意方向の線分を半径分膨らませたカプセル。
+class SegmentCollider final : public Collider
+{
+public:
+    explicit SegmentCollider(float radius = 0.5f) : m_radius(radius) {}
+    bool Initialize() override { return std::isfinite(m_radius) && m_radius >= 0; }
+    void SetEndpoints(const DirectX::XMFLOAT3& start,
+        const DirectX::XMFLOAT3& end);
+    CollisionShape GetShape() const override;
+
+private:
+    float m_radius;
+    DirectX::XMFLOAT3 m_startOffset { 0, 0, 0 };
+    DirectX::XMFLOAT3 m_endOffset { 0, 0, 0 };
 };
 
 class SphereCollider final : public Collider
@@ -126,4 +145,28 @@ private:
     Collider& m_collider;
     const char* m_nodeName;
     DirectX::XMFLOAT3 m_localOffset;
+};
+
+class BoneSegmentColliderAttachment final : public Component
+{
+public:
+    BoneSegmentColliderAttachment(AnimationComponent& animation,
+        ModelComponent& model, SegmentCollider& collider,
+        const char* startNode, const char* endNode,
+        DirectX::XMFLOAT3 startOffset = { 0, 0, 0 },
+        DirectX::XMFLOAT3 endOffset = { 0, 0, 0 })
+        : m_animation(animation), m_model(model), m_collider(collider),
+          m_startNode(startNode), m_endNode(endNode),
+          m_startOffset(startOffset), m_endOffset(endOffset) {}
+    bool Initialize() override;
+    void Update(float deltaTime) override;
+
+private:
+    AnimationComponent& m_animation;
+    ModelComponent& m_model;
+    SegmentCollider& m_collider;
+    const char* m_startNode;
+    const char* m_endNode;
+    DirectX::XMFLOAT3 m_startOffset;
+    DirectX::XMFLOAT3 m_endOffset;
 };

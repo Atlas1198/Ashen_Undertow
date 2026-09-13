@@ -6,25 +6,35 @@
 // 描画メッシュと接地が共有する高さ。単位はワールド座標。
 namespace Terrain
 {
-    inline constexpr int Cells = 128;
-    inline constexpr float HalfSize = 32.0f;
+    inline constexpr int Cells = 192;
+    inline constexpr float HalfSize = 48.0f;
     inline constexpr float CellSize = HalfSize * 2.0f / Cells;
-    inline constexpr float WalkableRadius = 23.0f;
-    inline constexpr float BaseHeight = -1.05f;
+    inline constexpr float WalkableRadius = 38.0f;
+    inline constexpr float BaseHeight = -1.35f;
+    inline constexpr float PondCenterX = 12.0f;
+    inline constexpr float PondCenterZ = -10.0f;
+    inline constexpr float PondRadius = 7.5f;
+    inline constexpr float PondBankWidth = 2.0f;
 
     inline float VertexHeight(int x, int z)
     {
         const float px = x * CellSize - HalfSize;
         const float pz = z * CellSize - HalfSize;
         const float radius = std::sqrt(px * px + pz * pz);
-        const float t = std::clamp((radius - 10.0f) / 18.0f, 0.0f, 1.0f);
+        const float t = std::clamp((radius - 14.0f) / 28.0f, 0.0f, 1.0f);
         const float rim = t * t * (3.0f - 2.0f * t);
         const float ripples = 0.15f * std::sin(px * 0.48f) * std::sin(pz * 0.43f)
             + 0.09f * std::sin(px * 0.3f + pz * 0.2f);
-        const float hills = 3.5f + 1.3f * std::sin(px * 0.24f + pz * 0.17f)
-            + 0.9f * std::cos(pz * 0.31f - px * 0.11f)
-            + 0.4f * std::sin(px * 0.8f) * std::cos(pz * 0.65f);
-        return BaseHeight + ripples + rim * hills;
+        const float hills = 2.7f + 0.9f * std::sin(px * 0.18f + pz * 0.14f)
+            + 0.65f * std::cos(pz * 0.24f - px * 0.09f)
+            + 0.3f * std::sin(px * 0.65f) * std::cos(pz * 0.55f);
+        const float pondX = px - PondCenterX;
+        const float pondZ = pz - PondCenterZ;
+        const float pondDistance = std::sqrt(pondX * pondX + pondZ * pondZ);
+        const float pondT = std::clamp(
+            (PondRadius - pondDistance) / PondBankWidth, 0.0f, 1.0f);
+        const float pondBasin = pondT * pondT * (3.0f - 2.0f * pondT);
+        return BaseHeight + ripples + rim * hills - 1.8f * pondBasin;
     }
 
     // CreateFloorと同じ対角線で三角形補間する（双線形補間ではない）。

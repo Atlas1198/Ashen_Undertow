@@ -5,7 +5,10 @@ bool Near(float a, float b) { return std::abs(a - b) < 0.0001f; }
 
 int main()
 {
+    assert(Terrain::HalfSize >= 48.0f && Terrain::WalkableRadius >= 38.0f);
     assert(Near(Terrain::HeightAt(0, 0), Terrain::BaseHeight));
+    assert(Terrain::HeightAt(Terrain::PondCenterX, Terrain::PondCenterZ)
+        < Terrain::BaseHeight - 1.5f);
     float low = 100, high = -100;
     for (int z = 0; z <= Terrain::Cells; ++z)
         for (int x = 0; x <= Terrain::Cells; ++x)

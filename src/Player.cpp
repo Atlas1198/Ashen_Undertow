@@ -17,7 +17,7 @@ constexpr float JumpSpeed = 3.0f;
 constexpr float AttackPlaybackSpeed = 2.0f;
 constexpr float AnimationBlendDuration = 0.2f;
 constexpr float RotationResponsiveness = 12.0f;
-constexpr float AttackColliderRadius = 0.7f;
+constexpr float AttackColliderRadius = 0.11f;
 constexpr float AttackHitStart = 0.22f;
 constexpr float AttackHitEnd = 0.68f;
 constexpr float EvasionColliderRadius = 0.5f;
@@ -37,32 +37,45 @@ bool Player::Initialize(ModelManager& modelManager)
     model->SetLocalRotation(0.0f, DirectX::XM_PI, 0.0f);
     m_animation = AddComponent<AnimationComponent>(modelManager, GameAssets::PlayerModel);
     if (!m_animation) return false;
-    m_bodyCollider = AddComponent<CapsuleCollider>(0.4f, 0.4f);
-    if (!m_bodyCollider) return false;
-    m_bodyCollider->SetOffset(0.0f, -0.3f, 0.0f);
     m_evasionCollider = AddComponent<SphereCollider>(EvasionColliderRadius);
     if (!m_evasionCollider) return false;
     m_evasionCollider->SetOffset(0.0f, EvasionColliderHeightOffset, 0.0f);
+    m_evasionCollider->SetRole(ColliderRole::Hurtbox);
     m_evasionCollider->SetEnabled(false);
-    m_attackCollider = AddComponent<SphereCollider>(AttackColliderRadius);
+    m_attackCollider = AddComponent<SegmentCollider>(AttackColliderRadius);
     if (!m_attackCollider) return false;
     m_attackCollider->SetTrigger(true);
     m_attackCollider->SetRole(ColliderRole::Hitbox);
     m_attackCollider->SetEnabled(false);
-    if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
-        *m_attackCollider, "mixamorig:RightHand")) return false;
-    auto* chest = AddComponent<SphereCollider>(0.42f);
-    if (!chest) return false;
-    chest->SetTrigger(true);
-    chest->SetRole(ColliderRole::Hurtbox);
-    if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
-        *chest, "mixamorig:Spine2")) return false;
+    if (!AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
+        *static_cast<SegmentCollider*>(m_attackCollider),
+        "mixamorig:RightHand", "mixamorig:RightHand",
+        DirectX::XMFLOAT3 { 1.3f, -0.2f, -1.4f },
+        DirectX::XMFLOAT3 { -39.2f, 97.5f, -56.5f })) return false;
+    const auto addHurtbox = [&](float radius, const char* start, const char* end,
+        bool trigger = true)
+    {
+        auto* hurtbox = AddComponent<SegmentCollider>(radius);
+        if (!hurtbox) return false;
+        hurtbox->SetTrigger(trigger);
+        hurtbox->SetRole(ColliderRole::Hurtbox);
+        if (!AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
+            *hurtbox, start, end)) return false;
+        m_standingHurtboxes.push_back(hurtbox);
+        return true;
+    };
+    if (!addHurtbox(0.24f, "mixamorig:Hips", "mixamorig:Spine2", false) ||
+        !addHurtbox(0.12f, "mixamorig:LeftArm", "mixamorig:LeftHand") ||
+        !addHurtbox(0.12f, "mixamorig:RightArm", "mixamorig:RightHand") ||
+        !addHurtbox(0.15f, "mixamorig:LeftUpLeg", "mixamorig:LeftFoot") ||
+        !addHurtbox(0.15f, "mixamorig:RightUpLeg", "mixamorig:RightFoot")) return false;
     auto* head = AddComponent<SphereCollider>(0.25f);
     if (!head) return false;
     head->SetTrigger(true);
     head->SetRole(ColliderRole::Hurtbox);
     if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
         *head, "mixamorig:Head")) return false;
+    m_standingHurtboxes.push_back(head);
     m_rigidbody = AddComponent<Rigidbody>();
     if (!m_rigidbody) return false;
     m_rigidbody->SetUseGravity(false);
@@ -106,7 +119,7 @@ void Player::Update(float deltaTime)
     {
         m_evading = false;
         m_evasionCollider->SetEnabled(false);
-        m_bodyCollider->SetEnabled(true);
+        for (auto* hurtbox : m_standingHurtboxes) hurtbox->SetEnabled(true);
     }
 
     if (!m_evading && grounded && m_input.JumpPressed())
@@ -123,8 +136,8 @@ void Player::Update(float deltaTime)
                 m_evasionDirectionZ = movementZ;
                 m_rotation.y = std::atan2(
                     m_evasionDirectionX, m_evasionDirectionZ) + EvasionVisualYawOffset;
-                m_bodyCollider->SetEnabled(false);
                 m_evasionCollider->SetEnabled(true);
+                for (auto* hurtbox : m_standingHurtboxes) hurtbox->SetEnabled(false);
             }
         }
         else

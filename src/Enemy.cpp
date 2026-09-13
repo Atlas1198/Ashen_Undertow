@@ -22,7 +22,7 @@ constexpr float RotationResponsiveness = 8.0f;
 constexpr float AnimationBlendDuration = 0.2f;
 constexpr float AttackPlaybackSpeed = 2.0f;
 constexpr float AttackCooldown = 0.5f;
-constexpr float AttackColliderRadius = 0.8f;
+constexpr float AttackColliderRadius = 0.32f;
 constexpr float AttackHitStart = 0.25f;
 constexpr float AttackHitEnd = 0.70f;
 constexpr int AttackDamage = 10;
@@ -36,22 +36,39 @@ bool Enemy::Initialize(ModelManager& modelManager)
     model->SetLocalRotation(0.0f, DirectX::XM_PI, 0.0f);
     m_animation = AddComponent<AnimationComponent>(modelManager, GameAssets::EnemyModel);
     if (!m_animation) return false;
-    auto* collider = AddComponent<CapsuleCollider>(0.4f, 0.4f);
-    if (!collider) return false;
-    collider->SetOffset(0.0f, 0.8f, 0.0f);
-    m_attackCollider = AddComponent<SphereCollider>(AttackColliderRadius);
+    m_attackCollider = AddComponent<SegmentCollider>(AttackColliderRadius);
     if (!m_attackCollider) return false;
     m_attackCollider->SetTrigger(true);
     m_attackCollider->SetRole(ColliderRole::Hitbox);
     m_attackCollider->SetEnabled(false);
-    if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
-        *m_attackCollider, "mixamorig:RightHand")) return false;
-    auto* chest = AddComponent<SphereCollider>(0.55f);
-    if (!chest) return false;
-    chest->SetTrigger(true);
-    chest->SetRole(ColliderRole::Hurtbox);
-    if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
-        *chest, "mixamorig:Spine2")) return false;
+    if (!AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
+        *static_cast<SegmentCollider*>(m_attackCollider),
+        "mixamorig:RightForeArm", "mixamorig:RightHand")) return false;
+    m_leftAttackCollider = AddComponent<SegmentCollider>(0.24f);
+    if (!m_leftAttackCollider) return false;
+    m_leftAttackCollider->SetTrigger(true);
+    m_leftAttackCollider->SetRole(ColliderRole::Hitbox);
+    m_leftAttackCollider->SetEnabled(false);
+    if (!AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
+        *static_cast<SegmentCollider*>(m_leftAttackCollider),
+        "mixamorig:LeftHand", "mixamorig:LeftHand",
+        DirectX::XMFLOAT3 { -10.2f, 6.0f, 0.7f },
+        DirectX::XMFLOAT3 { -34.7f, 68.6f, -14.4f })) return false;
+    const auto addHurtbox = [&](float radius, const char* start, const char* end,
+        bool trigger = true)
+    {
+        auto* hurtbox = AddComponent<SegmentCollider>(radius);
+        if (!hurtbox) return false;
+        hurtbox->SetTrigger(trigger);
+        hurtbox->SetRole(ColliderRole::Hurtbox);
+        return AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
+            *hurtbox, start, end) != nullptr;
+    };
+    if (!addHurtbox(0.40f, "mixamorig:Hips", "mixamorig:Spine2", false) ||
+        !addHurtbox(0.23f, "mixamorig:LeftArm", "mixamorig:LeftHand") ||
+        !addHurtbox(0.23f, "mixamorig:RightArm", "mixamorig:RightHand") ||
+        !addHurtbox(0.26f, "mixamorig:LeftUpLeg", "mixamorig:LeftFoot") ||
+        !addHurtbox(0.26f, "mixamorig:RightUpLeg", "mixamorig:RightFoot")) return false;
     auto* head = AddComponent<SphereCollider>(0.32f);
     if (!head) return false;
     head->SetTrigger(true);
@@ -68,6 +85,7 @@ void Enemy::Update(float deltaTime)
     {
         m_attacking = false;
         m_attackCollider->SetEnabled(false);
+        m_leftAttackCollider->SetEnabled(false);
         m_animation->Play("Idle", true, 1.0f, AnimationBlendDuration);
         return;
     }
@@ -91,6 +109,7 @@ void Enemy::Update(float deltaTime)
     {
         m_attacking = false;
         m_attackCollider->SetEnabled(false);
+        m_leftAttackCollider->SetEnabled(false);
         m_attackCooldown = AttackCooldown;
     }
 
@@ -113,6 +132,7 @@ void Enemy::Update(float deltaTime)
             {
                 m_attackHit = false;
                 m_attackCollider->SetEnabled(false);
+                m_leftAttackCollider->SetEnabled(false);
             }
         }
         else if (!m_attacking && distance > AttackDistance)
@@ -140,13 +160,18 @@ void Enemy::Update(float deltaTime)
         const float progress = m_animation->GetNormalizedTime();
         m_attackCollider->SetEnabled(
             progress >= AttackHitStart && progress <= AttackHitEnd);
+        m_leftAttackCollider->SetEnabled(
+            progress >= AttackHitStart && progress <= AttackHitEnd);
     }
 }
 
 void Enemy::ResolveAttackHit(GameObject& target)
 {
-    if (!m_attackCollider->IsEnabled() || m_attackHit ||
-        !m_attackCollider->HasContactWith(target, ColliderRole::Hurtbox))
+    const bool rightHit = m_attackCollider->IsEnabled() &&
+        m_attackCollider->HasContactWith(target, ColliderRole::Hurtbox);
+    const bool leftHit = m_leftAttackCollider->IsEnabled() &&
+        m_leftAttackCollider->HasContactWith(target, ColliderRole::Hurtbox);
+    if (m_attackHit || (!rightHit && !leftHit))
     {
         return;
     }

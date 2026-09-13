@@ -104,6 +104,15 @@ void Renderer::DrawCollider(const XMFLOAT3& center, const XMFLOAT3& halfExtents,
     m_debugColliders.push_back({ center, halfExtents, radius, colliding });
 }
 
+void Renderer::DrawColliderSegment(const XMFLOAT3& start, const XMFLOAT3& end,
+    float radius, bool colliding)
+{
+    const XMFLOAT3 center { (start.x + end.x) * 0.5f,
+        (start.y + end.y) * 0.5f, (start.z + end.z) * 0.5f };
+    m_debugColliders.push_back(
+        { center, {}, radius, colliding, start, end, true });
+}
+
 void Renderer::DrawColliderDebug(const XMMATRIX& viewProjection)
 {
     if (m_debugColliders.empty()) return;
@@ -141,7 +150,62 @@ void Renderer::DrawColliderDebug(const XMMATRIX& viewProjection)
         const XMFLOAT4 color = collider.colliding
             ? XMFLOAT4 { 1.0f, 0.02f, 0.01f, 1.0f }
             : XMFLOAT4 { 0.02f, 1.0f, 0.05f, 1.0f };
-        if (collider.radius <= 0.0f)
+        if (collider.hasSegment)
+        {
+            const XMVECTOR startVector = XMLoadFloat3(&collider.segmentStart);
+            const XMVECTOR endVector = XMLoadFloat3(&collider.segmentEnd);
+            const XMVECTOR difference = endVector - startVector;
+            const float length = XMVectorGetX(XMVector3Length(difference));
+            if (length <= 0.0001f)
+            {
+                addRing(collider.center, { 1,0,0 }, { 0,1,0 }, collider.radius, color);
+                addRing(collider.center, { 1,0,0 }, { 0,0,1 }, collider.radius, color);
+                addRing(collider.center, { 0,1,0 }, { 0,0,1 }, collider.radius, color);
+                continue;
+            }
+            const XMVECTOR axisVector = difference / length;
+            const XMVECTOR reference = std::abs(XMVectorGetY(axisVector)) < 0.9f
+                ? XMVectorSet(0, 1, 0, 0) : XMVectorSet(1, 0, 0, 0);
+            XMFLOAT3 axis, u, v;
+            XMStoreFloat3(&axis, axisVector);
+            XMStoreFloat3(&u, XMVector3Normalize(XMVector3Cross(axisVector, reference)));
+            XMStoreFloat3(&v, XMVector3Cross(axisVector, XMLoadFloat3(&u)));
+            addRing(collider.segmentStart, u, v, collider.radius, color);
+            addRing(collider.segmentEnd, u, v, collider.radius, color);
+            constexpr int sides = 12;
+            constexpr int arcSegments = 6;
+            for (int side = 0; side < sides; ++side)
+            {
+                const float angle = XM_2PI * float(side) / sides;
+                const XMFLOAT3 radial { u.x * std::cos(angle) + v.x * std::sin(angle),
+                    u.y * std::cos(angle) + v.y * std::sin(angle),
+                    u.z * std::cos(angle) + v.z * std::sin(angle) };
+                addLine({ collider.segmentStart.x + radial.x * collider.radius,
+                    collider.segmentStart.y + radial.y * collider.radius,
+                    collider.segmentStart.z + radial.z * collider.radius },
+                    { collider.segmentEnd.x + radial.x * collider.radius,
+                    collider.segmentEnd.y + radial.y * collider.radius,
+                    collider.segmentEnd.z + radial.z * collider.radius }, color);
+                for (int arc = 0; arc < arcSegments; ++arc)
+                {
+                    const float a0 = XM_PIDIV2 * float(arc) / arcSegments;
+                    const float a1 = XM_PIDIV2 * float(arc + 1) / arcSegments;
+                    const auto capPoint = [&](const XMFLOAT3& center, float sign,
+                        float angleValue)
+                    {
+                        return XMFLOAT3 {
+                            center.x + collider.radius * (radial.x * std::cos(angleValue) + sign * axis.x * std::sin(angleValue)),
+                            center.y + collider.radius * (radial.y * std::cos(angleValue) + sign * axis.y * std::sin(angleValue)),
+                            center.z + collider.radius * (radial.z * std::cos(angleValue) + sign * axis.z * std::sin(angleValue)) };
+                    };
+                    addLine(capPoint(collider.segmentStart, -1.0f, a0),
+                        capPoint(collider.segmentStart, -1.0f, a1), color);
+                    addLine(capPoint(collider.segmentEnd, 1.0f, a0),
+                        capPoint(collider.segmentEnd, 1.0f, a1), color);
+                }
+            }
+        }
+        else if (collider.radius <= 0.0f)
         {
             XMFLOAT3 corners[8];
             for (int i = 0; i < 8; ++i)

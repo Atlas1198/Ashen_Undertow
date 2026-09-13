@@ -81,6 +81,18 @@ int main()
     assert(!point.AddComponent<BoxCollider>(1.0f, -1.0f, 1.0f));
     assert(!point.AddComponent<SphereCollider>(std::numeric_limits<float>::infinity()));
 
+    // 任意方向カプセルは線分同士の最短距離で判定する。
+    TestObject segmentObjectA, segmentObjectB;
+    auto* segmentA = segmentObjectA.AddComponent<SegmentCollider>(0.1f);
+    auto* segmentB = segmentObjectB.AddComponent<SegmentCollider>(0.1f);
+    segmentA->SetEndpoints({ -1, 0, 0 }, { 1, 0, 0 });
+    segmentB->SetEndpoints({ 0, -1, 0 }, { 0, 1, 0 });
+    Check(*segmentA, *segmentB, true);
+    segmentB->SetEndpoints({ 0, -1, 0.21f }, { 0, 1, 0.21f });
+    Check(*segmentA, *segmentB, false);
+    segmentObjectA.SetPosition(2, 0, 0);
+    assert(std::abs(segmentA->GetShape().segmentStart.x - 1.0f) < 0.001f);
+
     ModelManager models;
     ObjectManager objects(models);
     auto* a = objects.AddGameObject<TestObject>();

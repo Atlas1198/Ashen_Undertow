@@ -18,6 +18,7 @@ private:
     Player& m_target;
     AnimationComponent* m_animation = nullptr;
     Collider* m_attackCollider = nullptr;
+    Collider* m_leftAttackCollider = nullptr;
     float m_attackCooldown = 0.0f;
     bool m_inCombat = false;
     bool m_attacking = false;

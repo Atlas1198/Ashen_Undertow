@@ -47,6 +47,8 @@ public:
         const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr);
     void DrawCollider(const DirectX::XMFLOAT3& center,
         const DirectX::XMFLOAT3& halfExtents, float radius, bool colliding);
+    void DrawColliderSegment(const DirectX::XMFLOAT3& start,
+        const DirectX::XMFLOAT3& end, float radius, bool colliding);
     void Render(const UIManager& ui);
 
 private:
@@ -103,7 +105,7 @@ private:
     static constexpr uint32_t kFrameCount = 2;
     static constexpr uint32_t kMaxDrawMeshCount = 4096;
 
-    // 1フレームの定数スロット数（描画メッシュの最大数 + 床）。
+    // 1フレームの定数スロット数（描画メッシュの最大数 + 地形 + 草）。
     uint32_t m_objectCount = 0;
 
     // シャドウマップの解像度。上げるほど影の輪郭が精細になるが重くなる
@@ -122,7 +124,8 @@ private:
     static constexpr uint32_t kSrvBloomB = 7;
     static constexpr uint32_t kSrvDefaultMaterial = 8;   // 8〜12 : テクスチャ無し用
     static constexpr uint32_t kSrvTerrainMaterial = 13; // 13〜17 : 地形
-    static constexpr uint32_t kSrvMaterialStart = 18;  // 18〜 : 5 個 × マテリアル数
+    static constexpr uint32_t kSrvGrassMaterial = 18; // 18〜22 : 草
+    static constexpr uint32_t kSrvMaterialStart = 23;  // 23〜 : 5 個 × マテリアル数
     static constexpr uint32_t kTexturesPerMaterial = 5;   // baseColor/MR/normal/AO/emissive
 
     uint32_t m_width  = 0;
@@ -202,6 +205,9 @@ private:
         DirectX::XMFLOAT3 halfExtents;
         float radius;
         bool colliding;
+        DirectX::XMFLOAT3 segmentStart { 0, 0, 0 };
+        DirectX::XMFLOAT3 segmentEnd { 0, 0, 0 };
+        bool hasSegment = false;
     };
     struct DebugLineVertex
     {
@@ -238,6 +244,12 @@ private:
     D3D12_VERTEX_BUFFER_VIEW m_floorVertexBufferView = {};
     D3D12_INDEX_BUFFER_VIEW  m_floorIndexBufferView = {};
     UINT                     m_floorIndexCount = 0;
+    ComPtr<ID3D12Resource>   m_grassVertexBuffer;
+    ComPtr<ID3D12Resource>   m_grassIndexBuffer;
+    ComPtr<ID3D12Resource>   m_grassTexture;
+    D3D12_VERTEX_BUFFER_VIEW m_grassVertexBufferView = {};
+    D3D12_INDEX_BUFFER_VIEW  m_grassIndexBufferView = {};
+    UINT                     m_grassIndexCount = 0;
 
     // --- シャドウマップ ---
     ComPtr<ID3D12Resource>       m_shadowMap;

@@ -2,10 +2,10 @@
 
 #include "GameObject.h"
 #include "ModelHandle.h"
+#include <vector>
 
 class Input;
 class AnimationComponent;
-class CapsuleCollider;
 class Collider;
 class Rigidbody;
 class SphereCollider;
@@ -27,9 +27,9 @@ public:
 private:    
     const Input& m_input;
     AnimationComponent* m_animation = nullptr;
-    CapsuleCollider* m_bodyCollider = nullptr;
     SphereCollider* m_evasionCollider = nullptr;
     Collider* m_attackCollider = nullptr;
+    std::vector<Collider*> m_standingHurtboxes;
     Rigidbody* m_rigidbody = nullptr;
     float m_movementYaw = 0.0f;
     float m_evasionDirectionX = 0.0f;

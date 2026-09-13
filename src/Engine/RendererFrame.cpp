@@ -198,6 +198,12 @@ void Renderer::Render(const UIManager& ui)
     cb.jointCount = 0;
     memcpy(frameConstants + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
 
+    // 草は画像の透明部分を捨て、草葉の輪郭だけを描画する。
+    const size_t grassConstantIndex = kMaxDrawMeshCount + 1;
+    cb.alphaCutoff = 0.45f;
+    cb.roughness = 0.9f;
+    memcpy(frameConstants + grassConstantIndex * m_cbStride, &cb, sizeof(cb));
+
     // 1. このフレーム用のアロケータを Reset。
     //    (WaitForGpu 済み or フェンスで安全が確認できているときだけ許される)
     ID3D12CommandAllocator* allocator = m_commandAllocators[m_frameIndex].Get();
@@ -250,6 +256,15 @@ void Renderer::Render(const UIManager& ui)
         m_commandList->IASetVertexBuffers(0, 1, &m_floorVertexBufferView);
         m_commandList->IASetIndexBuffer(&m_floorIndexBufferView);
         m_commandList->DrawIndexedInstanced(m_floorIndexCount, 1, 0, 0, 0);
+        m_commandList->SetGraphicsRootConstantBufferView(0,
+            frameCbBase + grassConstantIndex * m_cbStride);
+        auto grassSrv = m_srvHeap->GetGPUDescriptorHandleForHeapStart();
+        grassSrv.ptr += SIZE_T(kSrvGrassMaterial) * m_device->GetDescriptorHandleIncrementSize(
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        m_commandList->SetGraphicsRootDescriptorTable(2, grassSrv);
+        m_commandList->IASetVertexBuffers(0, 1, &m_grassVertexBufferView);
+        m_commandList->IASetIndexBuffer(&m_grassIndexBufferView);
+        m_commandList->DrawIndexedInstanced(m_grassIndexCount, 1, 0, 0, 0);
 
         // 深度書き込み → テクスチャとして読める状態へ戻す
         shadowBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
@@ -346,6 +361,16 @@ void Renderer::Render(const UIManager& ui)
         m_commandList->IASetVertexBuffers(0, 1, &m_floorVertexBufferView);
         m_commandList->IASetIndexBuffer(&m_floorIndexBufferView);
         m_commandList->DrawIndexedInstanced(m_floorIndexCount, 1, 0, 0, 0);
+
+        material = heapStart;
+        material.ptr += kSrvGrassMaterial * srvStep;
+        m_commandList->SetGraphicsRootDescriptorTable(2, material);
+        m_commandList->SetGraphicsRootConstantBufferView(
+            0, cbBase + grassConstantIndex * m_cbStride);
+        m_commandList->SetPipelineState(m_pipelineStateNoCull.Get());
+        m_commandList->IASetVertexBuffers(0, 1, &m_grassVertexBufferView);
+        m_commandList->IASetIndexBuffer(&m_grassIndexBufferView);
+        m_commandList->DrawIndexedInstanced(m_grassIndexCount, 1, 0, 0, 0);
     }
 
     DrawColliderDebug(view * proj);

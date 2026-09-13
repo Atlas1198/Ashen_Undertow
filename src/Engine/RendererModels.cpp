@@ -403,6 +403,16 @@ bool Renderer::CreateMaterialTextures()
     createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvTerrainMaterial + 3);
     createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvTerrainMaterial + 4);
 
+    GltfImage grass;
+    if (!LoadTextureImage("assets/texture/grass_billboard.png", grass) ||
+        !UploadTexture(grass.pixels.data(), grass.width, grass.height,
+            DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, m_grassTexture)) return false;
+    createSrv(m_grassTexture.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvGrassMaterial);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvGrassMaterial + 1);
+    createSrv(m_defaultNormal.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvGrassMaterial + 2);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvGrassMaterial + 3);
+    createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvGrassMaterial + 4);
+
     return true;
 }
 
@@ -435,60 +445,117 @@ bool Renderer::CreateFloor()
             indices.insert(indices.end(), { a, b, b + 1, a, b + 1, a + 1 });
         }
 
+    const auto createMeshBuffers = [&](const std::vector<Vertex>& sourceVertices,
+        const std::vector<uint32_t>& sourceIndices,
+        ComPtr<ID3D12Resource>& vertexBuffer, ComPtr<ID3D12Resource>& indexBuffer,
+        D3D12_VERTEX_BUFFER_VIEW& vertexView, D3D12_INDEX_BUFFER_VIEW& indexView)
+    {
+        const UINT vertexBufferSize = static_cast<UINT>(
+            sourceVertices.size() * sizeof(Vertex));
+        const UINT indexBufferSize = static_cast<UINT>(
+            sourceIndices.size() * sizeof(uint32_t));
+        D3D12_HEAP_PROPERTIES heapProps = {};
+        heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+        D3D12_RESOURCE_DESC resourceDesc = {};
+        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        resourceDesc.Width = vertexBufferSize;
+        resourceDesc.Height = 1;
+        resourceDesc.DepthOrArraySize = 1;
+        resourceDesc.MipLevels = 1;
+        resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+        resourceDesc.SampleDesc.Count = 1;
+        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        if (!Check(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+            &resourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+            IID_PPV_ARGS(&vertexBuffer)))) return false;
+        D3D12_RANGE readRange = { 0, 0 };
+        void* mapped = nullptr;
+        if (!Check(vertexBuffer->Map(0, &readRange, &mapped))) return false;
+        memcpy(mapped, sourceVertices.data(), vertexBufferSize);
+        vertexBuffer->Unmap(0, nullptr);
+        vertexView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
+        vertexView.StrideInBytes = sizeof(Vertex);
+        vertexView.SizeInBytes = vertexBufferSize;
+        resourceDesc.Width = indexBufferSize;
+        if (!Check(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+            &resourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+            IID_PPV_ARGS(&indexBuffer)))) return false;
+        void* mappedIndex = nullptr;
+        if (!Check(indexBuffer->Map(0, &readRange, &mappedIndex))) return false;
+        memcpy(mappedIndex, sourceIndices.data(), indexBufferSize);
+        indexBuffer->Unmap(0, nullptr);
+        indexView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
+        indexView.SizeInBytes = indexBufferSize;
+        indexView.Format = DXGI_FORMAT_R32_UINT;
+        return true;
+    };
+
     m_floorIndexCount = static_cast<UINT>(indices.size());
-    const UINT vertexBufferSize = static_cast<UINT>(vertices.size() * sizeof(Vertex));
-    const UINT indexBufferSize = static_cast<UINT>(indices.size() * sizeof(uint32_t));
+    if (!createMeshBuffers(vertices, indices, m_floorVertexBuffer, m_floorIndexBuffer,
+        m_floorVertexBufferView, m_floorIndexBufferView)) return false;
 
-    D3D12_HEAP_PROPERTIES heapProps = {};
-    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-
-    D3D12_RESOURCE_DESC resourceDesc = {};
-    resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    resourceDesc.Width = vertexBufferSize;
-    resourceDesc.Height = 1;
-    resourceDesc.DepthOrArraySize = 1;
-    resourceDesc.MipLevels = 1;
-    resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-    resourceDesc.SampleDesc.Count = 1;
-    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-
-    if (!Check(m_device->CreateCommittedResource(
-        &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-        IID_PPV_ARGS(&m_floorVertexBuffer))))
+    std::vector<Vertex> grassVertices;
+    std::vector<uint32_t> grassIndices;
+    const auto addBlade = [&](float centerX, float centerZ, float angle,
+        float height, float width)
     {
-        return false;
-    }
+        const float dx = std::cos(angle) * width * 0.5f;
+        const float dz = std::sin(angle) * width * 0.5f;
+        const float y = Terrain::HeightAt(centerX, centerZ) + 0.02f;
+        const XMFLOAT3 normal { -std::sin(angle), 0.0f, std::cos(angle) };
+        const uint32_t base = static_cast<uint32_t>(grassVertices.size());
+        Vertex blade[4] = {};
+        blade[0].position = { centerX - dx, y, centerZ - dz };
+        blade[1].position = { centerX + dx, y, centerZ + dz };
+        blade[2].position = { centerX + dx, y + height, centerZ + dz };
+        blade[3].position = { centerX - dx, y + height, centerZ - dz };
+        for (int i = 0; i < 4; ++i)
+        {
+            blade[i].normal = normal;
+            blade[i].tangent = { std::cos(angle), 0.0f, std::sin(angle), 1.0f };
+            blade[i].uv = { (i == 0 || i == 3) ? 0.0f : 1.0f, i < 2 ? 1.0f : 0.0f };
+            // 下端=0、上端=1。将来、根元を固定した風・接触変形に使う。
+            blade[i].weights.x = i < 2 ? 0.0f : 1.0f;
+            grassVertices.push_back(blade[i]);
+        }
+        grassIndices.insert(grassIndices.end(), { base, base + 1, base + 2,
+            base, base + 2, base + 3, base + 2, base + 1, base,
+            base + 3, base + 2, base });
+    };
 
-    void* mapped = nullptr;
-    D3D12_RANGE readRange = { 0, 0 };
-    if (!Check(m_floorVertexBuffer->Map(0, &readRange, &mapped))) return false;
-    memcpy(mapped, vertices.data(), vertexBufferSize);
-    m_floorVertexBuffer->Unmap(0, nullptr);
-
-    m_floorVertexBufferView.BufferLocation = m_floorVertexBuffer->GetGPUVirtualAddress();
-    m_floorVertexBufferView.StrideInBytes = sizeof(Vertex);
-    m_floorVertexBufferView.SizeInBytes = vertexBufferSize;
-
-    resourceDesc.Width = indexBufferSize;
-    if (!Check(m_device->CreateCommittedResource(
-        &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-        IID_PPV_ARGS(&m_floorIndexBuffer))))
+    constexpr float grassRadius = Terrain::WalkableRadius + 4.0f;
+    constexpr float spacing = 1.05f;
+    for (int gz = 0; gz <= static_cast<int>(grassRadius * 2.0f / spacing); ++gz)
     {
-        return false;
+        for (int gx = 0; gx <= static_cast<int>(grassRadius * 2.0f / spacing); ++gx)
+        {
+            uint32_t hash = static_cast<uint32_t>(gx * 73856093u) ^
+                static_cast<uint32_t>(gz * 19349663u);
+            hash ^= hash >> 13;
+            if (hash % 100u >= 48u) continue;
+            const float jitterX = (float((hash >> 8) & 255u) / 255.0f - 0.5f) * 0.7f;
+            const float jitterZ = (float((hash >> 16) & 255u) / 255.0f - 0.5f) * 0.7f;
+            const float x = -grassRadius + gx * spacing + jitterX;
+            const float z = -grassRadius + gz * spacing + jitterZ;
+            if (x * x + z * z > grassRadius * grassRadius || x * x + z * z < 20.25f)
+                continue;
+            const float pondX = x - Terrain::PondCenterX;
+            const float pondZ = z - Terrain::PondCenterZ;
+            const float pondClearRadius = Terrain::PondRadius + 1.5f;
+            if (pondX * pondX + pondZ * pondZ < pondClearRadius * pondClearRadius)
+                continue;
+            const float angle = XM_2PI * float(hash & 1023u) / 1024.0f;
+            const float height = 0.42f + 0.38f * float((hash >> 20) & 255u) / 255.0f;
+            const float width = height * (0.58f +
+                0.18f * float((hash >> 12) & 255u) / 255.0f);
+            addBlade(x, z, angle, height, width);
+            addBlade(x, z, angle + XM_PIDIV2, height * 0.85f, width * 0.8f);
+        }
     }
-
-    void* mappedIndex = nullptr;
-    if (!Check(m_floorIndexBuffer->Map(0, &readRange, &mappedIndex))) return false;
-    memcpy(mappedIndex, indices.data(), indexBufferSize);
-    m_floorIndexBuffer->Unmap(0, nullptr);
-
-    m_floorIndexBufferView.BufferLocation = m_floorIndexBuffer->GetGPUVirtualAddress();
-    m_floorIndexBufferView.SizeInBytes = indexBufferSize;
-    m_floorIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
-
-    return true;
+    m_grassIndexCount = static_cast<UINT>(grassIndices.size());
+    return !grassVertices.empty() && createMeshBuffers(grassVertices, grassIndices,
+        m_grassVertexBuffer, m_grassIndexBuffer,
+        m_grassVertexBufferView, m_grassIndexBufferView);
 }
 
 bool Renderer::CreateConstantBuffer()
@@ -496,8 +563,8 @@ bool Renderer::CreateConstantBuffer()
     // 1 オブジェクトぶんのサイズ。256 バイト境界に揃える必要がある
     m_cbStride = (sizeof(SceneConstants) + 255) & ~255u;
 
-    // メッシュ群 + 床の領域をフレーム数ぶん確保し、GPU使用中の領域を上書きしない。
-    m_objectCount = kMaxDrawMeshCount + 1;
+    // メッシュ群 + 地形 + 草の領域をフレーム数ぶん確保する。
+    m_objectCount = kMaxDrawMeshCount + 2;
     const UINT bufferSize = m_cbStride * m_objectCount * kFrameCount;
 
     D3D12_HEAP_PROPERTIES heapProps = {};

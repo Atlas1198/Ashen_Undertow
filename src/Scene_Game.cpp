@@ -134,14 +134,22 @@ void Scene_Game::OnDraw(Renderer& renderer)
     {
         if (!playerCollider->IsEnabled()) continue;
         const auto playerShape = playerCollider->GetShape();
-        renderer.DrawCollider(playerShape.center, playerShape.halfExtents,
-            playerShape.radius, playerCollider->IsColliding());
+        if (playerShape.hasSegment)
+            renderer.DrawColliderSegment(playerShape.segmentStart, playerShape.segmentEnd,
+                playerShape.radius, playerCollider->IsColliding());
+        else
+            renderer.DrawCollider(playerShape.center, playerShape.halfExtents,
+                playerShape.radius, playerCollider->IsColliding());
     }
     for (const auto* enemyCollider : m_enemy->GetComponents<Collider>())
     {
         if (!enemyCollider->IsEnabled()) continue;
         const auto enemyShape = enemyCollider->GetShape();
-        renderer.DrawCollider(enemyShape.center, enemyShape.halfExtents,
-            enemyShape.radius, enemyCollider->IsColliding());
+        if (enemyShape.hasSegment)
+            renderer.DrawColliderSegment(enemyShape.segmentStart, enemyShape.segmentEnd,
+                enemyShape.radius, enemyCollider->IsColliding());
+        else
+            renderer.DrawCollider(enemyShape.center, enemyShape.halfExtents,
+                enemyShape.radius, enemyCollider->IsColliding());
     }
 }
