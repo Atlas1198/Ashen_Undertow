@@ -43,6 +43,12 @@ public:
         m_cameraPosition = position;
         m_cameraTarget = target;
     }
+    void SetGrassInteractors(const DirectX::XMFLOAT3& player,
+        const DirectX::XMFLOAT3& enemy)
+    {
+        m_grassInteractors[0] = { player.x, player.y, player.z, 0.72f };
+        m_grassInteractors[1] = { enemy.x, enemy.y, enemy.z, 1.15f };
+    }
     void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world,
         const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr);
     void DrawCollider(const DirectX::XMFLOAT3& center,
@@ -132,6 +138,10 @@ private:
     uint32_t m_height = 0;
     DirectX::XMFLOAT3 m_cameraTarget { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_cameraPosition { 0.0f, 2.5f, -6.0f };
+    DirectX::XMFLOAT4 m_grassInteractors[2] = {
+        { 10000.0f, 0.0f, 10000.0f, 0.72f },
+        { 10000.0f, 0.0f, 10000.0f, 1.15f }
+    };
 
     // --- コアオブジェクト ---
     ComPtr<IDXGIFactory6>              m_factory;

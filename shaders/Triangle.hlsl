@@ -33,6 +33,7 @@ PSInput VSMain(VSInput input)
     float3 localPosition = input.position;
     float3 localNormal = input.normal;
     float3 localTangent = input.tangent.xyz;
+    localPosition = ApplyGrassDeformation(localPosition, input.weights.x);
     if (jointCount > 0)
     {
         float4x4 skin =

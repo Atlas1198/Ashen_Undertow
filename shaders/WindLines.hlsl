@@ -37,9 +37,11 @@ PSInput VSMain(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
 
     float2 direction = normalize(windDirection.xz);
     const float2 across = float2(-direction.y, direction.x);
-    const float speed = 0.030 + Random01(seed + 1u) * 0.025;
-    const float travel = (frac(Random01(seed + 2u) + windTime * speed * windStrength)
-        - 0.5) * 92.0;
+    // 風力の強弱から移動速度を分離し、常に一定速度で一方向へ進ませる。
+    const float travelDistance = 92.0;
+    const float windLineSpeed = 3.0;
+    const float travel = (frac(Random01(seed + 2u)
+        + windTime * windLineSpeed / travelDistance) - 0.5) * travelDistance;
     const float sideOffset = (Random01(seed + 3u) - 0.5) * 82.0;
     const float length = 2.2 + Random01(seed + 4u) * 3.8;
     const float height = -0.2 + Random01(seed + 5u) * 5.2;

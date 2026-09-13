@@ -128,6 +128,7 @@ void Scene_Game::OnAfterUpdate(float)
 void Scene_Game::OnDraw(Renderer& renderer)
 {
     renderer.SetCamera(m_camera.GetPosition(), m_camera.GetTarget());
+    renderer.SetGrassInteractors(m_player->GetPosition(), m_enemy->GetPosition());
     if (!m_showColliders) return;
 
     for (const auto* playerCollider : m_player->GetComponents<Collider>())

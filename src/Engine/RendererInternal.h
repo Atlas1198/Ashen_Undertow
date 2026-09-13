@@ -66,6 +66,9 @@ namespace RendererDetail
         float    windStrength;
         uint32_t jointCount;
         XMFLOAT3 windDirection;
+        uint32_t renderFlags;
+        float padding12[3];
+        XMFLOAT4 grassInteractors[2]; // xyz=中心、w=接触半径
         XMFLOAT4X4 jointMatrices[GltfMaxSkinJoints];
     };
 

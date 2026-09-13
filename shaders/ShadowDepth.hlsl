@@ -18,6 +18,7 @@ PSInput VSMain(float3 position : POSITION, float2 uv : TEXCOORD0,
     uint4 joints : BLENDINDICES, float4 weights : BLENDWEIGHT)
 {
     PSInput output;
+    position = ApplyGrassDeformation(position, weights.x);
     if (jointCount > 0)
     {
         float4x4 skin =

@@ -40,8 +40,54 @@ cbuffer SceneConstants : register(b0)
     float windStrength;
     uint jointCount;
     float3 windDirection;
+    uint renderFlags;
+    float3 pad12;
+    float4 grassInteractors[2];
     float4x4 jointMatrices[80];
 };
+
+static const uint RenderFlagGrass = 1u;
+
+// 根元は固定し、葉先ほど強く曲げる草用の風変形。
+// 位置から位相を作るため、大量の草が同時に同じ動きにならない。
+float3 ApplyGrassDeformation(float3 position, float bendWeight)
+{
+    if ((renderFlags & RenderFlagGrass) == 0u)
+        return position;
+
+    const float2 originalXZ = position.xz;
+    const float2 direction = normalize(windDirection.xz);
+    const float2 across = float2(-direction.y, direction.x);
+    const float phase = dot(position.xz, float2(0.31, 0.23)) + windTime * 1.55;
+    const float secondary = dot(position.xz, float2(-0.17, 0.37)) - windTime * 0.92;
+    const float gust = 0.68 + 0.22 * sin(phase) + 0.10 * sin(phase * 2.17 + secondary);
+    const float bend = bendWeight * bendWeight;
+
+    position.xz += direction * (0.15 * windStrength * gust * bend);
+    position.xz += across * (0.025 * windStrength * sin(secondary) * bend);
+    position.y -= 0.018 * windStrength * bend;
+
+    // PlayerとEnemyの足元では、中心から外へ押し分けながら地面側へ倒す。
+    float2 contactDirection = float2(0.0, 0.0);
+    float strongestContact = 0.0;
+    [unroll]
+    for (uint i = 0; i < 2; ++i)
+    {
+        const float2 delta = originalXZ - grassInteractors[i].xz;
+        const float distanceToActor = length(delta);
+        const float radius = grassInteractors[i].w;
+        const float contact = 1.0 - smoothstep(radius * 0.18, radius, distanceToActor);
+        const float2 away = distanceToActor > 0.001 ? delta / distanceToActor : direction;
+        contactDirection += away * contact;
+        strongestContact = max(strongestContact, contact);
+    }
+    const float contactLength = length(contactDirection);
+    const float2 pushDirection = contactLength > 0.001
+        ? contactDirection / contactLength : direction;
+    position.xz += pushDirection * (0.38 * strongestContact * bend);
+    position.y -= 0.34 * strongestContact * bend;
+    return position;
+}
 
 // 環境マップ(等距円筒図法の HDR)とサンプラ
 Texture2D g_envMap                  : register(t0); // HDR 環境マップ

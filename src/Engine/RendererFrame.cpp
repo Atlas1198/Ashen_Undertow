@@ -97,8 +97,12 @@ void Renderer::Render(const UIManager& ui)
     static const auto windStart = std::chrono::steady_clock::now();
     cb.windTime = std::chrono::duration<float>(
         std::chrono::steady_clock::now() - windStart).count();
-    cb.windStrength = 0.72f;
+    // 風筋が前後へ反転して見えないよう、風向は常に一方向へ固定する。
     cb.windDirection = { 0.85f, 0.0f, 0.53f };
+    cb.windStrength = 1.15f + 0.18f * std::sin(cb.windTime * 0.83f)
+        + 0.10f * std::sin(cb.windTime * 1.71f + 0.8f);
+    cb.grassInteractors[0] = m_grassInteractors[0];
+    cb.grassInteractors[1] = m_grassInteractors[1];
 
     // ビュー射影行列の逆行列。
     // スカイボックスが各ピクセルの視線方向を復元するのに使う
@@ -188,6 +192,7 @@ void Renderer::Render(const UIManager& ui)
 
             cb.alphaCutoff = gpuModel.meshes[i].alphaCutoff;
             cb.materialOpacity = 1.0f;
+            cb.renderFlags = 0;
             memcpy(frameConstants + drawConstantIndex * m_cbStride,
                 &cb, sizeof(cb));
             ++drawConstantIndex;
@@ -205,12 +210,14 @@ void Renderer::Render(const UIManager& ui)
     cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
     cb.jointCount = 0;
     cb.materialOpacity = 1.0f;
+    cb.renderFlags = 0;
     memcpy(frameConstants + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 草は画像の透明部分を捨て、草葉の輪郭だけを描画する。
     const size_t grassConstantIndex = kMaxDrawMeshCount + 1;
     cb.alphaCutoff = 0.45f;
     cb.roughness = 0.9f;
+    cb.renderFlags = 1;
     memcpy(frameConstants + grassConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     const size_t waterConstantIndex = kMaxDrawMeshCount + 2;
@@ -219,6 +226,7 @@ void Renderer::Render(const UIManager& ui)
     cb.metallic = 0.0f;
     cb.roughness = 0.08f;
     cb.materialOpacity = 0.58f;
+    cb.renderFlags = 0;
     memcpy(frameConstants + waterConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 1. このフレーム用のアロケータを Reset。
