@@ -69,6 +69,8 @@ namespace RendererDetail
         uint32_t renderFlags;
         float padding12[3];
         XMFLOAT4 grassInteractors[2]; // xyz=中心、w=接触半径
+        XMFLOAT2 waterInteractionStrength;
+        XMFLOAT2 padding13;
         XMFLOAT4X4 jointMatrices[GltfMaxSkinJoints];
     };
 

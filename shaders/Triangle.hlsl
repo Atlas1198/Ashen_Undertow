@@ -34,6 +34,7 @@ PSInput VSMain(VSInput input)
     float3 localNormal = input.normal;
     float3 localTangent = input.tangent.xyz;
     localPosition = ApplyGrassDeformation(localPosition, input.weights.x);
+    ApplyWaterWaves(localPosition, localNormal, localTangent);
     if (jointCount > 0)
     {
         float4x4 skin =

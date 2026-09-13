@@ -43,10 +43,13 @@ cbuffer SceneConstants : register(b0)
     uint renderFlags;
     float3 pad12;
     float4 grassInteractors[2];
+    float2 waterInteractionStrength;
+    float2 pad13;
     float4x4 jointMatrices[80];
 };
 
 static const uint RenderFlagGrass = 1u;
+static const uint RenderFlagWater = 2u;
 
 // 根元は固定し、葉先ほど強く曲げる草用の風変形。
 // 位置から位相を作るため、大量の草が同時に同じ動きにならない。
@@ -87,6 +90,58 @@ float3 ApplyGrassDeformation(float3 position, float bendWeight)
     position.xz += pushDirection * (0.38 * strongestContact * bend);
     position.y -= 0.34 * strongestContact * bend;
     return position;
+}
+
+// 風向へ進む3層の波。風が強いほど波高と細かな波が増える。
+void ApplyWaterWaves(inout float3 position, inout float3 normal, inout float3 tangent)
+{
+    if ((renderFlags & RenderFlagWater) == 0u)
+        return;
+
+    const float2 direction = normalize(windDirection.xz);
+    const float2 across = float2(-direction.y, direction.x);
+    const float2 direction2 = normalize(direction + across * 0.55);
+    const float2 direction3 = normalize(direction - across * 0.80);
+    const float strength = saturate(windStrength / 1.5);
+    const float amplitude = lerp(0.012, 0.070, strength);
+
+    const float phase1 = dot(position.xz, direction) * 2.6 - windTime * 1.9;
+    const float phase2 = dot(position.xz, direction2) * 4.1 - windTime * 2.6 + 1.3;
+    const float phase3 = dot(position.xz, direction3) * 7.2 - windTime * 3.4 + 0.4;
+    const float amount1 = amplitude;
+    const float amount2 = amplitude * 0.38 * strength;
+    const float amount3 = amplitude * 0.12 * strength;
+
+    float waveHeight = amount1 * sin(phase1)
+        + amount2 * sin(phase2) + amount3 * sin(phase3);
+    float2 gradient =
+        amount1 * 2.6 * cos(phase1) * direction
+        + amount2 * 4.1 * cos(phase2) * direction2
+        + amount3 * 7.2 * cos(phase3) * direction3;
+
+    // 移動中のPlayer／Enemyの足元から外側へ進む円形波。
+    [unroll]
+    for (uint i = 0; i < 2; ++i)
+    {
+        const float movement = waterInteractionStrength[i];
+        const float2 fromActor = position.xz - grassInteractors[i].xz;
+        const float distanceToActor = length(fromActor);
+        const float rippleRadius = 2.0 + movement * 0.6;
+        const float envelope = (1.0 - smoothstep(0.12, rippleRadius, distanceToActor))
+            * movement;
+        const float frequency = 9.0;
+        const float ripplePhase = distanceToActor * frequency
+            - windTime * (5.0 + movement * 2.0) + float(i) * 1.7;
+        const float rippleAmplitude = (0.024 + float(i) * 0.010) * envelope;
+        waveHeight += rippleAmplitude * sin(ripplePhase);
+        const float2 radial = distanceToActor > 0.001
+            ? fromActor / distanceToActor : direction;
+        gradient += rippleAmplitude * frequency * cos(ripplePhase) * radial;
+    }
+
+    position.y += waveHeight;
+    normal = normalize(float3(-gradient.x, 1.0, -gradient.y));
+    tangent = normalize(float3(1.0, gradient.x, 0.0));
 }
 
 // 環境マップ(等距円筒図法の HDR)とサンプラ

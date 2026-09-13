@@ -31,4 +31,8 @@ private:
     const Input& m_input;
     Camera m_camera;
     bool m_showColliders = false;
+    DirectX::XMFLOAT3 m_previousPlayerPosition {};
+    DirectX::XMFLOAT3 m_previousEnemyPosition {};
+    float m_playerWaterMovement = 0.0f;
+    float m_enemyWaterMovement = 0.0f;
 };

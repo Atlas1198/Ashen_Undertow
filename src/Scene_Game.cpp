@@ -8,6 +8,8 @@
 
 #include "Renderer.h"
 #include "Terrain.h"
+#include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -40,6 +42,8 @@ bool Scene_Game::Initialize()
     m_tree = AddGameObject<Tree>();
     if (!m_tree) return false;
     m_tree->SetPosition(-3.0f, Terrain::HeightAt(-3.0f, 3.0f), 3.0f);
+    m_previousPlayerPosition = m_player->GetPosition();
+    m_previousEnemyPosition = m_enemy->GetPosition();
     return true;
 }
 
@@ -116,19 +120,44 @@ void Scene_Game::OnUpdate(float)
     m_player->SetMovementYaw(-m_camera.GetYaw());
 }
 
-void Scene_Game::OnAfterUpdate(float)
+void Scene_Game::OnAfterUpdate(float deltaTime)
 {
     m_player->ResolveTerrainContact();
     m_player->ResolveAttackHit(*m_enemy);
     m_enemy->ResolveAttackHit(*m_player);
     m_camera.SetTarget(m_player->GetPosition());
     m_tree->FaceCamera(m_camera.GetPosition());
+
+    const auto updateWaterMovement = [deltaTime](const DirectX::XMFLOAT3& current,
+        const DirectX::XMFLOAT3& previous, float previousStrength)
+    {
+        const float dx = current.x - previous.x;
+        const float dz = current.z - previous.z;
+        const float speed = deltaTime > 0.0f
+            ? std::sqrt(dx * dx + dz * dz) / deltaTime : 0.0f;
+        const float pondX = current.x - Terrain::PondCenterX;
+        const float pondZ = current.z - Terrain::PondCenterZ;
+        const bool inWater = pondX * pondX + pondZ * pondZ
+            <= Terrain::PondWaterRadius * Terrain::PondWaterRadius;
+        const float target = inWater ? std::clamp(speed / 3.0f, 0.0f, 1.0f) : 0.0f;
+        const float response = 1.0f - std::exp(-8.0f * (std::max)(deltaTime, 0.0f));
+        return previousStrength + (target - previousStrength) * response;
+    };
+    const auto playerPosition = m_player->GetPosition();
+    const auto enemyPosition = m_enemy->GetPosition();
+    m_playerWaterMovement = updateWaterMovement(
+        playerPosition, m_previousPlayerPosition, m_playerWaterMovement);
+    m_enemyWaterMovement = updateWaterMovement(
+        enemyPosition, m_previousEnemyPosition, m_enemyWaterMovement);
+    m_previousPlayerPosition = playerPosition;
+    m_previousEnemyPosition = enemyPosition;
 }
 
 void Scene_Game::OnDraw(Renderer& renderer)
 {
     renderer.SetCamera(m_camera.GetPosition(), m_camera.GetTarget());
-    renderer.SetGrassInteractors(m_player->GetPosition(), m_enemy->GetPosition());
+    renderer.SetGrassInteractors(m_player->GetPosition(), m_enemy->GetPosition(),
+        m_playerWaterMovement, m_enemyWaterMovement);
     if (!m_showColliders) return;
 
     for (const auto* playerCollider : m_player->GetComponents<Collider>())

@@ -103,6 +103,7 @@ void Renderer::Render(const UIManager& ui)
         + 0.10f * std::sin(cb.windTime * 1.71f + 0.8f);
     cb.grassInteractors[0] = m_grassInteractors[0];
     cb.grassInteractors[1] = m_grassInteractors[1];
+    cb.waterInteractionStrength = m_waterInteractionStrength;
 
     // ビュー射影行列の逆行列。
     // スカイボックスが各ピクセルの視線方向を復元するのに使う
@@ -226,7 +227,7 @@ void Renderer::Render(const UIManager& ui)
     cb.metallic = 0.0f;
     cb.roughness = 0.08f;
     cb.materialOpacity = 0.58f;
-    cb.renderFlags = 0;
+    cb.renderFlags = 2;
     memcpy(frameConstants + waterConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 1. このフレーム用のアロケータを Reset。

@@ -44,10 +44,12 @@ public:
         m_cameraTarget = target;
     }
     void SetGrassInteractors(const DirectX::XMFLOAT3& player,
-        const DirectX::XMFLOAT3& enemy)
+        const DirectX::XMFLOAT3& enemy, float playerWaterMovement,
+        float enemyWaterMovement)
     {
         m_grassInteractors[0] = { player.x, player.y, player.z, 0.72f };
         m_grassInteractors[1] = { enemy.x, enemy.y, enemy.z, 1.15f };
+        m_waterInteractionStrength = { playerWaterMovement, enemyWaterMovement };
     }
     void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world,
         const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr);
@@ -142,6 +144,7 @@ private:
         { 10000.0f, 0.0f, 10000.0f, 0.72f },
         { 10000.0f, 0.0f, 10000.0f, 1.15f }
     };
+    DirectX::XMFLOAT2 m_waterInteractionStrength { 0.0f, 0.0f };
 
     // --- コアオブジェクト ---
     ComPtr<IDXGIFactory6>              m_factory;

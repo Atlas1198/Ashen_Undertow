@@ -564,8 +564,8 @@ bool Renderer::CreateFloor()
         m_grassVertexBufferView, m_grassIndexBufferView)) return false;
 
     // 水面は十分に分割した独立メッシュ。後から頂点シェーダで波を加えられる。
-    constexpr uint32_t waterSegments = 64;
-    constexpr uint32_t waterRings = 8;
+    constexpr uint32_t waterSegments = 128;
+    constexpr uint32_t waterRings = 24;
     std::vector<Vertex> waterVertices(1 + waterSegments * waterRings);
     std::vector<uint32_t> waterIndices;
     waterIndices.reserve(waterSegments * (3 + (waterRings - 1) * 6));
