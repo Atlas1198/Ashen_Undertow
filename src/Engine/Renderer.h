@@ -105,7 +105,7 @@ private:
     static constexpr uint32_t kFrameCount = 2;
     static constexpr uint32_t kMaxDrawMeshCount = 4096;
 
-    // 1フレームの定数スロット数（描画メッシュの最大数 + 地形 + 草）。
+    // 1フレームの定数スロット数（描画メッシュの最大数 + 地形 + 草 + 水面）。
     uint32_t m_objectCount = 0;
 
     // シャドウマップの解像度。上げるほど影の輪郭が精細になるが重くなる
@@ -165,6 +165,7 @@ private:
     ComPtr<ID3D12RootSignature>        m_rootSignature;
     ComPtr<ID3D12PipelineState>        m_pipelineState;
     ComPtr<ID3D12PipelineState>        m_pipelineStateNoCull;   // 両面マテリアル用
+    ComPtr<ID3D12PipelineState>        m_waterPipelineState;    // 半透明水面用
 
     // glTF のプリミティブ 1 個ぶん。
     // マテリアルごとに描画をまとめる必要があるので、
@@ -250,6 +251,11 @@ private:
     D3D12_VERTEX_BUFFER_VIEW m_grassVertexBufferView = {};
     D3D12_INDEX_BUFFER_VIEW  m_grassIndexBufferView = {};
     UINT                     m_grassIndexCount = 0;
+    ComPtr<ID3D12Resource>   m_waterVertexBuffer;
+    ComPtr<ID3D12Resource>   m_waterIndexBuffer;
+    D3D12_VERTEX_BUFFER_VIEW m_waterVertexBufferView = {};
+    D3D12_INDEX_BUFFER_VIEW  m_waterIndexBufferView = {};
+    UINT                     m_waterIndexCount = 0;
 
     // --- シャドウマップ ---
     ComPtr<ID3D12Resource>       m_shadowMap;

@@ -106,7 +106,10 @@ void Renderer::Render(const UIManager& ui)
     XMStoreFloat3(&cb.cameraPosition, eye);
 
     // 平行光源(太陽のようなもの)。位置を持たず「向き」だけを持つ
-    XMVECTOR lightDir = XMVector3Normalize(XMVectorSet(-0.6f, -0.55f, 0.15f, 0.0f));
+    // env.hdr の太陽中心(UV 0.60083, 0.33838)から求めた光の進行方向。
+    // IBLの太陽と直接光のハイライト・影を同じ方向へ揃える。
+    XMVECTOR lightDir = XMVector3Normalize(
+        XMVectorSet(-0.704264f, -0.486210f, -0.517311f, 0.0f));
 
     // --- ライト視点のビュー射影行列(シャドウマップ用) ---
     // 平行光源は「無限遠から平行に降る光」なので、射影は直交投影を使う。
@@ -179,7 +182,8 @@ void Renderer::Render(const UIManager& ui)
             }
 
             cb.alphaCutoff = gpuModel.meshes[i].alphaCutoff;
-            cb.padding8 = cb.padding9 = cb.padding10 = 0.0f;
+            cb.materialOpacity = 1.0f;
+            cb.padding9 = cb.padding10 = 0.0f;
             memcpy(frameConstants + drawConstantIndex * m_cbStride,
                 &cb, sizeof(cb));
             ++drawConstantIndex;
@@ -196,6 +200,7 @@ void Renderer::Render(const UIManager& ui)
     cb.roughness = 0.95f;
     cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
     cb.jointCount = 0;
+    cb.materialOpacity = 1.0f;
     memcpy(frameConstants + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 草は画像の透明部分を捨て、草葉の輪郭だけを描画する。
@@ -203,6 +208,14 @@ void Renderer::Render(const UIManager& ui)
     cb.alphaCutoff = 0.45f;
     cb.roughness = 0.9f;
     memcpy(frameConstants + grassConstantIndex * m_cbStride, &cb, sizeof(cb));
+
+    const size_t waterConstantIndex = kMaxDrawMeshCount + 2;
+    cb.albedo = { 0.035f, 0.24f, 0.31f };
+    cb.alphaCutoff = -1.0f;
+    cb.metallic = 0.0f;
+    cb.roughness = 0.08f;
+    cb.materialOpacity = 0.58f;
+    memcpy(frameConstants + waterConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 1. このフレーム用のアロケータを Reset。
     //    (WaitForGpu 済み or フェンスで安全が確認できているときだけ許される)
@@ -371,6 +384,17 @@ void Renderer::Render(const UIManager& ui)
         m_commandList->IASetVertexBuffers(0, 1, &m_grassVertexBufferView);
         m_commandList->IASetIndexBuffer(&m_grassIndexBufferView);
         m_commandList->DrawIndexedInstanced(m_grassIndexCount, 1, 0, 0, 0);
+
+        // 半透明物は不透明物の後に描く。
+        material = heapStart;
+        material.ptr += kSrvDefaultMaterial * srvStep;
+        m_commandList->SetGraphicsRootDescriptorTable(2, material);
+        m_commandList->SetGraphicsRootConstantBufferView(
+            0, cbBase + waterConstantIndex * m_cbStride);
+        m_commandList->SetPipelineState(m_waterPipelineState.Get());
+        m_commandList->IASetVertexBuffers(0, 1, &m_waterVertexBufferView);
+        m_commandList->IASetIndexBuffer(&m_waterIndexBufferView);
+        m_commandList->DrawIndexedInstanced(m_waterIndexCount, 1, 0, 0, 0);
     }
 
     DrawColliderDebug(view * proj);

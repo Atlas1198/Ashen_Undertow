@@ -35,7 +35,7 @@ cbuffer SceneConstants : register(b0)
     float pad7;
     float4x4 lightViewProj;
     float alphaCutoff;
-    float pad8;
+    float materialOpacity;
     float pad9;
     float pad10;
     uint jointCount;

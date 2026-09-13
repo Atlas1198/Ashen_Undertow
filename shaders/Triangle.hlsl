@@ -255,5 +255,5 @@ float4 PSMain(PSInput input) : SV_TARGET
         // トーンマップとガンマ補正はポストプロセス(Tonemap.hlsl)に移した。
     // ここではリニア空間の HDR 値をそのまま出力する
     float3 color = ambient + Lo + emissive;
-    return float4(color, 1.0);
+    return float4(color, materialOpacity);
 }

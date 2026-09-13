@@ -15,6 +15,9 @@ namespace Terrain
     inline constexpr float PondCenterZ = -10.0f;
     inline constexpr float PondRadius = 7.5f;
     inline constexpr float PondBankWidth = 2.0f;
+    // 岸の下へ少し潜り込ませ、斜め視点でも地面との隙間を見せない。
+    inline constexpr float PondWaterRadius = 7.2f;
+    inline constexpr float PondWaterHeight = BaseHeight - 0.65f;
 
     inline float VertexHeight(int x, int z)
     {

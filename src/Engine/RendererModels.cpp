@@ -504,27 +504,34 @@ bool Renderer::CreateFloor()
         const float y = Terrain::HeightAt(centerX, centerZ) + 0.02f;
         const XMFLOAT3 normal { -std::sin(angle), 0.0f, std::cos(angle) };
         const uint32_t base = static_cast<uint32_t>(grassVertices.size());
-        Vertex blade[4] = {};
-        blade[0].position = { centerX - dx, y, centerZ - dz };
-        blade[1].position = { centerX + dx, y, centerZ + dz };
-        blade[2].position = { centerX + dx, y + height, centerZ + dz };
-        blade[3].position = { centerX - dx, y + height, centerZ - dz };
-        for (int i = 0; i < 4; ++i)
+        Vertex blade[6] = {};
+        for (int level = 0; level < 3; ++level)
         {
-            blade[i].normal = normal;
-            blade[i].tangent = { std::cos(angle), 0.0f, std::sin(angle), 1.0f };
-            blade[i].uv = { (i == 0 || i == 3) ? 0.0f : 1.0f, i < 2 ? 1.0f : 0.0f };
-            // 下端=0、上端=1。将来、根元を固定した風・接触変形に使う。
-            blade[i].weights.x = i < 2 ? 0.0f : 1.0f;
-            grassVertices.push_back(blade[i]);
+            const float bendWeight = float(level) * 0.5f;
+            for (int side = 0; side < 2; ++side)
+            {
+                const int i = level * 2 + side;
+                const float sideSign = side == 0 ? -1.0f : 1.0f;
+                blade[i].position = { centerX + dx * sideSign, y + height * bendWeight,
+                    centerZ + dz * sideSign };
+                blade[i].normal = normal;
+                blade[i].tangent = { std::cos(angle), 0.0f, std::sin(angle), 1.0f };
+                // 画像中央の草1本だけを使い、左右の透明余白は拡大しない。
+                blade[i].uv = { side == 0 ? 0.45f : 0.55f, 1.0f - bendWeight };
+                // 根元=0、中腹=0.5、葉先=1。風・接触変形の曲げ係数。
+                blade[i].weights.x = bendWeight;
+                grassVertices.push_back(blade[i]);
+            }
         }
-        grassIndices.insert(grassIndices.end(), { base, base + 1, base + 2,
-            base, base + 2, base + 3, base + 2, base + 1, base,
-            base + 3, base + 2, base });
+        // 描画PSOは両面表示なので、裏面用の重複三角形は作らない。
+        grassIndices.insert(grassIndices.end(), {
+            base, base + 1, base + 3, base, base + 3, base + 2,
+            base + 2, base + 3, base + 5, base + 2, base + 5, base + 4
+        });
     };
 
     constexpr float grassRadius = Terrain::WalkableRadius + 4.0f;
-    constexpr float spacing = 1.05f;
+    constexpr float spacing = 0.24f;
     for (int gz = 0; gz <= static_cast<int>(grassRadius * 2.0f / spacing); ++gz)
     {
         for (int gx = 0; gx <= static_cast<int>(grassRadius * 2.0f / spacing); ++gx)
@@ -532,30 +539,81 @@ bool Renderer::CreateFloor()
             uint32_t hash = static_cast<uint32_t>(gx * 73856093u) ^
                 static_cast<uint32_t>(gz * 19349663u);
             hash ^= hash >> 13;
-            if (hash % 100u >= 48u) continue;
-            const float jitterX = (float((hash >> 8) & 255u) / 255.0f - 0.5f) * 0.7f;
-            const float jitterZ = (float((hash >> 16) & 255u) / 255.0f - 0.5f) * 0.7f;
+            if (hash % 100u >= 92u) continue;
+            const float jitterX = (float((hash >> 8) & 255u) / 255.0f - 0.5f) * 0.20f;
+            const float jitterZ = (float((hash >> 16) & 255u) / 255.0f - 0.5f) * 0.20f;
             const float x = -grassRadius + gx * spacing + jitterX;
             const float z = -grassRadius + gz * spacing + jitterZ;
-            if (x * x + z * z > grassRadius * grassRadius || x * x + z * z < 20.25f)
+            if (x * x + z * z > grassRadius * grassRadius)
                 continue;
             const float pondX = x - Terrain::PondCenterX;
             const float pondZ = z - Terrain::PondCenterZ;
-            const float pondClearRadius = Terrain::PondRadius + 1.5f;
+            const float pondClearRadius = Terrain::PondRadius + 0.3f;
             if (pondX * pondX + pondZ * pondZ < pondClearRadius * pondClearRadius)
                 continue;
             const float angle = XM_2PI * float(hash & 1023u) / 1024.0f;
-            const float height = 0.42f + 0.38f * float((hash >> 20) & 255u) / 255.0f;
-            const float width = height * (0.58f +
-                0.18f * float((hash >> 12) & 255u) / 255.0f);
+            const float height = 0.40f + 0.18f * float((hash >> 20) & 255u) / 255.0f;
+            const float width = 0.06f +
+                0.03f * float((hash >> 12) & 255u) / 255.0f;
             addBlade(x, z, angle, height, width);
-            addBlade(x, z, angle + XM_PIDIV2, height * 0.85f, width * 0.8f);
         }
     }
     m_grassIndexCount = static_cast<UINT>(grassIndices.size());
-    return !grassVertices.empty() && createMeshBuffers(grassVertices, grassIndices,
+    if (grassVertices.empty() || !createMeshBuffers(grassVertices, grassIndices,
         m_grassVertexBuffer, m_grassIndexBuffer,
-        m_grassVertexBufferView, m_grassIndexBufferView);
+        m_grassVertexBufferView, m_grassIndexBufferView)) return false;
+
+    // 水面は十分に分割した独立メッシュ。後から頂点シェーダで波を加えられる。
+    constexpr uint32_t waterSegments = 64;
+    constexpr uint32_t waterRings = 8;
+    std::vector<Vertex> waterVertices(1 + waterSegments * waterRings);
+    std::vector<uint32_t> waterIndices;
+    waterIndices.reserve(waterSegments * (3 + (waterRings - 1) * 6));
+    const auto setWaterVertex = [](Vertex& vertex, float x, float z)
+    {
+        vertex.position = { x, Terrain::PondWaterHeight, z };
+        vertex.normal = { 0.0f, 1.0f, 0.0f };
+        vertex.tangent = { 1.0f, 0.0f, 0.0f, -1.0f };
+        vertex.uv = {
+            0.5f + (x - Terrain::PondCenterX) / (Terrain::PondWaterRadius * 2.0f),
+            0.5f + (z - Terrain::PondCenterZ) / (Terrain::PondWaterRadius * 2.0f)
+        };
+    };
+    setWaterVertex(waterVertices[0], Terrain::PondCenterX, Terrain::PondCenterZ);
+    for (uint32_t ring = 1; ring <= waterRings; ++ring)
+    {
+        const float radius = Terrain::PondWaterRadius * float(ring) / float(waterRings);
+        for (uint32_t segment = 0; segment < waterSegments; ++segment)
+        {
+            const float angle = XM_2PI * float(segment) / float(waterSegments);
+            setWaterVertex(waterVertices[1 + (ring - 1) * waterSegments + segment],
+                Terrain::PondCenterX + std::cos(angle) * radius,
+                Terrain::PondCenterZ + std::sin(angle) * radius);
+        }
+    }
+    for (uint32_t segment = 0; segment < waterSegments; ++segment)
+    {
+        const uint32_t current = 1 + segment;
+        const uint32_t next = 1 + (segment + 1) % waterSegments;
+        waterIndices.insert(waterIndices.end(), { 0, next, current });
+    }
+    for (uint32_t ring = 2; ring <= waterRings; ++ring)
+    {
+        const uint32_t inner = 1 + (ring - 2) * waterSegments;
+        const uint32_t outer = 1 + (ring - 1) * waterSegments;
+        for (uint32_t segment = 0; segment < waterSegments; ++segment)
+        {
+            const uint32_t next = (segment + 1) % waterSegments;
+            waterIndices.insert(waterIndices.end(), {
+                inner + segment, inner + next, outer + next,
+                inner + segment, outer + next, outer + segment
+            });
+        }
+    }
+    m_waterIndexCount = static_cast<UINT>(waterIndices.size());
+    return createMeshBuffers(waterVertices, waterIndices,
+        m_waterVertexBuffer, m_waterIndexBuffer,
+        m_waterVertexBufferView, m_waterIndexBufferView);
 }
 
 bool Renderer::CreateConstantBuffer()
@@ -563,8 +621,8 @@ bool Renderer::CreateConstantBuffer()
     // 1 オブジェクトぶんのサイズ。256 バイト境界に揃える必要がある
     m_cbStride = (sizeof(SceneConstants) + 255) & ~255u;
 
-    // メッシュ群 + 地形 + 草の領域をフレーム数ぶん確保する。
-    m_objectCount = kMaxDrawMeshCount + 2;
+    // メッシュ群 + 地形 + 草 + 水面の領域をフレーム数ぶん確保する。
+    m_objectCount = kMaxDrawMeshCount + 3;
     const UINT bufferSize = m_cbStride * m_objectCount * kFrameCount;
 
     D3D12_HEAP_PROPERTIES heapProps = {};

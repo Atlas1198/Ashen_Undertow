@@ -60,7 +60,7 @@ namespace RendererDetail
 		float padding7; // HLSL の float3 は 16byte 境界に揃うので、CPU 側も揃える
         XMFLOAT4X4 lightViewProj;   // 64 : ライト視点のビュー射影行列
         float    alphaCutoff;        //  4 : 負なら常に通る
-        float    padding8;
+        float    materialOpacity;    // 半透明描画時の不透明度
         float    padding9;
         float    padding10;
         uint32_t jointCount;

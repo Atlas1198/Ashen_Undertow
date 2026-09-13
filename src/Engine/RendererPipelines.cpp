@@ -212,8 +212,21 @@ bool Renderer::CreateTrianglePipeline()
     // 逆に言えば「1 項目違うだけの PSO」が量産されるのが DX12 の宿命で、
     // 実務では PSO のキャッシュ管理が課題になる
     psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    if (!Check(m_device->CreateGraphicsPipelineState(&psoDesc,
+        IID_PPV_ARGS(&m_pipelineStateNoCull)))) return false;
+
+    // 水面は背後の地形を残しながら色と反射を重ねる。
+    auto& waterBlend = psoDesc.BlendState.RenderTarget[0];
+    waterBlend.BlendEnable = TRUE;
+    waterBlend.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+    waterBlend.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+    waterBlend.BlendOp = D3D12_BLEND_OP_ADD;
+    waterBlend.SrcBlendAlpha = D3D12_BLEND_ONE;
+    waterBlend.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+    waterBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+    psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     return Check(m_device->CreateGraphicsPipelineState(&psoDesc,
-        IID_PPV_ARGS(&m_pipelineStateNoCull)));
+        IID_PPV_ARGS(&m_waterPipelineState)));
 }
 
 bool Renderer::CreateShadowMap()
