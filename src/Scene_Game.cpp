@@ -267,7 +267,7 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         if (m_chargeAuraSpawnTimer <= 0.0f)
         {
             m_effectManager.SpawnChargeAura(
-                m_player->GetChargeAuraOrigin(),
+                m_player->GetFootPosition(),
                 m_player->GetChargeDuration());
             m_chargeAuraSpawnTimer = (std::max)(0.025f,
                 0.06f - m_player->GetChargeDuration() * 0.01f);
@@ -338,6 +338,44 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         return previousStrength + (target - previousStrength) * response;
     };
     const auto playerPosition = m_player->GetPosition();
+    const float playerMoveX = playerPosition.x - m_previousPlayerPosition.x;
+    const float playerMoveZ = playerPosition.z - m_previousPlayerPosition.z;
+    const float playerMoveDistance = std::sqrt(
+        playerMoveX * playerMoveX + playerMoveZ * playerMoveZ);
+    const float playerSpeed = deltaTime > 0.0f
+        ? playerMoveDistance / deltaTime : 0.0f;
+    const float pondX = playerPosition.x - Terrain::PondCenterX;
+    const float pondZ = playerPosition.z - Terrain::PondCenterZ;
+    const bool playerInWater = pondX * pondX + pondZ * pondZ <=
+        Terrain::PondWaterRadius * Terrain::PondWaterRadius;
+    DirectX::XMFLOAT3 moveDirection {};
+    if (playerMoveDistance > 0.0001f)
+    {
+        moveDirection.x = playerMoveX / playerMoveDistance;
+        moveDirection.z = playerMoveZ / playerMoveDistance;
+    }
+    auto footPosition = m_player->GetFootPosition();
+    footPosition.y = Terrain::HeightAt(footPosition.x, footPosition.z);
+    const bool evasionStarted = m_player->IsEvading() && !m_wasPlayerEvading;
+    if (evasionStarted && m_player->IsGrounded() && !playerInWater)
+        m_effectManager.SpawnFootstepDust(
+            footPosition, moveDirection, true);
+    if (!m_player->IsEvading() && m_player->IsGrounded() &&
+        !playerInWater && playerSpeed > 0.2f)
+    {
+        m_footstepDustTimer -= deltaTime;
+        if (m_footstepDustTimer <= 0.0f)
+        {
+            m_effectManager.SpawnFootstepDust(
+                footPosition, moveDirection, false);
+            m_footstepDustTimer = playerSpeed >= 5.0f ? 0.13f : 0.22f;
+        }
+    }
+    else
+    {
+        m_footstepDustTimer = 0.0f;
+    }
+    m_wasPlayerEvading = m_player->IsEvading();
     m_playerWaterMovement = updateWaterMovement(
         playerPosition, m_previousPlayerPosition, m_playerWaterMovement);
     m_previousPlayerPosition = playerPosition;

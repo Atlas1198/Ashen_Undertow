@@ -505,7 +505,7 @@ ModelHandle Player::GetModelHandle() const
     return model ? model->GetModelHandle() : ModelHandle {};
 }
 
-DirectX::XMFLOAT3 Player::GetChargeAuraOrigin() const
+DirectX::XMFLOAT3 Player::GetFootPosition() const
 {
     const auto* model = GetComponent<ModelComponent>();
     DirectX::XMFLOAT4X4 leftFootTransform;

@@ -44,4 +44,6 @@ private:
     float m_playerWaterMovement = 0.0f;
     float m_miniCopyWaterMovement = 0.0f;
     float m_chargeAuraSpawnTimer = 0.0f;
+    float m_footstepDustTimer = 0.0f;
+    bool m_wasPlayerEvading = false;
 };

@@ -234,6 +234,47 @@ void EffectManager::SpawnChargeAura(
     }
 }
 
+void EffectManager::SpawnFootstepDust(const DirectX::XMFLOAT3& position,
+    const DirectX::XMFLOAT3& moveDirection, bool evasion)
+{
+    const int count = evasion ? 18 : 3;
+    for (int i = 0; i < count; ++i)
+    {
+        const float angle = NextRandom() * DirectX::XM_2PI;
+        const float spreadX = std::cos(angle);
+        const float spreadZ = std::sin(angle);
+        const float radius = NextRandom() * (evasion ? 0.38f : 0.2f);
+        const float backwardSpeed = evasion
+            ? 0.8f + NextRandom() * 1.5f
+            : 0.15f + NextRandom() * 0.35f;
+        const float sideSpeed = (NextRandom() * 2.0f - 1.0f) *
+            (evasion ? 0.9f : 0.3f);
+
+        EffectDesc dust;
+        dust.type = EffectType::FootstepDust;
+        dust.position = {
+            position.x + spreadX * radius,
+            position.y + 0.02f + NextRandom() * 0.06f,
+            position.z + spreadZ * radius
+        };
+        dust.velocity = {
+            -moveDirection.x * backwardSpeed + moveDirection.z * sideSpeed,
+            (evasion ? 0.45f : 0.22f) + NextRandom() * 0.35f,
+            -moveDirection.z * backwardSpeed - moveDirection.x * sideSpeed
+        };
+        dust.acceleration = { spreadX * 0.15f, 0.08f, spreadZ * 0.15f };
+        dust.startColor = evasion
+            ? DirectX::XMFLOAT4 { 0.48f, 0.35f, 0.2f, 0.52f }
+            : DirectX::XMFLOAT4 { 0.42f, 0.32f, 0.2f, 0.35f };
+        dust.endColor = { 0.32f, 0.25f, 0.16f, 0.0f };
+        dust.startSize = (evasion ? 0.12f : 0.07f) + NextRandom() * 0.08f;
+        dust.endSize = (evasion ? 0.55f : 0.3f) + NextRandom() * 0.18f;
+        dust.lifetime = (evasion ? 0.48f : 0.32f) + NextRandom() * 0.25f;
+        dust.drag = 2.2f;
+        Spawn(dust);
+    }
+}
+
 void EffectManager::Stop(std::uint64_t id)
 {
     std::erase_if(m_effects,
@@ -284,13 +325,15 @@ void EffectManager::Draw(Renderer& renderer) const
             effect.velocity.x * effect.velocity.x +
             effect.velocity.y * effect.velocity.y +
             effect.velocity.z * effect.velocity.z);
-        const bool roundParticle = effect.type == EffectType::ChargeAura;
+        const bool roundParticle = effect.type == EffectType::ChargeAura ||
+            effect.type == EffectType::FootstepDust;
         const float stretch = roundParticle
             ? effect.size : effect.size + speed * 0.055f;
         const DirectX::XMFLOAT3 drawDirection = roundParticle
             ? DirectX::XMFLOAT3 {} : effect.velocity;
         renderer.DrawEffectParticle(m_textureIndex, effect.position,
-            drawDirection, effect.color, effect.size, stretch);
+            drawDirection, effect.color, effect.size, stretch,
+            effect.type != EffectType::FootstepDust);
     }
 }
 

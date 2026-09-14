@@ -28,13 +28,15 @@ public:
     }
     bool IsBlocking() const { return m_blocking; }
     bool IsCharging() const { return m_charging; }
+    bool IsEvading() const { return m_evading; }
+    bool IsGrounded() const { return !m_jumping; }
     float GetChargeDuration() const { return m_chargeDuration; }
     bool CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const;
     void ConsumeBlockStamina();
     void ApplyBlockKnockback(const DirectX::XMFLOAT3& attackerPosition);
     float GetStamina() const { return m_stamina; }
     float GetMaxStamina() const { return MaxStamina; }
-    DirectX::XMFLOAT3 GetChargeAuraOrigin() const;
+    DirectX::XMFLOAT3 GetFootPosition() const;
     ModelHandle GetModelHandle() const;
 
 private:    

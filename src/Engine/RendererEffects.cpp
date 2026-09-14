@@ -1,6 +1,7 @@
 #include "RendererInternal.h"
 #include "UIManager.h"
 
+#include <algorithm>
 #include <cstring>
 
 using namespace DirectX;
@@ -99,6 +100,10 @@ bool Renderer::CreateEffectResources()
     pso.SampleDesc.Count = 1;
     if (!Check(m_device->CreateGraphicsPipelineState(
         &pso, IID_PPV_ARGS(&m_effectPSO)))) return false;
+    blend.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+    blend.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+    if (!Check(m_device->CreateGraphicsPipelineState(
+        &pso, IID_PPV_ARGS(&m_effectAlphaPSO)))) return false;
 
     D3D12_HEAP_PROPERTIES heap = {};
     heap.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -124,26 +129,33 @@ bool Renderer::CreateEffectResources()
 
 void Renderer::DrawEffectParticle(uint32_t textureIndex,
     const XMFLOAT3& position, const XMFLOAT3& direction,
-    const XMFLOAT4& color, float width, float length)
+    const XMFLOAT4& color, float width, float length, bool additive)
 {
-    if (m_effectParticles.size() >= kMaxEffectParticles) return;
-    if (m_effectParticles.empty()) m_effectTextureIndex = textureIndex;
+    if (m_effectParticles.size() + m_alphaEffectParticles.size() >=
+        kMaxEffectParticles) return;
+    if (m_effectParticles.empty() && m_alphaEffectParticles.empty())
+        m_effectTextureIndex = textureIndex;
     if (textureIndex != m_effectTextureIndex) return;
-    m_effectParticles.push_back(
-        { position, direction, color, { width, length } });
+    auto& particles = additive ? m_effectParticles : m_alphaEffectParticles;
+    particles.push_back({ position, direction, color, { width, length } });
 }
 
 void Renderer::DrawEffects(const XMMATRIX& viewProjection)
 {
-    if (m_effectParticles.empty() || m_effectTextureIndex == UINT32_MAX) return;
-    memcpy(m_effectInstanceMapped[m_frameIndex], m_effectParticles.data(),
-        m_effectParticles.size() * sizeof(EffectParticleVertex));
+    const size_t totalCount =
+        m_effectParticles.size() + m_alphaEffectParticles.size();
+    if (totalCount == 0 || m_effectTextureIndex == UINT32_MAX) return;
+    auto* mapped = static_cast<EffectParticleVertex*>(
+        m_effectInstanceMapped[m_frameIndex]);
+    std::copy(m_effectParticles.begin(), m_effectParticles.end(), mapped);
+    std::copy(m_alphaEffectParticles.begin(), m_alphaEffectParticles.end(),
+        mapped + m_effectParticles.size());
 
     D3D12_VERTEX_BUFFER_VIEW view = {};
     view.BufferLocation =
         m_effectInstanceBuffers[m_frameIndex]->GetGPUVirtualAddress();
     view.SizeInBytes = static_cast<UINT>(
-        m_effectParticles.size() * sizeof(EffectParticleVertex));
+        totalCount * sizeof(EffectParticleVertex));
     view.StrideInBytes = sizeof(EffectParticleVertex);
 
     struct Constants
@@ -160,7 +172,6 @@ void Renderer::DrawEffects(const XMMATRIX& viewProjection)
     ID3D12DescriptorHeap* heaps[] = { m_uiSrvHeap.Get() };
     m_commandList->SetDescriptorHeaps(1, heaps);
     m_commandList->SetGraphicsRootSignature(m_effectRootSignature.Get());
-    m_commandList->SetPipelineState(m_effectPSO.Get());
     m_commandList->SetGraphicsRoot32BitConstants(0, 20, &constants, 0);
     auto srv = m_uiSrvHeap->GetGPUDescriptorHandleForHeapStart();
     const auto step = m_device->GetDescriptorHandleIncrementSize(
@@ -170,6 +181,17 @@ void Renderer::DrawEffects(const XMMATRIX& viewProjection)
     m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     m_commandList->IASetVertexBuffers(0, 1, &view);
     m_commandList->IASetIndexBuffer(nullptr);
-    m_commandList->DrawInstanced(6,
-        static_cast<UINT>(m_effectParticles.size()), 0, 0);
+    if (!m_effectParticles.empty())
+    {
+        m_commandList->SetPipelineState(m_effectPSO.Get());
+        m_commandList->DrawInstanced(6,
+            static_cast<UINT>(m_effectParticles.size()), 0, 0);
+    }
+    if (!m_alphaEffectParticles.empty())
+    {
+        m_commandList->SetPipelineState(m_effectAlphaPSO.Get());
+        m_commandList->DrawInstanced(6,
+            static_cast<UINT>(m_alphaEffectParticles.size()), 0,
+            static_cast<UINT>(m_effectParticles.size()));
+    }
 }

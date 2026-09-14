@@ -62,7 +62,8 @@ public:
     void DrawEffectParticle(uint32_t textureIndex,
         const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& direction,
-        const DirectX::XMFLOAT4& color, float width, float length);
+        const DirectX::XMFLOAT4& color, float width, float length,
+        bool additive = true);
     void Render(const UIManager& ui);
 
 private:
@@ -255,9 +256,11 @@ private:
     };
     static constexpr uint32_t kMaxEffectParticles = 4096;
     std::vector<EffectParticleVertex> m_effectParticles;
+    std::vector<EffectParticleVertex> m_alphaEffectParticles;
     uint32_t m_effectTextureIndex = UINT32_MAX;
     ComPtr<ID3D12RootSignature> m_effectRootSignature;
     ComPtr<ID3D12PipelineState> m_effectPSO;
+    ComPtr<ID3D12PipelineState> m_effectAlphaPSO;
     ComPtr<ID3D12Resource> m_effectInstanceBuffers[kFrameCount];
     void* m_effectInstanceMapped[kFrameCount] = {};
 

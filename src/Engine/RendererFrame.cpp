@@ -64,6 +64,7 @@ void Renderer::Render(const UIManager& ui)
         m_drawMeshCount = 0;
         m_debugColliders.clear();
         m_effectParticles.clear();
+        m_alphaEffectParticles.clear();
         return;
     }
     // --- 定数バッファの更新 ---
@@ -599,5 +600,6 @@ void Renderer::Render(const UIManager& ui)
     m_drawMeshCount = 0;
     m_debugColliders.clear();
     m_effectParticles.clear();
+    m_alphaEffectParticles.clear();
     m_effectTextureIndex = UINT32_MAX;
 }

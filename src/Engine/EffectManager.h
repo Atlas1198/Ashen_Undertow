@@ -57,6 +57,8 @@ public:
     std::uint64_t Spawn(EffectType type, const DirectX::XMFLOAT3& position);
     void SpawnChargeAura(const DirectX::XMFLOAT3& position,
         float chargeSeconds);
+    void SpawnFootstepDust(const DirectX::XMFLOAT3& position,
+        const DirectX::XMFLOAT3& moveDirection, bool evasion);
     void Stop(std::uint64_t id);
     void Update(float deltaTime);
     void Draw(Renderer& renderer) const;
