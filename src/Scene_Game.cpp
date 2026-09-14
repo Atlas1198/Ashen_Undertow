@@ -310,10 +310,19 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     {
         if (miniCopy->IsDead()) continue;
         m_player->ResolveChargeAttackHit(*miniCopy);
-        if (miniCopy->IsDead()) continue;
+        if (miniCopy->IsDead())
+        {
+            miniCopy->EnterDefeatedState();
+            continue;
+        }
         DirectX::XMFLOAT3 hitPosition {};
         if (m_player->ResolveAttackHit(*miniCopy, hitPosition))
             m_effectManager.Spawn(EffectType::HitSpark, hitPosition);
+        if (miniCopy->IsDead())
+        {
+            miniCopy->EnterDefeatedState();
+            continue;
+        }
         DirectX::XMFLOAT3 blockPosition {};
         if (miniCopy->ResolveAttackHit(*m_player, blockPosition))
             m_effectManager.Spawn(EffectType::BlockSpark, blockPosition);

@@ -16,6 +16,7 @@ public:
     void Update(float deltaTime) override;
     bool ResolveAttackHit(GameObject& target,
         DirectX::XMFLOAT3& blockPosition);
+    void EnterDefeatedState();
     void Respawn(const DirectX::XMFLOAT3& position);
     DirectX::XMFLOAT3 GetHPBarPosition() const;
     float GetDissolveAmount() const override;

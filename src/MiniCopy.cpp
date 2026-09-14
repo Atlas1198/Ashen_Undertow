@@ -92,16 +92,7 @@ void MiniCopy::Update(float deltaTime)
     m_attackCooldown = std::max(0.0f, m_attackCooldown - deltaTime);
     if (IsDead())
     {
-        m_attacking = false;
-        m_attackCollider->SetEnabled(false);
-        m_leftAttackCollider->SetEnabled(false);
-        for (auto* hurtbox : m_hurtboxes) hurtbox->SetEnabled(false);
-        if (!m_deathReported)
-        {
-            m_boss.TakeDamage(BossDamageOnDefeat);
-            m_deathReported = true;
-            m_deathEffectTime = 0.0f;
-        }
+        EnterDefeatedState();
         m_deathEffectTime += deltaTime;
         if (m_deathEffectTime >= DeathEffectDuration)
             m_scale = { 0.0f, 0.0f, 0.0f };
@@ -246,6 +237,22 @@ bool MiniCopy::ResolveAttackHit(
     return false;
 }
 
+void MiniCopy::EnterDefeatedState()
+{
+    if (!IsDead() || m_deathReported) return;
+    m_deathReported = true;
+    m_deathEffectTime = 0.0f;
+    m_attacking = false;
+    m_running = false;
+    m_inCombat = false;
+    m_attackHit = true;
+    m_attackCollider->SetEnabled(false);
+    m_leftAttackCollider->SetEnabled(false);
+    for (auto* hurtbox : m_hurtboxes) hurtbox->SetEnabled(false);
+    m_animation->SetEnabled(false);
+    m_boss.TakeDamage(BossDamageOnDefeat);
+}
+
 void MiniCopy::Respawn(const DirectX::XMFLOAT3& position)
 {
     Heal(GetMaxHP());
@@ -261,6 +268,7 @@ void MiniCopy::Respawn(const DirectX::XMFLOAT3& position)
     m_attackCollider->SetEnabled(false);
     m_leftAttackCollider->SetEnabled(false);
     for (auto* hurtbox : m_hurtboxes) hurtbox->SetEnabled(true);
+    m_animation->SetEnabled(true);
     m_animation->Play("Idle", true, 1.0f, 0.0f);
 }
 
