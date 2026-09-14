@@ -22,6 +22,9 @@ public:
     void ResolveAttackHit(GameObject& target);
     void SetMovementYaw(float yaw) { m_movementYaw = yaw; }
     bool IsAttacking() const { return m_attacking; }
+    bool IsBlocking() const { return m_blocking; }
+    bool CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const;
+    void ApplyBlockKnockback(const DirectX::XMFLOAT3& attackerPosition);
     ModelHandle GetModelHandle() const;
 
 private:    
@@ -35,6 +38,7 @@ private:
     float m_evasionDirectionX = 0.0f;
     float m_evasionDirectionZ = 0.0f;
     bool m_attacking = false;
+    bool m_blocking = false;
     bool m_attackHit = false;
     bool m_evading = false;
     bool m_jumping = false;

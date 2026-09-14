@@ -26,6 +26,7 @@ constexpr float AttackColliderRadius = 0.32f;
 constexpr float AttackHitStart = 0.25f;
 constexpr float AttackHitEnd = 0.70f;
 constexpr int AttackDamage = 10;
+constexpr float BlockKnockbackDistance = 1.2f;
 }
 
 bool Enemy::Initialize(ModelManager& modelManager)
@@ -173,6 +174,36 @@ void Enemy::ResolveAttackHit(GameObject& target)
         m_leftAttackCollider->HasContactWith(target, ColliderRole::Hurtbox);
     if (m_attackHit || (!rightHit && !leftHit))
     {
+        return;
+    }
+    if (auto* player = dynamic_cast<Player*>(&target);
+        player && player->CanBlockAttackFrom(m_position))
+    {
+        const auto playerPosition = player->GetPosition();
+        float awayX = m_position.x - playerPosition.x;
+        float awayZ = m_position.z - playerPosition.z;
+        const float distance = std::sqrt(awayX * awayX + awayZ * awayZ);
+        if (distance > 0.001f)
+        {
+            awayX /= distance;
+            awayZ /= distance;
+        }
+        else
+        {
+            awayX = -std::sin(player->GetRotation().y);
+            awayZ = -std::cos(player->GetRotation().y);
+        }
+        m_position.x += awayX * BlockKnockbackDistance;
+        m_position.z += awayZ * BlockKnockbackDistance;
+        Terrain::ClampToArena(m_position.x, m_position.z);
+        m_position.y = Terrain::HeightAt(m_position.x, m_position.z);
+        player->ApplyBlockKnockback(m_position);
+        m_attacking = false;
+        m_attackCollider->SetEnabled(false);
+        m_leftAttackCollider->SetEnabled(false);
+        m_attackCooldown = AttackCooldown;
+        m_animation->Play("Idle", true, 1.0f, AnimationBlendDuration);
+        m_attackHit = true;
         return;
     }
     target.TakeDamage(AttackDamage);

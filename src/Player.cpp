@@ -25,6 +25,9 @@ constexpr float EvasionColliderHeightOffset = -0.55f;
 constexpr float EvasionPlaybackSpeed = 2.0f;
 constexpr float EvasionSpeed = 3.0f;
 constexpr float EvasionVisualYawOffset = DirectX::XM_PIDIV2;
+constexpr float BlockPlaybackSpeed = 1.0f;
+constexpr float BlockFacingThreshold = 0.5f;
+constexpr float BlockKnockbackDistance = 0.3f;
 constexpr int AttackDamage = 100;
 }
 
@@ -122,7 +125,11 @@ void Player::Update(float deltaTime)
         for (auto* hurtbox : m_standingHurtboxes) hurtbox->SetEnabled(true);
     }
 
-    if (!m_evading && grounded && m_input.JumpPressed())
+    const bool wasBlocking = m_blocking;
+    m_blocking = grounded && !m_jumping && !m_evading && !m_attacking
+        && m_input.BlockHeld();
+
+    if (!m_evading && !m_blocking && grounded && m_input.JumpPressed())
     {
         m_attacking = false;
         m_attackCollider->SetEnabled(false);
@@ -164,7 +171,14 @@ void Player::Update(float deltaTime)
             m_attacking = false;
             m_attackCollider->SetEnabled(false);
         }
-        if (m_input.AttackPressed() && !m_attacking)
+        if (m_blocking)
+        {
+            m_attackCollider->SetEnabled(false);
+            if (!wasBlocking)
+                m_animation->Play("Block", false, BlockPlaybackSpeed,
+                    AnimationBlendDuration);
+        }
+        if (!m_blocking && m_input.AttackPressed() && !m_attacking)
         {
             m_attacking = m_animation->Play(
                 "Attack", false, AttackPlaybackSpeed, AnimationBlendDuration);
@@ -180,12 +194,12 @@ void Player::Update(float deltaTime)
             m_attackCollider->SetEnabled(
                 progress >= AttackHitStart && progress <= AttackHitEnd);
         }
-        if (!m_attacking)
+        if (!m_attacking && !m_blocking)
         {
             const bool blendFromCurrent = m_animation->IsPlaying("Idle") ||
                 m_animation->IsPlaying("Walk") || m_animation->IsPlaying("Run") ||
                 m_animation->IsPlaying("Attack") || m_animation->IsPlaying("Jump") ||
-                m_animation->IsPlaying("Evasion");
+                m_animation->IsPlaying("Evasion") || m_animation->IsPlaying("Block");
             const float blendDuration = blendFromCurrent ? AnimationBlendDuration : 0.0f;
             if (dashing)
                 m_animation->Play("Run", true, 1.0f, blendDuration);
@@ -209,7 +223,7 @@ void Player::Update(float deltaTime)
         m_position.x += m_evasionDirectionX * EvasionSpeed * deltaTime;
         m_position.z += m_evasionDirectionZ * EvasionSpeed * deltaTime;
     }
-    else if (length > 0.0f && !m_attacking)
+    else if (length > 0.0f && !m_attacking && !m_blocking)
     {
         rotateTowards(movementX, movementZ);
         const float moveSpeed = dashing ? 6.0f : 3.0f;
@@ -228,6 +242,45 @@ void Player::ResolveAttackHit(GameObject& target)
     }
     target.TakeDamage(AttackDamage);
     m_attackHit = true;
+}
+
+bool Player::CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const
+{
+    if (!m_blocking)
+        return false;
+
+    const float toAttackerX = attackerPosition.x - m_position.x;
+    const float toAttackerZ = attackerPosition.z - m_position.z;
+    const float distance = std::sqrt(
+        toAttackerX * toAttackerX + toAttackerZ * toAttackerZ);
+    if (distance <= 0.001f)
+        return true;
+
+    const float forwardX = std::sin(m_rotation.y);
+    const float forwardZ = std::cos(m_rotation.y);
+    const float facing = (forwardX * toAttackerX + forwardZ * toAttackerZ) / distance;
+    return facing >= BlockFacingThreshold;
+}
+
+void Player::ApplyBlockKnockback(const DirectX::XMFLOAT3& attackerPosition)
+{
+    float awayX = m_position.x - attackerPosition.x;
+    float awayZ = m_position.z - attackerPosition.z;
+    const float distance = std::sqrt(awayX * awayX + awayZ * awayZ);
+    if (distance > 0.001f)
+    {
+        awayX /= distance;
+        awayZ /= distance;
+    }
+    else
+    {
+        awayX = -std::sin(m_rotation.y);
+        awayZ = -std::cos(m_rotation.y);
+    }
+    m_position.x += awayX * BlockKnockbackDistance;
+    m_position.z += awayZ * BlockKnockbackDistance;
+    Terrain::ClampToArena(m_position.x, m_position.z);
+    m_position.y = Terrain::HeightAt(m_position.x, m_position.z) + FootOffset;
 }
 
 void Player::ResolveTerrainContact()
