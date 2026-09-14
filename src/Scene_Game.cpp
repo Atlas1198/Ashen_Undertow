@@ -23,6 +23,11 @@ constexpr float PlayerHPBarY = 860.0f;
 constexpr float PlayerHPBarWidth = 360.0f;
 constexpr float PlayerHPBarHeight = 16.0f;
 constexpr float PlayerHPBarPadding = 2.0f;
+constexpr float PlayerStaminaBarX = PlayerHPBarX;
+constexpr float PlayerStaminaBarY = PlayerHPBarY + PlayerHPBarHeight + 5.0f;
+constexpr float PlayerStaminaBarWidth = PlayerHPBarWidth;
+constexpr float PlayerStaminaBarHeight = 8.0f;
+constexpr float PlayerStaminaBarPadding = 1.0f;
 }
 
 Scene_Game::Scene_Game(ModelManager& modelManager, const Input& input)
@@ -135,6 +140,33 @@ void Scene_Game::OnDrawUI(UIManager& ui)
                 playerFillY + playerFillHeight },
             DirectX::XMFLOAT2 { playerFillX, playerFillY + playerFillHeight }
         }, { 0.6f, 1.0f, 0.05f, 1.0f });
+    }
+
+    const float staminaRatio = m_player->GetMaxStamina() > 0.0f
+        ? m_player->GetStamina() / m_player->GetMaxStamina() : 0.0f;
+    ui.DrawQuad({
+        DirectX::XMFLOAT2 { PlayerStaminaBarX, PlayerStaminaBarY },
+        DirectX::XMFLOAT2 { PlayerStaminaBarX + PlayerStaminaBarWidth, PlayerStaminaBarY },
+        DirectX::XMFLOAT2 { PlayerStaminaBarX + PlayerStaminaBarWidth,
+            PlayerStaminaBarY + PlayerStaminaBarHeight },
+        DirectX::XMFLOAT2 { PlayerStaminaBarX, PlayerStaminaBarY + PlayerStaminaBarHeight }
+    }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+    const float staminaFillX = PlayerStaminaBarX + PlayerStaminaBarPadding;
+    const float staminaFillY = PlayerStaminaBarY + PlayerStaminaBarPadding;
+    const float staminaFillWidth =
+        (PlayerStaminaBarWidth - PlayerStaminaBarPadding * 2.0f) * staminaRatio;
+    const float staminaFillHeight =
+        PlayerStaminaBarHeight - PlayerStaminaBarPadding * 2.0f;
+    if (staminaFillWidth > 0.0f)
+    {
+        ui.DrawQuad({
+            DirectX::XMFLOAT2 { staminaFillX, staminaFillY },
+            DirectX::XMFLOAT2 { staminaFillX + staminaFillWidth, staminaFillY },
+            DirectX::XMFLOAT2 { staminaFillX + staminaFillWidth,
+                staminaFillY + staminaFillHeight },
+            DirectX::XMFLOAT2 { staminaFillX, staminaFillY + staminaFillHeight }
+        }, { 1.0f, 0.82f, 0.05f, 1.0f });
     }
 }
 

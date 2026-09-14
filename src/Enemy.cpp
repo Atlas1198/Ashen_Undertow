@@ -179,6 +179,7 @@ void Enemy::ResolveAttackHit(GameObject& target)
     if (auto* player = dynamic_cast<Player*>(&target);
         player && player->CanBlockAttackFrom(m_position))
     {
+        player->ConsumeBlockStamina();
         const auto playerPosition = player->GetPosition();
         float awayX = m_position.x - playerPosition.x;
         float awayZ = m_position.z - playerPosition.z;

@@ -20,6 +20,10 @@ constexpr float RotationResponsiveness = 12.0f;
 constexpr float AttackColliderRadius = 0.11f;
 constexpr float AttackHitStart = 0.22f;
 constexpr float AttackHitEnd = 0.68f;
+constexpr float AttackComboTransition = 0.72f;
+constexpr float AttackComboBlendDuration = 0.1f;
+constexpr const char* AttackAnimations[] = { "Attack", "Attack2", "Attack3" };
+constexpr int AttackComboCount = 3;
 constexpr float EvasionColliderRadius = 0.5f;
 constexpr float EvasionColliderHeightOffset = -0.55f;
 constexpr float EvasionPlaybackSpeed = 2.0f;
@@ -28,6 +32,12 @@ constexpr float EvasionVisualYawOffset = DirectX::XM_PIDIV2;
 constexpr float BlockPlaybackSpeed = 1.0f;
 constexpr float BlockFacingThreshold = 0.5f;
 constexpr float BlockKnockbackDistance = 0.3f;
+constexpr float DashStaminaPerSecond = 100.0f / 30.0f;
+constexpr float EvasionStaminaCost = 30.0f;
+constexpr float BlockStaminaCost = 10.0f;
+constexpr float JumpStaminaCost = 3.0f;
+constexpr float StaminaRecoveryDelay = 2.0f;
+constexpr float StaminaRecoveryPerSecond = 15.0f;
 constexpr int AttackDamage = 100;
 }
 
@@ -92,7 +102,10 @@ void Player::Update(float deltaTime)
     const float moveZ = m_input.MoveZ();
 
     const float length = std::sqrt(moveX * moveX + moveZ * moveZ);
-    const bool dashing = length > 0.0f && m_input.DashHeld();
+    const bool dashRequested = length > 0.0f && m_input.DashHeld();
+    const bool dashing = dashRequested && m_stamina > 0.0f;
+    bool staminaConsumed = false;
+    bool dashActive = false;
     float movementX = 0.0f;
     float movementZ = 0.0f;
     if (length > 0.0f)
@@ -127,32 +140,44 @@ void Player::Update(float deltaTime)
 
     const bool wasBlocking = m_blocking;
     m_blocking = grounded && !m_jumping && !m_evading && !m_attacking
-        && m_input.BlockHeld();
+        && m_input.BlockHeld() && m_stamina >= BlockStaminaCost;
 
     if (!m_evading && !m_blocking && grounded && m_input.JumpPressed())
     {
         m_attacking = false;
+        m_attackComboStep = 0;
+        m_attackComboQueued = false;
         m_attackCollider->SetEnabled(false);
-        if (dashing)
+        if (dashRequested)
         {
-            m_evading = m_animation->Play(
-                "Evasion", false, EvasionPlaybackSpeed, AnimationBlendDuration);
-            if (m_evading)
+            if (m_stamina >= EvasionStaminaCost)
             {
-                m_evasionDirectionX = movementX;
-                m_evasionDirectionZ = movementZ;
-                m_rotation.y = std::atan2(
-                    m_evasionDirectionX, m_evasionDirectionZ) + EvasionVisualYawOffset;
-                m_evasionCollider->SetEnabled(true);
-                for (auto* hurtbox : m_standingHurtboxes) hurtbox->SetEnabled(false);
+                m_evading = m_animation->Play(
+                    "Evasion", false, EvasionPlaybackSpeed, AnimationBlendDuration);
+                if (m_evading)
+                {
+                    m_stamina -= EvasionStaminaCost;
+                    staminaConsumed = true;
+                    m_evasionDirectionX = movementX;
+                    m_evasionDirectionZ = movementZ;
+                    m_rotation.y = std::atan2(
+                        m_evasionDirectionX, m_evasionDirectionZ) + EvasionVisualYawOffset;
+                    m_evasionCollider->SetEnabled(true);
+                    for (auto* hurtbox : m_standingHurtboxes) hurtbox->SetEnabled(false);
+                }
             }
         }
-        else
+        else if (m_stamina >= JumpStaminaCost)
         {
             m_jumping = m_animation->Play(
                 "Jump", false, 0.0f, AnimationBlendDuration);
-            m_rigidbody->SetUseGravity(true);
-            m_rigidbody->SetVelocity(velocity.x, JumpSpeed, velocity.z);
+            if (m_jumping)
+            {
+                m_stamina -= JumpStaminaCost;
+                staminaConsumed = true;
+                m_rigidbody->SetUseGravity(true);
+                m_rigidbody->SetVelocity(velocity.x, JumpSpeed, velocity.z);
+            }
         }
     }
 
@@ -166,9 +191,29 @@ void Player::Update(float deltaTime)
 
     if (!m_jumping && !m_evading)
     {
-        if (m_attacking && m_animation->IsFinished())
+        const bool attackPressed = m_input.AttackPressed();
+        if (m_attacking && attackPressed && m_attackComboStep < AttackComboCount)
+            m_attackComboQueued = true;
+
+        const float attackProgress = m_attacking
+            ? m_animation->GetNormalizedTime() : 0.0f;
+        if (m_attacking && m_attackComboQueued &&
+            m_attackComboStep < AttackComboCount &&
+            attackProgress >= AttackComboTransition)
+        {
+            ++m_attackComboStep;
+            m_attackComboQueued = false;
+            m_attacking = m_animation->Play(
+                AttackAnimations[m_attackComboStep - 1], false,
+                AttackPlaybackSpeed, AttackComboBlendDuration);
+            m_attackHit = false;
+            m_attackCollider->SetEnabled(false);
+        }
+        else if (m_attacking && m_animation->IsFinished())
         {
             m_attacking = false;
+            m_attackComboStep = 0;
+            m_attackComboQueued = false;
             m_attackCollider->SetEnabled(false);
         }
         if (m_blocking)
@@ -178,12 +223,14 @@ void Player::Update(float deltaTime)
                 m_animation->Play("Block", false, BlockPlaybackSpeed,
                     AnimationBlendDuration);
         }
-        if (!m_blocking && m_input.AttackPressed() && !m_attacking)
+        if (!m_blocking && attackPressed && !m_attacking && m_attackComboStep == 0)
         {
             m_attacking = m_animation->Play(
-                "Attack", false, AttackPlaybackSpeed, AnimationBlendDuration);
+                AttackAnimations[0], false, AttackPlaybackSpeed, AnimationBlendDuration);
             if (m_attacking)
             {
+                m_attackComboStep = 1;
+                m_attackComboQueued = false;
                 m_attackHit = false;
                 m_attackCollider->SetEnabled(false);
             }
@@ -198,7 +245,8 @@ void Player::Update(float deltaTime)
         {
             const bool blendFromCurrent = m_animation->IsPlaying("Idle") ||
                 m_animation->IsPlaying("Walk") || m_animation->IsPlaying("Run") ||
-                m_animation->IsPlaying("Attack") || m_animation->IsPlaying("Jump") ||
+                m_animation->IsPlaying("Attack") || m_animation->IsPlaying("Attack2") ||
+                m_animation->IsPlaying("Attack3") || m_animation->IsPlaying("Jump") ||
                 m_animation->IsPlaying("Evasion") || m_animation->IsPlaying("Block");
             const float blendDuration = blendFromCurrent ? AnimationBlendDuration : 0.0f;
             if (dashing)
@@ -229,6 +277,26 @@ void Player::Update(float deltaTime)
         const float moveSpeed = dashing ? 6.0f : 3.0f;
         m_position.x += movementX * moveSpeed * deltaTime;
         m_position.z += movementZ * moveSpeed * deltaTime;
+        if (dashing)
+        {
+            m_stamina = std::clamp(
+                m_stamina - DashStaminaPerSecond * deltaTime, 0.0f, MaxStamina);
+            staminaConsumed = true;
+            dashActive = true;
+        }
+    }
+
+    if (staminaConsumed)
+    {
+        m_staminaRecoveryDelay = StaminaRecoveryDelay;
+    }
+    else
+    {
+        m_staminaRecoveryDelay = std::clamp(
+            m_staminaRecoveryDelay - deltaTime, 0.0f, StaminaRecoveryDelay);
+        if (m_staminaRecoveryDelay <= 0.0f && !dashActive && !m_evading && !m_blocking)
+            m_stamina = std::clamp(
+                m_stamina + StaminaRecoveryPerSecond * deltaTime, 0.0f, MaxStamina);
     }
 
 }
@@ -260,6 +328,12 @@ bool Player::CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const
     const float forwardZ = std::cos(m_rotation.y);
     const float facing = (forwardX * toAttackerX + forwardZ * toAttackerZ) / distance;
     return facing >= BlockFacingThreshold;
+}
+
+void Player::ConsumeBlockStamina()
+{
+    m_stamina = std::clamp(m_stamina - BlockStaminaCost, 0.0f, MaxStamina);
+    m_staminaRecoveryDelay = StaminaRecoveryDelay;
 }
 
 void Player::ApplyBlockKnockback(const DirectX::XMFLOAT3& attackerPosition)
