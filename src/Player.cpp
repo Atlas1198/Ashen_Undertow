@@ -552,3 +552,15 @@ DirectX::XMFLOAT3 Player::GetFootPosition() const
         (leftFoot.z + rightFoot.z) * 0.5f
     };
 }
+
+DirectX::XMFLOAT4 Player::GetRimLightColor() const
+{
+    if (!m_charging) return {};
+    if (m_chargeDuration < ChargeLevelOneTime)
+        return { 2.4f, 2.4f, 2.4f, 0.35f };
+    if (m_chargeDuration < ChargeLevelTwoTime)
+        return { 0.18f, 1.0f, 4.5f, 0.42f };
+    if (m_chargeDuration < ChargeLevelThreeTime)
+        return { 5.0f, 2.8f, 0.18f, 0.48f };
+    return { 5.5f, 0.12f, 1.8f, 0.55f };
+}

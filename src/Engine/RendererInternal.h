@@ -71,6 +71,7 @@ namespace RendererDetail
         float dissolveAmount;
         float dissolveBaseY;
         float padding12;
+        XMFLOAT4 rimLightColor; // rgb=HDR発光色、a=強度
         XMFLOAT4 grassInteractors[2]; // xyz=中心、w=接触半径
         XMFLOAT2 waterInteractionStrength;
         XMFLOAT2 padding13;

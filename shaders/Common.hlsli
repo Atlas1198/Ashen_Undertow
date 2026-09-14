@@ -45,6 +45,7 @@ cbuffer SceneConstants : register(b0)
     float dissolveAmount;
     float dissolveBaseY;
     float pad12;
+    float4 rimLightColor;
     float4 grassInteractors[2];
     float2 waterInteractionStrength;
     float2 pad13;

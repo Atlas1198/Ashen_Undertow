@@ -273,6 +273,9 @@ float4 PSMain(PSInput input) : SV_TARGET
     //------------------------------------------------------------------
         // トーンマップとガンマ補正はポストプロセス(Tonemap.hlsl)に移した。
     // ここではリニア空間の HDR 値をそのまま出力する
-    float3 color = ambient + Lo + emissive;
+    const float rim = pow(1.0 - saturate(dot(N, V)), 3.2);
+    const float rimPulse = 0.88 + sin(windTime * 7.0) * 0.12;
+    float3 color = ambient + Lo + emissive
+        + rimLightColor.rgb * rim * rimLightColor.a * rimPulse;
     return float4(color, materialOpacity);
 }

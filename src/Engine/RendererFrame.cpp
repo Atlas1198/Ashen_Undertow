@@ -37,7 +37,8 @@ void Renderer::DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS consta
 
 void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
     const std::vector<XMFLOAT4X4>* skinMatrices, const XMFLOAT4X4* shadowWorld,
-    uint32_t renderFlags, float dissolveAmount, float dissolveBaseY)
+    uint32_t renderFlags, float dissolveAmount, float dissolveBaseY,
+    const XMFLOAT4& rimLightColor)
 {
     for (uint32_t i = 0; i < m_models.size(); ++i)
     {
@@ -46,7 +47,7 @@ void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
         if (m_drawMeshCount + model.meshes.size() > kMaxDrawMeshCount) return;
 
         DrawCommand command { i, world, shadowWorld ? *shadowWorld : world,
-            renderFlags, dissolveAmount, dissolveBaseY };
+            renderFlags, dissolveAmount, dissolveBaseY, rimLightColor };
         if (skinMatrices)
             command.skinMatrices = *skinMatrices;
         m_drawCommands.push_back(std::move(command));
@@ -205,6 +206,7 @@ void Renderer::Render(const UIManager& ui)
             cb.renderFlags = command.renderFlags;
             cb.dissolveAmount = command.dissolveAmount;
             cb.dissolveBaseY = command.dissolveBaseY;
+            cb.rimLightColor = command.rimLightColor;
             memcpy(frameConstants + drawConstantIndex * m_cbStride,
                 &cb, sizeof(cb));
             ++drawConstantIndex;
@@ -226,6 +228,7 @@ void Renderer::Render(const UIManager& ui)
     cb.renderFlags = 4;
     cb.dissolveAmount = 0.0f;
     cb.dissolveBaseY = 0.0f;
+    cb.rimLightColor = {};
     memcpy(frameConstants + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 草は画像の透明部分を捨て、草葉の輪郭だけを描画する。

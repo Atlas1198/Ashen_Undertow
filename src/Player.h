@@ -39,6 +39,7 @@ public:
     float GetMaxStamina() const { return MaxStamina; }
     DirectX::XMFLOAT3 GetFootPosition() const;
     ModelHandle GetModelHandle() const;
+    DirectX::XMFLOAT4 GetRimLightColor() const override;
 
 private:    
     static constexpr float MaxStamina = 100.0f;

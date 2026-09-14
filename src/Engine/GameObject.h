@@ -83,6 +83,7 @@ public:
     virtual uint32_t GetRenderFlags() const { return 0; }
     virtual float GetDissolveAmount() const { return 0.0f; }
     virtual float GetDissolveBaseY() const { return 0.0f; }
+    virtual DirectX::XMFLOAT4 GetRimLightColor() const { return {}; }
 
 protected:
     // 各ObjectのInitializeで呼び、最大HPと現在HPを同時に設定する。

@@ -55,7 +55,8 @@ public:
         const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr,
         const DirectX::XMFLOAT4X4* shadowWorld = nullptr,
         uint32_t renderFlags = 0, float dissolveAmount = 0.0f,
-        float dissolveBaseY = 0.0f);
+        float dissolveBaseY = 0.0f,
+        const DirectX::XMFLOAT4& rimLightColor = {});
     void DrawCollider(const DirectX::XMFLOAT3& center,
         const DirectX::XMFLOAT3& halfExtents, float radius, bool colliding);
     void DrawColliderSegment(const DirectX::XMFLOAT3& start,
@@ -226,6 +227,7 @@ private:
         uint32_t renderFlags;
         float dissolveAmount;
         float dissolveBaseY;
+        DirectX::XMFLOAT4 rimLightColor;
         std::vector<DirectX::XMFLOAT4X4> skinMatrices;
     };
     std::vector<DrawCommand> m_drawCommands;
