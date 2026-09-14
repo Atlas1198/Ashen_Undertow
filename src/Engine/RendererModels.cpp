@@ -359,7 +359,7 @@ bool Renderer::CreateMaterialTextures()
             return true;
         };
 
-    // --- 各マテリアルのテクスチャ 5 枚を、5 個ずつ並べていく ---
+    // --- 各マテリアルのテクスチャ 6 枚を、6 個ずつ並べていく ---
         for (size_t i = 0; i < model->materials.size(); ++i)
         {
             const GltfMaterial& mat = model->materials[i];
@@ -376,6 +376,8 @@ bool Renderer::CreateMaterialTextures()
                 whitePixel, base + 3)) return false;
             if (!loadInto(mat.emissiveImage, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
                 whitePixel, base + 4)) return false;
+            if (!loadInto(mat.specularImage, DXGI_FORMAT_R8G8B8A8_UNORM,
+                whitePixel, base + 5)) return false;
         }
     }
 
@@ -392,6 +394,7 @@ bool Renderer::CreateMaterialTextures()
     createSrv(m_defaultNormal.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvDefaultMaterial + 2);
     createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvDefaultMaterial + 3);
     createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvDefaultMaterial + 4);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvDefaultMaterial + 5);
 
     GltfImage ground;
     if (!LoadTextureImage("assets/texture/terrain_ground.png", ground) ||
@@ -407,6 +410,7 @@ bool Renderer::CreateMaterialTextures()
             DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, m_floorGrassTexture)) return false;
     createSrv(m_floorGrassTexture.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
         kSrvTerrainMaterial + 4);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvTerrainMaterial + 5);
 
     GltfImage grass;
     if (!LoadTextureImage("assets/texture/grass_billboard.png", grass) ||
@@ -417,6 +421,7 @@ bool Renderer::CreateMaterialTextures()
     createSrv(m_defaultNormal.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvGrassMaterial + 2);
     createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvGrassMaterial + 3);
     createSrv(m_defaultWhiteSrgb.Get(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kSrvGrassMaterial + 4);
+    createSrv(m_defaultWhite.Get(), DXGI_FORMAT_R8G8B8A8_UNORM, kSrvGrassMaterial + 5);
 
     return true;
 }

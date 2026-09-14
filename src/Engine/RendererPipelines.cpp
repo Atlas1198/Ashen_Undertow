@@ -7,7 +7,7 @@ bool Renderer::CreateTrianglePipeline()
 {
     // ディスクリプタテーブルを 2 つに分ける:
 //   1 番: IBL(t0〜t3)。全描画で共通なので一度設定すれば済む
-//   2 番: マテリアル(t4〜t8)。オブジェクトごとに切り替える
+//   2 番: マテリアル(t4〜t9)。オブジェクトごとに切り替える
     D3D12_DESCRIPTOR_RANGE ranges[3] = {};
 
     ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -17,7 +17,7 @@ bool Renderer::CreateTrianglePipeline()
     ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
     ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    ranges[1].NumDescriptors = 5;   // t4〜t8
+    ranges[1].NumDescriptors = 6;   // t4〜t9
     ranges[1].BaseShaderRegister = 4;
     ranges[1].RegisterSpace = 0;
     ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -45,7 +45,7 @@ bool Renderer::CreateTrianglePipeline()
     // 3 番: シャドウマップ(全描画で共通)
     ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
     ranges[2].NumDescriptors = 1;
-    ranges[2].BaseShaderRegister = 9;   // t9
+    ranges[2].BaseShaderRegister = 10;   // t10
     ranges[2].RegisterSpace = 0;
     ranges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 

@@ -762,6 +762,17 @@ namespace
             if (ef.IsArray() && ef.Size() >= 3)
                 for (int c = 0; c < 3; ++c) dst.emissiveFactor[c] = ef[(size_t)c].AsFloat(0.0f);
 
+            const JsonValue& specular = m["extensions"]["KHR_materials_specular"];
+            if (!specular.IsNull())
+            {
+                dst.specularFactor = specular["specularFactor"].AsFloat(1.0f);
+                const JsonValue& color = specular["specularColorFactor"];
+                if (color.IsArray() && color.Size() >= 3)
+                    for (int c = 0; c < 3; ++c)
+                        dst.specularColorFactor[c] = color[(size_t)c].AsFloat(1.0f);
+                dst.specularImage = TextureRef(root, specular["specularTexture"]);
+            }
+
             // 透明の扱い。既定は OPAQUE
             const std::string alphaMode = m["alphaMode"].AsString("OPAQUE");
             if      (alphaMode == "MASK")  dst.alphaMode = GltfMaterial::AlphaMode::Mask;

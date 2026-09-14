@@ -55,9 +55,11 @@ namespace RendererDetail
 		XMFLOAT3 albedo;    //非金属では拡散色、金属では反射色
 		float metallic;     //0 = 非金属、1 = 金属
 		float roughness;    //0 = 鏡面、1 = ざらざら
-		float padding4; // HLSL の float3 は 16byte 境界に揃うので、CPU 側も揃える
+		float specularFactor;
 		float padding5; // HLSL の float3 は 16byte 境界に揃うので、CPU 側も揃える
 		float padding6; // HLSL の float3 は 16byte 境界に揃うので、CPU 側も揃える
+		XMFLOAT3 specularColorFactor;
+		float padding4;
 		XMFLOAT3 emissiveFactor;   // 自己発光色
 		float padding7; // HLSL の float3 は 16byte 境界に揃うので、CPU 側も揃える
         XMFLOAT4X4 lightViewProj;   // 64 : ライト視点のビュー射影行列

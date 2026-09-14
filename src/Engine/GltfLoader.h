@@ -68,6 +68,8 @@ struct GltfMaterial
     float emissiveFactor[3]  = { 0.0f, 0.0f, 0.0f };
     float metallicFactor     = 1.0f;
     float roughnessFactor    = 1.0f;
+    float specularFactor     = 1.0f;
+    float specularColorFactor[3] = { 1.0f, 1.0f, 1.0f };
 
     // GltfModel::images への添字。-1 なら「そのテクスチャは無い」
     int baseColorImage         = -1;   // sRGB
@@ -75,6 +77,7 @@ struct GltfMaterial
     int normalImage            = -1;   // リニア(接空間ノーマルマップ)
     int occlusionImage         = -1;   // リニア(R = AO)
     int emissiveImage          = -1;   // sRGB
+    int specularImage          = -1;   // リニア(KHR_materials_specular、A = 強度)
 };
 
 struct GltfPrimitive

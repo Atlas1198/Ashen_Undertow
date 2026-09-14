@@ -29,9 +29,11 @@ cbuffer SceneConstants : register(b0)
     float3 albedo;
     float metallic;
     float roughness;
-    float pad4;
+    float specularFactor;
     float pad5;
     float pad6;
+    float3 specularColorFactor;
+    float pad4;
     float3 emissiveFactor;
     float pad7;
     float4x4 lightViewProj;
@@ -190,7 +192,8 @@ Texture2D g_metallicRoughnessMap    : register(t5); // G = roughness, B = metall
 Texture2D g_normalMap               : register(t6); // 接空間ノーマルマップ
 Texture2D g_occlusionMap            : register(t7); // R = アンビエントオクルージョン
 Texture2D g_emissiveMap             : register(t8); // 自己発光(sRGB 格納)
-Texture2D g_shadowMap               : register(t9); // ライト視点の深度
+Texture2D g_specularMap             : register(t9); // KHR_materials_specular(A = 強度)
+Texture2D g_shadowMap               : register(t10); // ライト視点の深度
 SamplerState g_envSampler   : register(s0);     // 環境マップ用
 // 環境マップ用(s0)は経度方向が WRAP だが、LUT の横軸は N·V なので
 // 端で折り返されると困る。両方向 CLAMP の専用サンプラを用意する

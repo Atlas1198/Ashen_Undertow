@@ -225,7 +225,11 @@ float4 PSMain(PSInput input) : SV_TARGET
     float NdotL = saturate(dot(N, L));
     float NdotV = saturate(dot(N, V));
 
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedoTex, metal);
+    // KHR_materials_specular: specularTexture の A が非金属の鏡面反射強度。
+    const float specularStrength = g_specularMap.Sample(g_modelSampler, input.uv).a
+        * specularFactor;
+    const float3 dielectricF0 = saturate(0.04 * specularStrength * specularColorFactor);
+    float3 F0 = lerp(dielectricF0, albedoTex, metal);
 
     float D = DistributionGGX(N, H, rough);
     float G = GeometrySmith(N, V, L, rough);

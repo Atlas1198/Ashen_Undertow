@@ -188,6 +188,9 @@ void Renderer::Render(const UIManager& ui)
                     mat.baseColorFactor[2] };
                 cb.metallic = mat.metallicFactor;
                 cb.roughness = mat.roughnessFactor;
+                cb.specularFactor = mat.specularFactor;
+                cb.specularColorFactor = { mat.specularColorFactor[0],
+                    mat.specularColorFactor[1], mat.specularColorFactor[2] };
                 const float kEmissiveStrength = 4.0f;
                 cb.emissiveFactor = { mat.emissiveFactor[0] * kEmissiveStrength,
                     mat.emissiveFactor[1] * kEmissiveStrength,
@@ -198,6 +201,8 @@ void Renderer::Render(const UIManager& ui)
                 cb.albedo = { 1.0f, 1.0f, 1.0f };
                 cb.metallic = 0.0f;
                 cb.roughness = 0.5f;
+                cb.specularFactor = 1.0f;
+                cb.specularColorFactor = { 1.0f, 1.0f, 1.0f };
                 cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
             }
 
@@ -222,6 +227,8 @@ void Renderer::Render(const UIManager& ui)
     cb.alphaCutoff = -1.0f;
     cb.metallic = 0.0f;
     cb.roughness = 0.95f;
+    cb.specularFactor = 1.0f;
+    cb.specularColorFactor = { 1.0f, 1.0f, 1.0f };
     cb.emissiveFactor = { 0.0f, 0.0f, 0.0f };
     cb.jointCount = 0;
     cb.materialOpacity = 1.0f;
@@ -360,7 +367,7 @@ void Renderer::Render(const UIManager& ui)
     m_commandList->SetGraphicsRootDescriptorTable(
         1, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
 
-    // スカイボックスは t4〜t8 を使わないが、
+    // スカイボックスは t4〜t9 を使わないが、
     // ルートパラメータは全部設定しておくのが安全
     D3D12_GPU_DESCRIPTOR_HANDLE skyMaterial = m_srvHeap->GetGPUDescriptorHandleForHeapStart();
     skyMaterial.ptr += kSrvDefaultMaterial * m_device->GetDescriptorHandleIncrementSize(

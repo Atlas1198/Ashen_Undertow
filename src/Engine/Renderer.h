@@ -142,11 +142,11 @@ private:
     // kSrvBloomA は kSrvHdrBuffer の直後でなければならない
     static constexpr uint32_t kSrvBloomA = 6;   // トーンマップの t1
     static constexpr uint32_t kSrvBloomB = 7;
-    static constexpr uint32_t kSrvDefaultMaterial = 8;   // 8〜12 : テクスチャ無し用
-    static constexpr uint32_t kSrvTerrainMaterial = 13; // 13〜17 : 地形
-    static constexpr uint32_t kSrvGrassMaterial = 18; // 18〜22 : 草
-    static constexpr uint32_t kSrvMaterialStart = 23;  // 23〜 : 5 個 × マテリアル数
-    static constexpr uint32_t kTexturesPerMaterial = 5;   // baseColor/MR/normal/AO/emissive
+    static constexpr uint32_t kSrvDefaultMaterial = 8;   // 8〜13 : テクスチャ無し用
+    static constexpr uint32_t kSrvTerrainMaterial = 14; // 14〜19 : 地形
+    static constexpr uint32_t kSrvGrassMaterial = 20; // 20〜25 : 草
+    static constexpr uint32_t kSrvMaterialStart = 26;  // 26〜 : 6 個 × マテリアル数
+    static constexpr uint32_t kTexturesPerMaterial = 6;   // baseColor/MR/normal/AO/emissive/specular
 
     uint32_t m_width  = 0;
     uint32_t m_height = 0;
