@@ -23,6 +23,7 @@ public:
 private:
     void OnUpdate(float deltaTime) override;
     void OnAfterUpdate(float deltaTime) override;
+    bool IsSimulationPaused() const override { return m_hitStopThisFrame; }
     void OnDraw(Renderer& renderer) override;
     void OnDrawUI(UIManager& ui) override;
     UIImageHandle m_wonheeImage;
@@ -49,5 +50,7 @@ private:
     std::vector<DirectX::XMFLOAT3> m_previousMiniCopyEffectPositions;
     std::vector<float> m_miniCopyWaterSplashTimers;
     std::vector<bool> m_miniCopyWasDead;
+    float m_hitStopTimer = 0.0f;
+    bool m_hitStopThisFrame = false;
     bool m_wasPlayerEvading = false;
 };

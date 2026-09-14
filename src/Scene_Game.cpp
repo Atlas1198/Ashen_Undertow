@@ -34,6 +34,8 @@ constexpr float PlayerStaminaBarX = PlayerHPBarX;
 constexpr float PlayerStaminaBarY = PlayerHPBarY + PlayerHPBarHeight + 5.0f;
 constexpr float PlayerStaminaBarWidth = PlayerHPBarWidth;
 constexpr float PlayerStaminaBarHeight = 8.0f;
+constexpr float MinChargeHitStop = 0.105f;
+constexpr float MaxChargeHitStop = 0.15f;
 constexpr float PlayerStaminaBarPadding = 1.0f;
 
 bool WorldToScreen(const DirectX::XMFLOAT3& world, const Camera& camera,
@@ -248,8 +250,10 @@ void Scene_Game::OnDrawUI(UIManager& ui)
     }
 }
 
-void Scene_Game::OnUpdate(float)
+void Scene_Game::OnUpdate(float deltaTime)
 {
+    m_hitStopThisFrame = m_hitStopTimer > 0.0f;
+    m_hitStopTimer = (std::max)(0.0f, m_hitStopTimer - deltaTime);
     if (m_input.ColliderVisualizationPressed())
         m_showColliders = !m_showColliders;
     m_camera.Rotate(m_input.LookX(), m_input.LookY());
@@ -313,7 +317,13 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         float chargePower = 0.0f;
         if (m_player->ResolveChargeAttackHit(
             *miniCopy, chargeHitPosition, chargePower))
+        {
             m_effectManager.SpawnChargeHit(chargeHitPosition, chargePower);
+            const float hitStop = MinChargeHitStop +
+                (MaxChargeHitStop - MinChargeHitStop) *
+                std::clamp((chargePower - 0.4f) / 0.6f, 0.0f, 1.0f);
+            m_hitStopTimer = (std::max)(m_hitStopTimer, hitStop);
+        }
         if (miniCopy->IsDead())
         {
             miniCopy->EnterDefeatedState();
@@ -321,7 +331,9 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         }
         DirectX::XMFLOAT3 hitPosition {};
         if (m_player->ResolveAttackHit(*miniCopy, hitPosition))
+        {
             m_effectManager.Spawn(EffectType::HitSpark, hitPosition);
+        }
         if (miniCopy->IsDead())
         {
             miniCopy->EnterDefeatedState();

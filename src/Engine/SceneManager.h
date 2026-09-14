@@ -24,6 +24,7 @@ public:
     void Update(float deltaTime)
     {
         OnUpdate(deltaTime);
+        if (IsSimulationPaused()) return;
         m_objectManager.Update(deltaTime);
         OnAfterUpdate(deltaTime);
     }
@@ -43,6 +44,7 @@ protected:
 
     virtual void OnUpdate(float deltaTime) { (void)deltaTime; }
     virtual void OnAfterUpdate(float deltaTime) { (void)deltaTime; }
+    virtual bool IsSimulationPaused() const { return false; }
     virtual void OnDraw(Renderer& renderer) { (void)renderer; }
     virtual void OnDrawUI(UIManager&) {}
 
