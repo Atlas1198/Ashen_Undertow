@@ -20,7 +20,8 @@ public:
     void Update(float deltaTime) override;
     void ResolveTerrainContact();
     bool ResolveAttackHit(GameObject& target, DirectX::XMFLOAT3& hitPosition);
-    void ResolveChargeAttackHit(GameObject& target);
+    bool ResolveChargeAttackHit(GameObject& target,
+        DirectX::XMFLOAT3& hitPosition, float& chargePower);
     void SetMovementYaw(float yaw) { m_movementYaw = yaw; }
     bool IsAttacking() const
     {

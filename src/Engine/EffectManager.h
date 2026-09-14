@@ -10,6 +10,7 @@ enum class EffectType
 {
     Custom,
     HitSpark,
+    ChargeHit,
     BlockSpark,
     ChargeAura,
     FootstepDust,
@@ -60,6 +61,7 @@ public:
     std::uint64_t Spawn(EffectType type, const DirectX::XMFLOAT3& position);
     void SpawnChargeAura(const DirectX::XMFLOAT3& position,
         float chargeSeconds);
+    void SpawnChargeHit(const DirectX::XMFLOAT3& position, float chargePower);
     void SpawnFootstepDust(const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& moveDirection, bool evasion);
     void SpawnWaterSplash(const DirectX::XMFLOAT3& position,

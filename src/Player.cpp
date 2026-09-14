@@ -423,7 +423,8 @@ bool Player::ResolveAttackHit(
     return true;
 }
 
-void Player::ResolveChargeAttackHit(GameObject& target)
+bool Player::ResolveChargeAttackHit(GameObject& target,
+    DirectX::XMFLOAT3& hitPosition, float& chargePower)
 {
     if (!m_chargeReleasing || m_chargeDamageRatio <= 0.0f ||
         !m_chargeAttackCollider->IsEnabled() ||
@@ -431,12 +432,28 @@ void Player::ResolveChargeAttackHit(GameObject& target)
             != m_chargeHitTargets.end() ||
         !m_chargeAttackCollider->HasContactWith(target, ColliderRole::Hurtbox))
     {
-        return;
+        return false;
     }
+    const auto attackCenter = m_chargeAttackCollider->GetShape().center;
+    hitPosition = attackCenter;
+    for (const auto* contact : m_chargeAttackCollider->GetContacts())
+    {
+        if (&contact->GetOwner() != &target ||
+            contact->GetRole() != ColliderRole::Hurtbox) continue;
+        const auto hurtCenter = contact->GetShape().center;
+        hitPosition = {
+            (attackCenter.x + hurtCenter.x) * 0.5f,
+            (attackCenter.y + hurtCenter.y) * 0.5f,
+            (attackCenter.z + hurtCenter.z) * 0.5f
+        };
+        break;
+    }
+    chargePower = m_chargeDamageRatio;
     const int damage = static_cast<int>(
         static_cast<float>(target.GetMaxHP()) * m_chargeDamageRatio + 0.5f);
     target.TakeDamage(damage);
     m_chargeHitTargets.push_back(&target);
+    return true;
 }
 
 bool Player::CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const

@@ -309,7 +309,11 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     for (MiniCopy* miniCopy : m_miniCopies)
     {
         if (miniCopy->IsDead()) continue;
-        m_player->ResolveChargeAttackHit(*miniCopy);
+        DirectX::XMFLOAT3 chargeHitPosition {};
+        float chargePower = 0.0f;
+        if (m_player->ResolveChargeAttackHit(
+            *miniCopy, chargeHitPosition, chargePower))
+            m_effectManager.SpawnChargeHit(chargeHitPosition, chargePower);
         if (miniCopy->IsDead())
         {
             miniCopy->EnterDefeatedState();
