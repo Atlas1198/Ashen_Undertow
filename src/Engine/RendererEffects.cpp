@@ -140,6 +140,12 @@ void Renderer::DrawEffectParticle(uint32_t textureIndex,
     particles.push_back({ position, direction, color, { width, length } });
 }
 
+void Renderer::DrawWaterRipple(const XMFLOAT3& position, float age, float strength)
+{
+    if (m_waterRipples.size() >= kMaxWaterRipples) return;
+    m_waterRipples.push_back({ position.x, position.z, age, strength });
+}
+
 void Renderer::DrawEffects(const XMMATRIX& viewProjection)
 {
     const size_t totalCount =

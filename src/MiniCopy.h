@@ -18,6 +18,8 @@ public:
         DirectX::XMFLOAT3& blockPosition);
     void Respawn(const DirectX::XMFLOAT3& position);
     DirectX::XMFLOAT3 GetHPBarPosition() const;
+    float GetDissolveAmount() const override;
+    float GetDissolveBaseY() const override { return m_position.y; }
 
 private:
     Player& m_target;
@@ -33,4 +35,5 @@ private:
     bool m_attackHit = false;
     bool m_running = false;
     bool m_deathReported = false;
+    float m_deathEffectTime = 0.0f;
 };

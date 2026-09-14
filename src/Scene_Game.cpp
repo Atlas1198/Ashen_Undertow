@@ -360,6 +360,13 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     if (evasionStarted && m_player->IsGrounded() && !playerInWater)
         m_effectManager.SpawnFootstepDust(
             footPosition, moveDirection, true);
+    if (evasionStarted && m_player->IsGrounded() && playerInWater)
+    {
+        const DirectX::XMFLOAT3 waterPosition {
+            playerPosition.x, Terrain::PondWaterHeight, playerPosition.z };
+        m_effectManager.SpawnWaterSplash(
+            waterPosition, moveDirection, 1.6f);
+    }
     if (!m_player->IsEvading() && m_player->IsGrounded() &&
         !playerInWater && playerSpeed > 0.2f)
     {
@@ -374,6 +381,23 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     else
     {
         m_footstepDustTimer = 0.0f;
+    }
+    if (!m_player->IsEvading() && m_player->IsGrounded() &&
+        playerInWater && playerSpeed > 0.2f)
+    {
+        m_playerWaterSplashTimer -= deltaTime;
+        if (m_playerWaterSplashTimer <= 0.0f)
+        {
+            const DirectX::XMFLOAT3 waterPosition {
+                playerPosition.x, Terrain::PondWaterHeight, playerPosition.z };
+            m_effectManager.SpawnWaterSplash(waterPosition, moveDirection,
+                std::clamp(playerSpeed / 4.0f, 0.35f, 1.25f));
+            m_playerWaterSplashTimer = playerSpeed >= 5.0f ? 0.1f : 0.18f;
+        }
+    }
+    else
+    {
+        m_playerWaterSplashTimer = 0.0f;
     }
     m_wasPlayerEvading = m_player->IsEvading();
     m_playerWaterMovement = updateWaterMovement(
@@ -402,6 +426,55 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         m_miniCopyWaterMovement = updateWaterMovement(miniCopyPosition,
             m_previousMiniCopyPosition, m_miniCopyWaterMovement);
         m_previousMiniCopyPosition = miniCopyPosition;
+    }
+
+    m_previousMiniCopyEffectPositions.resize(m_miniCopies.size());
+    m_miniCopyWaterSplashTimers.resize(m_miniCopies.size());
+    m_miniCopyWasDead.resize(m_miniCopies.size(), false);
+    for (size_t i = 0; i < m_miniCopies.size(); ++i)
+    {
+        MiniCopy* miniCopy = m_miniCopies[i];
+        const auto current = miniCopy->GetPosition();
+        const bool isDead = miniCopy->IsDead();
+        if (isDead && !m_miniCopyWasDead[i])
+            m_effectManager.Spawn(EffectType::EnemyDefeat, current);
+        m_miniCopyWasDead[i] = isDead;
+        auto& previous = m_previousMiniCopyEffectPositions[i];
+        auto& timer = m_miniCopyWaterSplashTimers[i];
+        const float dx = current.x - previous.x;
+        const float dz = current.z - previous.z;
+        const float distance = std::sqrt(dx * dx + dz * dz);
+        if (isDead || distance > 1.0f || deltaTime <= 0.0f)
+        {
+            previous = current;
+            timer = 0.0f;
+            continue;
+        }
+        const float miniPondX = current.x - Terrain::PondCenterX;
+        const float miniPondZ = current.z - Terrain::PondCenterZ;
+        const bool inWater = miniPondX * miniPondX + miniPondZ * miniPondZ <=
+            Terrain::PondWaterRadius * Terrain::PondWaterRadius;
+        const float speed = distance / deltaTime;
+        if (inWater && speed > 0.2f)
+        {
+            timer -= deltaTime;
+            if (timer <= 0.0f)
+            {
+                DirectX::XMFLOAT3 direction {};
+                if (distance > 0.0001f)
+                    direction = { dx / distance, 0.0f, dz / distance };
+                const DirectX::XMFLOAT3 waterPosition {
+                    current.x, Terrain::PondWaterHeight, current.z };
+                m_effectManager.SpawnWaterSplash(waterPosition, direction,
+                    std::clamp(speed / 3.0f, 0.35f, 1.0f));
+                timer = speed >= 2.5f ? 0.13f : 0.22f;
+            }
+        }
+        else
+        {
+            timer = 0.0f;
+        }
+        previous = current;
     }
 }
 

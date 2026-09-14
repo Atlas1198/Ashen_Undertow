@@ -68,10 +68,13 @@ namespace RendererDetail
         uint32_t jointCount;
         XMFLOAT3 windDirection;
         uint32_t renderFlags;
-        float padding12[3];
+        float dissolveAmount;
+        float dissolveBaseY;
+        float padding12;
         XMFLOAT4 grassInteractors[2]; // xyz=中心、w=接触半径
         XMFLOAT2 waterInteractionStrength;
         XMFLOAT2 padding13;
+        XMFLOAT4 waterRipples[12]; // xy=発生地点(xz)、z=経過秒、w=強度
         XMFLOAT4X4 jointMatrices[GltfMaxSkinJoints];
     };
 

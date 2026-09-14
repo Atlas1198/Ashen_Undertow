@@ -15,7 +15,8 @@ enum class EffectType
     FootstepDust,
     WaterSplash,
     EnemyDefeat,
-    BossTelegraph
+    BossTelegraph,
+    WaterRipple
 };
 
 struct EffectDesc
@@ -30,6 +31,7 @@ struct EffectDesc
     float endSize = 0.0f;
     float lifetime = 1.0f;
     float drag = 0.0f;
+    float strength = 1.0f;
 };
 
 struct EffectInstance
@@ -48,6 +50,7 @@ struct EffectInstance
     float age = 0.0f;
     float lifetime = 1.0f;
     float drag = 0.0f;
+    float strength = 1.0f;
 };
 
 class EffectManager
@@ -59,6 +62,9 @@ public:
         float chargeSeconds);
     void SpawnFootstepDust(const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& moveDirection, bool evasion);
+    void SpawnWaterSplash(const DirectX::XMFLOAT3& position,
+        const DirectX::XMFLOAT3& moveDirection, float intensity);
+    void SpawnWaterRipple(const DirectX::XMFLOAT3& position, float intensity);
     void Stop(std::uint64_t id);
     void Update(float deltaTime);
     void Draw(Renderer& renderer) const;

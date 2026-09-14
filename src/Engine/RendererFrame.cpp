@@ -37,7 +37,7 @@ void Renderer::DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS consta
 
 void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
     const std::vector<XMFLOAT4X4>* skinMatrices, const XMFLOAT4X4* shadowWorld,
-    uint32_t renderFlags)
+    uint32_t renderFlags, float dissolveAmount, float dissolveBaseY)
 {
     for (uint32_t i = 0; i < m_models.size(); ++i)
     {
@@ -46,7 +46,7 @@ void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
         if (m_drawMeshCount + model.meshes.size() > kMaxDrawMeshCount) return;
 
         DrawCommand command { i, world, shadowWorld ? *shadowWorld : world,
-            renderFlags };
+            renderFlags, dissolveAmount, dissolveBaseY };
         if (skinMatrices)
             command.skinMatrices = *skinMatrices;
         m_drawCommands.push_back(std::move(command));
@@ -65,6 +65,7 @@ void Renderer::Render(const UIManager& ui)
         m_debugColliders.clear();
         m_effectParticles.clear();
         m_alphaEffectParticles.clear();
+        m_waterRipples.clear();
         return;
     }
     // --- 定数バッファの更新 ---
@@ -108,6 +109,8 @@ void Renderer::Render(const UIManager& ui)
     cb.grassInteractors[0] = m_grassInteractors[0];
     cb.grassInteractors[1] = m_grassInteractors[1];
     cb.waterInteractionStrength = m_waterInteractionStrength;
+    for (size_t i = 0; i < m_waterRipples.size() && i < kMaxWaterRipples; ++i)
+        cb.waterRipples[i] = m_waterRipples[i];
 
     // ビュー射影行列の逆行列。
     // スカイボックスが各ピクセルの視線方向を復元するのに使う
@@ -200,6 +203,8 @@ void Renderer::Render(const UIManager& ui)
             cb.alphaCutoff = gpuModel.meshes[i].alphaCutoff;
             cb.materialOpacity = 1.0f;
             cb.renderFlags = command.renderFlags;
+            cb.dissolveAmount = command.dissolveAmount;
+            cb.dissolveBaseY = command.dissolveBaseY;
             memcpy(frameConstants + drawConstantIndex * m_cbStride,
                 &cb, sizeof(cb));
             ++drawConstantIndex;
@@ -219,6 +224,8 @@ void Renderer::Render(const UIManager& ui)
     cb.jointCount = 0;
     cb.materialOpacity = 1.0f;
     cb.renderFlags = 4;
+    cb.dissolveAmount = 0.0f;
+    cb.dissolveBaseY = 0.0f;
     memcpy(frameConstants + floorConstantIndex * m_cbStride, &cb, sizeof(cb));
 
     // 草は画像の透明部分を捨て、草葉の輪郭だけを描画する。
@@ -601,5 +608,6 @@ void Renderer::Render(const UIManager& ui)
     m_debugColliders.clear();
     m_effectParticles.clear();
     m_alphaEffectParticles.clear();
+    m_waterRipples.clear();
     m_effectTextureIndex = UINT32_MAX;
 }

@@ -42,10 +42,13 @@ cbuffer SceneConstants : register(b0)
     uint jointCount;
     float3 windDirection;
     uint renderFlags;
-    float3 pad12;
+    float dissolveAmount;
+    float dissolveBaseY;
+    float pad12;
     float4 grassInteractors[2];
     float2 waterInteractionStrength;
     float2 pad13;
+    float4 waterRipples[12];
     float4x4 jointMatrices[80];
 };
 
@@ -53,6 +56,21 @@ static const uint RenderFlagGrass = 1u;
 static const uint RenderFlagWater = 2u;
 static const uint RenderFlagTerrain = 4u;
 static const uint RenderFlagTree = 8u;
+
+float DissolveNoise(float3 worldPosition)
+{
+    const float3 cell = floor(worldPosition * 15.0);
+    return frac(sin(dot(cell, float3(12.9898, 78.233, 37.719))) * 43758.5453);
+}
+
+void ApplyDissolveClip(float3 worldPosition)
+{
+    if (dissolveAmount <= 0.0)
+        return;
+    const float height = saturate((worldPosition.y - dissolveBaseY) / 3.2);
+    const float threshold = saturate(dissolveAmount * 1.55 - height * 0.62);
+    clip(DissolveNoise(worldPosition) - threshold);
+}
 
 // 根元は固定し、葉先ほど強く曲げる草用の風変形。
 // 位置から位相を作るため、大量の草が同時に同じ動きにならない。
@@ -122,24 +140,38 @@ void ApplyWaterWaves(inout float3 position, inout float3 normal, inout float3 ta
         + amount2 * 4.1 * cos(phase2) * direction2
         + amount3 * 7.2 * cos(phase3) * direction3;
 
-    // 移動中のPlayer／Enemyの足元から外側へ進む円形波。
+    // 接触地点に残る衝撃波。短い毛細波を先行させ、長い重力波を後から伝播させる。
     [unroll]
-    for (uint i = 0; i < 2; ++i)
+    for (uint i = 0; i < 12; ++i)
     {
-        const float movement = waterInteractionStrength[i];
-        const float2 fromActor = position.xz - grassInteractors[i].xz;
-        const float distanceToActor = length(fromActor);
-        const float rippleRadius = 2.0 + movement * 0.6;
-        const float envelope = (1.0 - smoothstep(0.12, rippleRadius, distanceToActor))
-            * movement;
-        const float frequency = 9.0;
-        const float ripplePhase = distanceToActor * frequency
-            - windTime * (5.0 + movement * 2.0) + float(i) * 1.7;
-        const float rippleAmplitude = (0.024 + float(i) * 0.010) * envelope;
-        waveHeight += rippleAmplitude * sin(ripplePhase);
-        const float2 radial = distanceToActor > 0.001
-            ? fromActor / distanceToActor : direction;
-        gradient += rippleAmplitude * frequency * cos(ripplePhase) * radial;
+        const float4 ripple = waterRipples[i];
+        const float age = ripple.z;
+        const float impulse = ripple.w;
+        if (impulse <= 0.0 || age >= 2.4)
+            continue;
+
+        const float2 fromImpact = position.xz - ripple.xy;
+        const float distanceToImpact = length(fromImpact);
+        const float2 radial = distanceToImpact > 0.001
+            ? fromImpact / distanceToImpact : direction;
+
+        const float gravityDelta = distanceToImpact - age * 2.0;
+        const float gravityFront = 1.0 - smoothstep(0.10, 0.30, gravityDelta);
+        const float gravityEnvelope = exp(-abs(gravityDelta) * 2.8)
+            * gravityFront * exp(-age * 1.25);
+        const float gravityPhase = gravityDelta * 9.0;
+        const float gravityAmplitude = 0.045 * impulse * gravityEnvelope;
+        waveHeight += sin(gravityPhase) * gravityAmplitude;
+        gradient += cos(gravityPhase) * gravityAmplitude * 9.0 * radial;
+
+        const float capillaryDelta = distanceToImpact - age * 2.8;
+        const float capillaryFront = 1.0 - smoothstep(0.06, 0.18, capillaryDelta);
+        const float capillaryEnvelope = exp(-abs(capillaryDelta) * 5.0)
+            * capillaryFront * exp(-age * 1.8);
+        const float capillaryPhase = capillaryDelta * 20.0 + 0.7;
+        const float capillaryAmplitude = 0.012 * impulse * capillaryEnvelope;
+        waveHeight += sin(capillaryPhase) * capillaryAmplitude;
+        gradient += cos(capillaryPhase) * capillaryAmplitude * 20.0 * radial;
     }
 
     position.y += waveHeight;

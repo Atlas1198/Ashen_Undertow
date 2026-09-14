@@ -30,6 +30,7 @@ std::uint64_t EffectManager::Spawn(const EffectDesc& desc)
     effect.size = effect.startSize;
     effect.lifetime = desc.lifetime;
     effect.drag = (std::max)(0.0f, desc.drag);
+    effect.strength = desc.strength;
     m_effects.push_back(effect);
     return effect.id;
 }
@@ -122,6 +123,62 @@ std::uint64_t EffectManager::Spawn(
             spark.lifetime = 0.18f + NextRandom() * 0.22f;
             spark.drag = 2.4f;
             Spawn(spark);
+        }
+        return firstId;
+    }
+    if (type == EffectType::EnemyDefeat)
+    {
+        std::uint64_t firstId = 0;
+        constexpr int particleCount = 220;
+        for (int i = 0; i < particleCount; ++i)
+        {
+            const float height = NextRandom() * 3.05f;
+            float centerX = 0.0f;
+            float radius = 0.42f;
+            if (height < 1.05f)
+            {
+                centerX = NextRandom() < 0.5f ? -0.30f : 0.30f;
+                radius = 0.18f;
+            }
+            else if (height > 2.35f)
+            {
+                radius = 0.30f;
+            }
+            else if (NextRandom() < 0.22f)
+            {
+                centerX = NextRandom() < 0.5f ? -0.62f : 0.62f;
+                radius = 0.20f;
+            }
+
+            const float angle = NextRandom() * DirectX::XM_2PI;
+            const float spread = std::sqrt(NextRandom()) * radius;
+            const float outwardX = std::cos(angle);
+            const float outwardZ = std::sin(angle);
+            EffectDesc dust;
+            dust.type = type;
+            dust.position = {
+                position.x + centerX + outwardX * spread,
+                position.y + 0.10f + height,
+                position.z + outwardZ * spread
+            };
+            const float outwardSpeed = 0.08f + NextRandom() * 0.32f;
+            dust.velocity = {
+                outwardX * outwardSpeed,
+                0.42f + NextRandom() * 0.95f + height * 0.08f,
+                outwardZ * outwardSpeed
+            };
+            dust.acceleration = { 0.0f, 0.10f, 0.0f };
+            const float brightness = 0.7f + NextRandom() * 0.7f;
+            dust.startColor = {
+                0.22f * brightness, 0.78f * brightness,
+                1.0f * brightness, 0.82f };
+            dust.endColor = { 0.08f, 0.24f, 0.32f, 0.0f };
+            dust.startSize = 0.018f + NextRandom() * 0.035f;
+            dust.endSize = 0.006f;
+            dust.lifetime = 0.85f + NextRandom() * 0.85f;
+            dust.drag = 0.35f;
+            const auto id = Spawn(dust);
+            if (firstId == 0) firstId = id;
         }
         return firstId;
     }
@@ -275,6 +332,83 @@ void EffectManager::SpawnFootstepDust(const DirectX::XMFLOAT3& position,
     }
 }
 
+void EffectManager::SpawnWaterSplash(const DirectX::XMFLOAT3& position,
+    const DirectX::XMFLOAT3& moveDirection, float intensity)
+{
+    intensity = std::clamp(intensity, 0.25f, 1.6f);
+    SpawnWaterRipple(position, intensity);
+    const int count = 3 + static_cast<int>(intensity * 9.0f);
+    float forwardX = moveDirection.x;
+    float forwardZ = moveDirection.z;
+    const float forwardLength = std::sqrt(
+        forwardX * forwardX + forwardZ * forwardZ);
+    if (forwardLength <= 0.001f)
+    {
+        forwardX = 0.0f;
+        forwardZ = 1.0f;
+    }
+    else
+    {
+        forwardX /= forwardLength;
+        forwardZ /= forwardLength;
+    }
+    const float sideX = forwardZ;
+    const float sideZ = -forwardX;
+    for (int i = 0; i < count; ++i)
+    {
+        const float sideAmount = NextRandom() * 2.0f - 1.0f;
+        const float sideSpeed = sideAmount *
+            (0.55f + NextRandom() * 1.45f) * intensity;
+        const float forwardSpeed =
+            (0.1f + NextRandom() * 0.65f) * intensity;
+        EffectDesc splash;
+        splash.type = EffectType::WaterSplash;
+        splash.position = {
+            position.x + sideX * sideAmount * NextRandom() * 0.22f,
+            position.y + 0.02f,
+            position.z + sideZ * sideAmount * NextRandom() * 0.22f
+        };
+        splash.velocity = {
+            sideX * sideSpeed + forwardX * forwardSpeed,
+            0.75f + NextRandom() * 2.0f * intensity,
+            sideZ * sideSpeed + forwardZ * forwardSpeed
+        };
+        splash.acceleration = { 0.0f, -5.8f, 0.0f };
+        splash.startColor = { 0.65f, 1.55f, 2.4f, 0.68f };
+        splash.endColor = { 0.12f, 0.4f, 0.75f, 0.0f };
+        splash.startSize = 0.018f + NextRandom() * 0.032f;
+        splash.endSize = 0.008f;
+        splash.lifetime = 0.28f + NextRandom() * 0.34f;
+        splash.drag = 0.55f;
+        Spawn(splash);
+    }
+}
+
+void EffectManager::SpawnWaterRipple(
+    const DirectX::XMFLOAT3& position, float intensity)
+{
+    constexpr int maxRipples = 12;
+    int rippleCount = 0;
+    for (const auto& effect : m_effects)
+        if (effect.type == EffectType::WaterRipple) ++rippleCount;
+    if (rippleCount >= maxRipples)
+    {
+        const auto oldest = std::find_if(m_effects.begin(), m_effects.end(),
+            [](const EffectInstance& effect)
+            {
+                return effect.type == EffectType::WaterRipple;
+            });
+        if (oldest != m_effects.end()) m_effects.erase(oldest);
+    }
+
+    EffectDesc ripple;
+    ripple.type = EffectType::WaterRipple;
+    ripple.position = position;
+    ripple.lifetime = 2.4f;
+    ripple.strength = std::clamp(intensity, 0.25f, 1.6f);
+    Spawn(ripple);
+}
+
 void EffectManager::Stop(std::uint64_t id)
 {
     std::erase_if(m_effects,
@@ -321,12 +455,19 @@ void EffectManager::Draw(Renderer& renderer) const
     if (m_textureIndex == UINT32_MAX) return;
     for (const auto& effect : m_effects)
     {
+        if (effect.type == EffectType::WaterRipple)
+        {
+            renderer.DrawWaterRipple(effect.position, effect.age,
+                effect.strength);
+            continue;
+        }
         const float speed = std::sqrt(
             effect.velocity.x * effect.velocity.x +
             effect.velocity.y * effect.velocity.y +
             effect.velocity.z * effect.velocity.z);
         const bool roundParticle = effect.type == EffectType::ChargeAura ||
-            effect.type == EffectType::FootstepDust;
+            effect.type == EffectType::FootstepDust ||
+            effect.type == EffectType::EnemyDefeat;
         const float stretch = roundParticle
             ? effect.size : effect.size + speed * 0.055f;
         const DirectX::XMFLOAT3 drawDirection = roundParticle

@@ -17,7 +17,8 @@ void ModelComponent::Draw(Renderer& renderer)
     const auto shadowWorld = CreateModelShadowWorldMatrix();
     renderer.DrawModel(m_model, modelWorld,
         animation ? &animation->GetSkinMatrices() : nullptr, &shadowWorld,
-        GetOwner().GetRenderFlags());
+        GetOwner().GetRenderFlags(), GetOwner().GetDissolveAmount(),
+        GetOwner().GetDissolveBaseY());
 }
 
 DirectX::XMFLOAT4X4 ModelComponent::CreateModelShadowWorldMatrix() const

@@ -54,7 +54,8 @@ public:
     void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world,
         const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr,
         const DirectX::XMFLOAT4X4* shadowWorld = nullptr,
-        uint32_t renderFlags = 0);
+        uint32_t renderFlags = 0, float dissolveAmount = 0.0f,
+        float dissolveBaseY = 0.0f);
     void DrawCollider(const DirectX::XMFLOAT3& center,
         const DirectX::XMFLOAT3& halfExtents, float radius, bool colliding);
     void DrawColliderSegment(const DirectX::XMFLOAT3& start,
@@ -64,6 +65,7 @@ public:
         const DirectX::XMFLOAT3& direction,
         const DirectX::XMFLOAT4& color, float width, float length,
         bool additive = true);
+    void DrawWaterRipple(const DirectX::XMFLOAT3& position, float age, float strength);
     void Render(const UIManager& ui);
 
 private:
@@ -154,6 +156,8 @@ private:
         { 10000.0f, 0.0f, 10000.0f, 1.15f }
     };
     DirectX::XMFLOAT2 m_waterInteractionStrength { 0.0f, 0.0f };
+    static constexpr uint32_t kMaxWaterRipples = 12;
+    std::vector<DirectX::XMFLOAT4> m_waterRipples;
 
     // --- コアオブジェクト ---
     ComPtr<IDXGIFactory6>              m_factory;
@@ -220,6 +224,8 @@ private:
         DirectX::XMFLOAT4X4 world;
         DirectX::XMFLOAT4X4 shadowWorld;
         uint32_t renderFlags;
+        float dissolveAmount;
+        float dissolveBaseY;
         std::vector<DirectX::XMFLOAT4X4> skinMatrices;
     };
     std::vector<DrawCommand> m_drawCommands;

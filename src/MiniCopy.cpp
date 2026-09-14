@@ -29,6 +29,7 @@ constexpr float AttackHitEnd = 0.70f;
 constexpr int AttackDamage = 3;
 constexpr float BlockKnockbackDistance = 1.2f;
 constexpr int BossDamageOnDefeat = 100;
+constexpr float DeathEffectDuration = 1.6f;
 }
 
 bool MiniCopy::Initialize(ModelManager& modelManager)
@@ -99,8 +100,11 @@ void MiniCopy::Update(float deltaTime)
         {
             m_boss.TakeDamage(BossDamageOnDefeat);
             m_deathReported = true;
-            m_scale = { 0.0f, 0.0f, 0.0f };
+            m_deathEffectTime = 0.0f;
         }
+        m_deathEffectTime += deltaTime;
+        if (m_deathEffectTime >= DeathEffectDuration)
+            m_scale = { 0.0f, 0.0f, 0.0f };
         return;
     }
 
@@ -253,10 +257,18 @@ void MiniCopy::Respawn(const DirectX::XMFLOAT3& position)
     m_attackHit = false;
     m_running = false;
     m_deathReported = false;
+    m_deathEffectTime = 0.0f;
     m_attackCollider->SetEnabled(false);
     m_leftAttackCollider->SetEnabled(false);
     for (auto* hurtbox : m_hurtboxes) hurtbox->SetEnabled(true);
     m_animation->Play("Idle", true, 1.0f, 0.0f);
+}
+
+float MiniCopy::GetDissolveAmount() const
+{
+    return m_deathReported
+        ? std::clamp(m_deathEffectTime / DeathEffectDuration, 0.0f, 1.0f)
+        : 0.0f;
 }
 
 DirectX::XMFLOAT3 MiniCopy::GetHPBarPosition() const

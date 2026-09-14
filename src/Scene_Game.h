@@ -45,5 +45,9 @@ private:
     float m_miniCopyWaterMovement = 0.0f;
     float m_chargeAuraSpawnTimer = 0.0f;
     float m_footstepDustTimer = 0.0f;
+    float m_playerWaterSplashTimer = 0.0f;
+    std::vector<DirectX::XMFLOAT3> m_previousMiniCopyEffectPositions;
+    std::vector<float> m_miniCopyWaterSplashTimers;
+    std::vector<bool> m_miniCopyWasDead;
     bool m_wasPlayerEvading = false;
 };

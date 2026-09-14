@@ -12,6 +12,7 @@ struct PSInput
 {
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float3 worldPos : TEXCOORD1;
 };
 
 PSInput VSMain(float3 position : POSITION, float2 uv : TEXCOORD0,
@@ -30,6 +31,7 @@ PSInput VSMain(float3 position : POSITION, float2 uv : TEXCOORD0,
     }
     output.position = mul(mul(float4(position, 1.0), shadowWorld), lightViewProj);
     output.uv = uv;
+    output.worldPos = mul(float4(position, 1.0), world).xyz;
     return output;
 }
 
@@ -39,4 +41,5 @@ void PSMain(PSInput input)
     // 不透明マテリアルでは alphaCutoff が負なので clip は常に通る
     float alpha = g_baseColorMap.Sample(g_modelSampler, input.uv).a;
     clip(alpha - alphaCutoff);
+    ApplyDissolveClip(input.worldPos);
 }
