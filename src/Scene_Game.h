@@ -21,6 +21,7 @@ public:
     bool InitializeUI(UIManager& ui) override;
 
 private:
+    void UpdateCameraGroundConstraint();
     void OnUpdate(float deltaTime) override;
     void OnAfterUpdate(float deltaTime) override;
     bool IsSimulationPaused() const override { return m_hitStopThisFrame; }
@@ -52,5 +53,7 @@ private:
     std::vector<bool> m_miniCopyWasDead;
     float m_hitStopTimer = 0.0f;
     bool m_hitStopThisFrame = false;
+    std::array<SwordTrailPose, 4> m_swordTrailHistory {};
+    size_t m_swordTrailHistoryCount = 0;
     bool m_wasPlayerEvading = false;
 };

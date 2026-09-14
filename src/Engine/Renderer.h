@@ -65,7 +65,7 @@ public:
         const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& direction,
         const DirectX::XMFLOAT4& color, float width, float length,
-        bool additive = true);
+        bool additive = true, bool continuousTrail = false);
     void DrawWaterRipple(const DirectX::XMFLOAT3& position, float age, float strength);
     void Render(const UIManager& ui);
 
@@ -261,6 +261,7 @@ private:
         DirectX::XMFLOAT3 direction;
         DirectX::XMFLOAT4 color;
         DirectX::XMFLOAT2 size;
+        uint32_t effectFlags;
     };
     static constexpr uint32_t kMaxEffectParticles = 4096;
     std::vector<EffectParticleVertex> m_effectParticles;

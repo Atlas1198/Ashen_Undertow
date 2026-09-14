@@ -1,16 +1,24 @@
 #pragma once
 
 #include <DirectXMath.h>
+#include <array>
 #include <cstdint>
 #include <vector>
 
 class Renderer;
+
+struct SwordTrailPose
+{
+    DirectX::XMFLOAT3 start {};
+    DirectX::XMFLOAT3 end {};
+};
 
 enum class EffectType
 {
     Custom,
     HitSpark,
     ChargeHit,
+    SwordTrail,
     BlockSpark,
     ChargeAura,
     FootstepDust,
@@ -33,6 +41,8 @@ struct EffectDesc
     float lifetime = 1.0f;
     float drag = 0.0f;
     float strength = 1.0f;
+    DirectX::XMFLOAT3 visualDirection {};
+    float visualLength = 0.0f;
 };
 
 struct EffectInstance
@@ -52,6 +62,8 @@ struct EffectInstance
     float lifetime = 1.0f;
     float drag = 0.0f;
     float strength = 1.0f;
+    DirectX::XMFLOAT3 visualDirection {};
+    float visualLength = 0.0f;
 };
 
 class EffectManager
@@ -62,6 +74,7 @@ public:
     void SpawnChargeAura(const DirectX::XMFLOAT3& position,
         float chargeSeconds);
     void SpawnChargeHit(const DirectX::XMFLOAT3& position, float chargePower);
+    void SpawnSwordTrail(const std::array<SwordTrailPose, 4>& poses);
     void SpawnFootstepDust(const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& moveDirection, bool evasion);
     void SpawnWaterSplash(const DirectX::XMFLOAT3& position,

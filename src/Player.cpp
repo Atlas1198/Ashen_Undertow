@@ -72,9 +72,9 @@ bool Player::Initialize(ModelManager& modelManager)
     m_attackCollider->SetEnabled(false);
     if (!AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
         *static_cast<SegmentCollider*>(m_attackCollider),
-        "mixamorig:RightHand", "mixamorig:RightHand",
-        DirectX::XMFLOAT3 { 1.3f, -0.2f, -1.4f },
-        DirectX::XMFLOAT3 { -39.2f, 97.5f, -56.5f })) return false;
+        "mixamorig:Sword_joint", "mixamorig:Sword_joint",
+        DirectX::XMFLOAT3 { 5.247f, 1.044f, 20.344f },
+        DirectX::XMFLOAT3 { -20.701f, -5.250f, -81.074f })) return false;
     m_chargeAttackCollider = AddComponent<SegmentCollider>(ChargeAttackColliderRadius);
     if (!m_chargeAttackCollider) return false;
     m_chargeAttackCollider->SetTrigger(true);
@@ -563,4 +563,19 @@ DirectX::XMFLOAT4 Player::GetRimLightColor() const
     if (m_chargeDuration < ChargeLevelThreeTime)
         return { 5.0f, 2.8f, 0.18f, 0.48f };
     return { 5.5f, 0.12f, 1.8f, 0.55f };
+}
+
+bool Player::GetSwordTrailSegment(DirectX::XMFLOAT3& start,
+    DirectX::XMFLOAT3& end) const
+{
+    const float progress = m_animation->GetNormalizedTime();
+    const bool normalSwing = m_attacking && progress >= 0.12f && progress <= 0.82f;
+    const bool chargeSwing = m_chargeReleasing && progress >= 0.25f && progress <= 0.68f;
+    if (!normalSwing && !chargeSwing) return false;
+
+    const auto shape = (chargeSwing ? m_chargeAttackCollider : m_attackCollider)->GetShape();
+    if (!shape.hasSegment) return false;
+    start = shape.segmentStart;
+    end = shape.segmentEnd;
+    return true;
 }

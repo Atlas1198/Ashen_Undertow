@@ -70,6 +70,8 @@ bool Renderer::CreateEffectResources()
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24,
           D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
         { "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40,
+          D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+        { "EFFECTFLAGS", 0, DXGI_FORMAT_R32_UINT, 0, 48,
           D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
     };
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pso = {};
@@ -129,7 +131,8 @@ bool Renderer::CreateEffectResources()
 
 void Renderer::DrawEffectParticle(uint32_t textureIndex,
     const XMFLOAT3& position, const XMFLOAT3& direction,
-    const XMFLOAT4& color, float width, float length, bool additive)
+    const XMFLOAT4& color, float width, float length, bool additive,
+    bool continuousTrail)
 {
     if (m_effectParticles.size() + m_alphaEffectParticles.size() >=
         kMaxEffectParticles) return;
@@ -137,7 +140,8 @@ void Renderer::DrawEffectParticle(uint32_t textureIndex,
         m_effectTextureIndex = textureIndex;
     if (textureIndex != m_effectTextureIndex) return;
     auto& particles = additive ? m_effectParticles : m_alphaEffectParticles;
-    particles.push_back({ position, direction, color, { width, length } });
+    particles.push_back({ position, direction, color, { width, length },
+        continuousTrail ? 1u : 0u });
 }
 
 void Renderer::DrawWaterRipple(const XMFLOAT3& position, float age, float strength)

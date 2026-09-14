@@ -40,6 +40,8 @@ public:
     DirectX::XMFLOAT3 GetFootPosition() const;
     ModelHandle GetModelHandle() const;
     DirectX::XMFLOAT4 GetRimLightColor() const override;
+    bool GetSwordTrailSegment(DirectX::XMFLOAT3& start,
+        DirectX::XMFLOAT3& end) const;
 
 private:    
     static constexpr float MaxStamina = 100.0f;

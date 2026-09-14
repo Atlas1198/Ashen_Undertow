@@ -12,7 +12,11 @@ void Camera::Rotate(float mouseX, float mouseY)
 DirectX::XMFLOAT3 Camera::GetPosition() const
 {
     const float horizontal = kDistance * std::cos(m_pitch);
-    return { m_target.x + horizontal * std::sin(m_yaw),
+    DirectX::XMFLOAT3 position {
+        m_target.x + horizontal * std::sin(m_yaw),
         m_target.y + kDistance * std::sin(m_pitch),
-        m_target.z - horizontal * std::cos(m_yaw) };
+        m_target.z - horizontal * std::cos(m_yaw)
+    };
+    position.y = (std::max)(position.y, m_minimumHeight);
+    return position;
 }

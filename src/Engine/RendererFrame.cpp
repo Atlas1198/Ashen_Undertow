@@ -476,6 +476,8 @@ void Renderer::Render(const UIManager& ui)
         const D3D12_RESOURCE_STATES kRead = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         const D3D12_RESOURCE_STATES kWrite = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
+        ID3D12DescriptorHeap* postProcessHeaps[] = { m_srvHeap.Get() };
+        m_commandList->SetDescriptorHeaps(1, postProcessHeaps);
         m_commandList->SetGraphicsRootSignature(m_bloomRootSignature.Get());
         m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 

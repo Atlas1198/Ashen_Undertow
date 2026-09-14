@@ -257,13 +257,45 @@ void Scene_Game::OnUpdate(float deltaTime)
     if (m_input.ColliderVisualizationPressed())
         m_showColliders = !m_showColliders;
     m_camera.Rotate(m_input.LookX(), m_input.LookY());
+    UpdateCameraGroundConstraint();
     m_player->SetMovementYaw(-m_camera.GetYaw());
+}
+
+void Scene_Game::UpdateCameraGroundConstraint()
+{
+    constexpr float CameraGroundClearance = 0.25f;
+    const auto cameraPosition = m_camera.GetPosition();
+    m_camera.SetMinimumHeight(Terrain::HeightAt(
+        cameraPosition.x, cameraPosition.z) + CameraGroundClearance);
 }
 
 void Scene_Game::OnAfterUpdate(float deltaTime)
 {
     m_effectManager.Update(deltaTime);
     m_player->ResolveTerrainContact();
+
+    DirectX::XMFLOAT3 swordStart {};
+    DirectX::XMFLOAT3 swordEnd {};
+    if (m_player->GetSwordTrailSegment(swordStart, swordEnd))
+    {
+        if (m_swordTrailHistoryCount < m_swordTrailHistory.size())
+        {
+            m_swordTrailHistory[m_swordTrailHistoryCount++] =
+                { swordStart, swordEnd };
+        }
+        else
+        {
+            for (size_t i = 1; i < m_swordTrailHistory.size(); ++i)
+                m_swordTrailHistory[i - 1] = m_swordTrailHistory[i];
+            m_swordTrailHistory.back() = { swordStart, swordEnd };
+        }
+        if (m_swordTrailHistoryCount == m_swordTrailHistory.size())
+            m_effectManager.SpawnSwordTrail(m_swordTrailHistory);
+    }
+    else
+    {
+        m_swordTrailHistoryCount = 0;
+    }
 
     if (m_player->IsCharging())
     {
@@ -344,6 +376,7 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
             m_effectManager.Spawn(EffectType::BlockSpark, blockPosition);
     }
     m_camera.SetTarget(m_player->GetPosition());
+    UpdateCameraGroundConstraint();
     for (Tree* tree : m_trees)
         tree->FaceCamera(m_camera.GetPosition());
 
