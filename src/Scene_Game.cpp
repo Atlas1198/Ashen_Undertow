@@ -287,6 +287,8 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     for (MiniCopy* miniCopy : m_miniCopies)
     {
         if (miniCopy->IsDead()) continue;
+        m_player->ResolveChargeAttackHit(*miniCopy);
+        if (miniCopy->IsDead()) continue;
         m_player->ResolveAttackHit(*miniCopy);
         miniCopy->ResolveAttackHit(*m_player);
     }

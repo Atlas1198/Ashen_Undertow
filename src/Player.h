@@ -20,8 +20,12 @@ public:
     void Update(float deltaTime) override;
     void ResolveTerrainContact();
     void ResolveAttackHit(GameObject& target);
+    void ResolveChargeAttackHit(GameObject& target);
     void SetMovementYaw(float yaw) { m_movementYaw = yaw; }
-    bool IsAttacking() const { return m_attacking; }
+    bool IsAttacking() const
+    {
+        return m_attacking || m_attackInputPending || m_charging || m_chargeReleasing;
+    }
     bool IsBlocking() const { return m_blocking; }
     bool CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const;
     void ConsumeBlockStamina();
@@ -36,16 +40,23 @@ private:
     AnimationComponent* m_animation = nullptr;
     SphereCollider* m_evasionCollider = nullptr;
     Collider* m_attackCollider = nullptr;
+    Collider* m_chargeAttackCollider = nullptr;
     std::vector<Collider*> m_standingHurtboxes;
+    std::vector<GameObject*> m_chargeHitTargets;
     Rigidbody* m_rigidbody = nullptr;
     float m_movementYaw = 0.0f;
     float m_evasionDirectionX = 0.0f;
     float m_evasionDirectionZ = 0.0f;
     float m_stamina = MaxStamina;
     float m_staminaRecoveryDelay = 0.0f;
+    float m_chargeDuration = 0.0f;
+    float m_chargeDamageRatio = 0.0f;
     int m_attackComboStep = 0;
     bool m_attacking = false;
     bool m_attackComboQueued = false;
+    bool m_attackInputPending = false;
+    bool m_charging = false;
+    bool m_chargeReleasing = false;
     bool m_blocking = false;
     bool m_attackHit = false;
     bool m_evading = false;

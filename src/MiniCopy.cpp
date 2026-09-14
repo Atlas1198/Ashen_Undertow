@@ -33,6 +33,7 @@ constexpr int BossDamageOnDefeat = 100;
 
 bool MiniCopy::Initialize(ModelManager& modelManager)
 {
+
     InitializeHP(300);
     auto* model = AddComponent<ModelComponent>(modelManager, GameAssets::EnemyModel);
     if (!model) return false;

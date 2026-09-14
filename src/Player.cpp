@@ -18,12 +18,22 @@ constexpr float AttackPlaybackSpeed = 2.0f;
 constexpr float AnimationBlendDuration = 0.2f;
 constexpr float RotationResponsiveness = 12.0f;
 constexpr float AttackColliderRadius = 0.11f;
+constexpr float ChargeAttackColliderRadius = 0.12f;
 constexpr float AttackHitStart = 0.22f;
 constexpr float AttackHitEnd = 0.68f;
 constexpr float AttackComboTransition = 0.72f;
 constexpr float AttackComboBlendDuration = 0.1f;
 constexpr const char* AttackAnimations[] = { "Attack", "Attack2", "Attack3" };
 constexpr int AttackComboCount = 3;
+constexpr float ChargeActivationTime = 0.25f;
+constexpr float ChargeLevelOneTime = 1.0f;
+constexpr float ChargeLevelTwoTime = 2.0f;
+constexpr float ChargeLevelThreeTime = 3.0f;
+constexpr float ChargeHoldPose = 0.30f;
+constexpr float ChargeHitStart = 0.38f;
+constexpr float ChargeHitEnd = 0.56f;
+constexpr float ChargeAttackPlaybackSpeed = 1.5f;
+constexpr float ChargeStaminaCost = 30.0f;
 constexpr float EvasionColliderRadius = 0.5f;
 constexpr float EvasionColliderHeightOffset = -0.55f;
 constexpr float EvasionPlaybackSpeed = 2.0f;
@@ -65,6 +75,16 @@ bool Player::Initialize(ModelManager& modelManager)
         "mixamorig:RightHand", "mixamorig:RightHand",
         DirectX::XMFLOAT3 { 1.3f, -0.2f, -1.4f },
         DirectX::XMFLOAT3 { -39.2f, 97.5f, -56.5f })) return false;
+    m_chargeAttackCollider = AddComponent<SegmentCollider>(ChargeAttackColliderRadius);
+    if (!m_chargeAttackCollider) return false;
+    m_chargeAttackCollider->SetTrigger(true);
+    m_chargeAttackCollider->SetRole(ColliderRole::Hitbox);
+    m_chargeAttackCollider->SetEnabled(false);
+    if (!AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
+        *static_cast<SegmentCollider*>(m_chargeAttackCollider),
+        "mixamorig:Sword_joint", "mixamorig:Sword_joint",
+        DirectX::XMFLOAT3 { 5.247f, 1.044f, 20.344f },
+        DirectX::XMFLOAT3 { -20.701f, -5.250f, -81.074f })) return false;
     const auto addHurtbox = [&](float radius, const char* start, const char* end,
         bool trigger = true)
     {
@@ -139,15 +159,17 @@ void Player::Update(float deltaTime)
     }
 
     const bool wasBlocking = m_blocking;
-    m_blocking = grounded && !m_jumping && !m_evading && !m_attacking
+    m_blocking = grounded && !m_jumping && !m_evading && !IsAttacking()
         && m_input.BlockHeld() && m_stamina >= BlockStaminaCost;
 
-    if (!m_evading && !m_blocking && grounded && m_input.JumpPressed())
+    if (!m_evading && !m_blocking && !IsAttacking() &&
+        grounded && m_input.JumpPressed())
     {
         m_attacking = false;
         m_attackComboStep = 0;
         m_attackComboQueued = false;
         m_attackCollider->SetEnabled(false);
+        m_chargeAttackCollider->SetEnabled(false);
         if (dashRequested)
         {
             if (m_stamina >= EvasionStaminaCost)
@@ -192,7 +214,77 @@ void Player::Update(float deltaTime)
     if (!m_jumping && !m_evading)
     {
         const bool attackPressed = m_input.AttackPressed();
-        if (m_attacking && attackPressed && m_attackComboStep < AttackComboCount)
+        const bool attackHeld = m_input.AttackHeld();
+        const bool attackReleased = m_input.AttackReleased();
+        bool normalAttackInput = m_attacking && attackReleased;
+
+        if (attackPressed && !IsAttacking() && !m_blocking)
+        {
+            m_attackInputPending = true;
+            m_chargeDuration = 0.0f;
+        }
+        if ((m_attackInputPending || m_charging) && attackHeld)
+            m_chargeDuration = (std::min)(
+                m_chargeDuration + deltaTime, ChargeLevelThreeTime);
+
+        if (m_attackInputPending && m_chargeDuration >= ChargeActivationTime)
+        {
+            m_attackInputPending = false;
+            m_charging = m_animation->Play(
+                "ChargeAttack", false, 0.0f, AnimationBlendDuration);
+            if (m_charging)
+                m_animation->SetNormalizedTime(ChargeHoldPose);
+        }
+        else if (m_attackInputPending && attackReleased)
+        {
+            m_attackInputPending = false;
+            m_chargeDuration = 0.0f;
+            normalAttackInput = true;
+        }
+
+        if (m_charging)
+        {
+            m_animation->SetNormalizedTime(ChargeHoldPose);
+            m_attackCollider->SetEnabled(false);
+            m_chargeAttackCollider->SetEnabled(false);
+            if (attackReleased)
+            {
+                m_charging = false;
+                if (m_chargeDuration >= ChargeLevelOneTime &&
+                    m_stamina >= ChargeStaminaCost)
+                {
+                    m_chargeDamageRatio = m_chargeDuration >= ChargeLevelThreeTime
+                        ? 1.0f : (m_chargeDuration >= ChargeLevelTwoTime ? 0.7f : 0.4f);
+                    m_chargeReleasing = m_animation->Play(
+                        "ChargeAttack", false, ChargeAttackPlaybackSpeed, 0.0f);
+                    m_chargeHitTargets.clear();
+                    m_stamina -= ChargeStaminaCost;
+                    staminaConsumed = true;
+                }
+                else
+                {
+                    m_chargeDuration = 0.0f;
+                    m_chargeDamageRatio = 0.0f;
+                    m_chargeAttackCollider->SetEnabled(false);
+                }
+            }
+        }
+
+        if (m_chargeReleasing)
+        {
+            const float progress = m_animation->GetNormalizedTime();
+            m_chargeAttackCollider->SetEnabled(
+                progress >= ChargeHitStart && progress <= ChargeHitEnd);
+            if (m_animation->IsFinished())
+            {
+                m_chargeReleasing = false;
+                m_chargeDuration = 0.0f;
+                m_chargeDamageRatio = 0.0f;
+                m_chargeAttackCollider->SetEnabled(false);
+            }
+        }
+
+        if (m_attacking && normalAttackInput && m_attackComboStep < AttackComboCount)
             m_attackComboQueued = true;
 
         const float attackProgress = m_attacking
@@ -219,11 +311,13 @@ void Player::Update(float deltaTime)
         if (m_blocking)
         {
             m_attackCollider->SetEnabled(false);
+            m_chargeAttackCollider->SetEnabled(false);
             if (!wasBlocking)
                 m_animation->Play("Block", false, BlockPlaybackSpeed,
                     AnimationBlendDuration);
         }
-        if (!m_blocking && attackPressed && !m_attacking && m_attackComboStep == 0)
+        if (!m_blocking && normalAttackInput && !IsAttacking() &&
+            m_attackComboStep == 0)
         {
             m_attacking = m_animation->Play(
                 AttackAnimations[0], false, AttackPlaybackSpeed, AnimationBlendDuration);
@@ -241,12 +335,14 @@ void Player::Update(float deltaTime)
             m_attackCollider->SetEnabled(
                 progress >= AttackHitStart && progress <= AttackHitEnd);
         }
-        if (!m_attacking && !m_blocking)
+        if (!IsAttacking() && !m_blocking)
         {
             const bool blendFromCurrent = m_animation->IsPlaying("Idle") ||
                 m_animation->IsPlaying("Walk") || m_animation->IsPlaying("Run") ||
                 m_animation->IsPlaying("Attack") || m_animation->IsPlaying("Attack2") ||
-                m_animation->IsPlaying("Attack3") || m_animation->IsPlaying("Jump") ||
+                m_animation->IsPlaying("Attack3") ||
+                m_animation->IsPlaying("ChargeAttack") ||
+                m_animation->IsPlaying("Jump") ||
                 m_animation->IsPlaying("Evasion") || m_animation->IsPlaying("Block");
             const float blendDuration = blendFromCurrent ? AnimationBlendDuration : 0.0f;
             if (dashing)
@@ -271,7 +367,7 @@ void Player::Update(float deltaTime)
         m_position.x += m_evasionDirectionX * EvasionSpeed * deltaTime;
         m_position.z += m_evasionDirectionZ * EvasionSpeed * deltaTime;
     }
-    else if (length > 0.0f && !m_attacking && !m_blocking)
+    else if (length > 0.0f && !IsAttacking() && !m_blocking)
     {
         rotateTowards(movementX, movementZ);
         const float moveSpeed = dashing ? 6.0f : 3.0f;
@@ -303,13 +399,29 @@ void Player::Update(float deltaTime)
 
 void Player::ResolveAttackHit(GameObject& target)
 {
-    if (!m_attackCollider->IsEnabled() || m_attackHit ||
+    if (!m_attacking || !m_attackCollider->IsEnabled() || m_attackHit ||
         !m_attackCollider->HasContactWith(target, ColliderRole::Hurtbox))
     {
         return;
     }
     target.TakeDamage(AttackDamage);
     m_attackHit = true;
+}
+
+void Player::ResolveChargeAttackHit(GameObject& target)
+{
+    if (!m_chargeReleasing || m_chargeDamageRatio <= 0.0f ||
+        !m_chargeAttackCollider->IsEnabled() ||
+        std::find(m_chargeHitTargets.begin(), m_chargeHitTargets.end(), &target)
+            != m_chargeHitTargets.end() ||
+        !m_chargeAttackCollider->HasContactWith(target, ColliderRole::Hurtbox))
+    {
+        return;
+    }
+    const int damage = static_cast<int>(
+        static_cast<float>(target.GetMaxHP()) * m_chargeDamageRatio + 0.5f);
+    target.TakeDamage(damage);
+    m_chargeHitTargets.push_back(&target);
 }
 
 bool Player::CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const

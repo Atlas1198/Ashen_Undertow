@@ -16,6 +16,8 @@ public:
     float MoveZ() const { return m_moveZ; }
     bool DashHeld() const { return m_dashHeld; }
     bool AttackPressed() const { return m_attackPressed; }
+    bool AttackHeld() const { return m_attackHeld; }
+    bool AttackReleased() const { return m_attackReleased; }
     bool BlockHeld() const { return m_blockHeld; }
     bool JumpPressed() const { return m_jumpPressed; }
     bool ColliderVisualizationPressed() const { return m_colliderVisualizationPressed; }
@@ -33,6 +35,8 @@ private:
     bool m_cWasDown = false;
     bool m_dashHeld = false;
     bool m_attackPressed = false;
+    bool m_attackHeld = false;
+    bool m_attackReleased = false;
     bool m_blockHeld = false;
     bool m_jumpPressed = false;
     bool m_colliderVisualizationPressed = false;

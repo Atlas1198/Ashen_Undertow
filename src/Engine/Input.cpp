@@ -16,6 +16,8 @@ void Input::Update()
     m_moveX = m_moveZ = m_lookX = m_lookY = 0;
     m_dashHeld = false;
     m_attackPressed = false;
+    m_attackHeld = false;
+    m_attackReleased = false;
     m_blockHeld = false;
     m_jumpPressed = false;
     m_colliderVisualizationPressed = false;
@@ -34,6 +36,8 @@ void Input::Update()
     const bool hasRect = m_window && GetClientRect(m_window, &rect);
     POINT client = mouse;
     m_attackPressed = focused && m_controlEnabled && leftDown && !m_leftWasDown;
+    m_attackHeld = focused && m_controlEnabled && leftDown;
+    m_attackReleased = focused && m_controlEnabled && !leftDown && m_leftWasDown;
     m_blockHeld = focused && m_controlEnabled && rightDown;
     if (focused && !escapeDown && leftDown && !m_leftWasDown && hasMouse && hasRect &&
         ScreenToClient(m_window, &client) && PtInRect(&rect, client))
