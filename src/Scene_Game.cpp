@@ -1,6 +1,7 @@
 #include "Scene_Game.h"
 
-#include "Enemy.h"
+#include "Boss.h"
+#include "MiniCopy.h"
 #include "Player.h"
 #include "Tree.h"
 #include "Collider.h"
@@ -13,11 +14,17 @@
 
 namespace
 {
-constexpr float EnemyHPBarX = 550.0f;
-constexpr float EnemyHPBarY = 24.0f;
-constexpr float EnemyHPBarWidth = 500.0f;
-constexpr float EnemyHPBarHeight = 16.0f;
-constexpr float EnemyHPBarPadding = 2.0f;
+constexpr float ScreenWidth = 1600.0f;
+constexpr float ScreenHeight = 900.0f;
+constexpr float BossHPBarX = 550.0f;
+constexpr float BossHPBarY = 24.0f;
+constexpr float BossHPBarWidth = 500.0f;
+constexpr float BossHPBarHeight = 16.0f;
+constexpr float BossHPBarPadding = 2.0f;
+constexpr float MiniCopyHPBarWidth = 90.0f;
+constexpr float MiniCopyHPBarHeight = 8.0f;
+constexpr float MiniCopyHPBarPadding = 1.0f;
+constexpr int MaxMiniCopies = 4;
 constexpr float PlayerHPBarX = 24.0f;
 constexpr float PlayerHPBarY = 860.0f;
 constexpr float PlayerHPBarWidth = 360.0f;
@@ -28,6 +35,33 @@ constexpr float PlayerStaminaBarY = PlayerHPBarY + PlayerHPBarHeight + 5.0f;
 constexpr float PlayerStaminaBarWidth = PlayerHPBarWidth;
 constexpr float PlayerStaminaBarHeight = 8.0f;
 constexpr float PlayerStaminaBarPadding = 1.0f;
+
+bool WorldToScreen(const DirectX::XMFLOAT3& world, const Camera& camera,
+    DirectX::XMFLOAT2& screen)
+{
+    using namespace DirectX;
+    const auto cameraPosition = camera.GetPosition();
+    const auto cameraTarget = camera.GetTarget();
+    const XMVECTOR eye = XMLoadFloat3(&cameraPosition);
+    const XMVECTOR target = XMLoadFloat3(&cameraTarget);
+    const XMVECTOR point = XMLoadFloat3(&world);
+    const XMVECTOR forward = XMVector3Normalize(XMVectorSubtract(target, eye));
+    if (XMVectorGetX(XMVector3Dot(XMVectorSubtract(point, eye), forward)) <= 0.0f)
+        return false;
+
+    const XMMATRIX view = XMMatrixLookAtLH(
+        eye, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+    const XMMATRIX projection = XMMatrixPerspectiveFovLH(
+        XMConvertToRadians(60.0f), ScreenWidth / ScreenHeight, 0.5f, 100.0f);
+    XMFLOAT3 projected;
+    XMStoreFloat3(&projected, XMVector3Project(point, 0.0f, 0.0f,
+        ScreenWidth, ScreenHeight, 0.0f, 1.0f,
+        projection, view, XMMatrixIdentity()));
+    if (projected.z < 0.0f || projected.z > 1.0f) return false;
+    screen = { projected.x, projected.y };
+    return projected.x >= 0.0f && projected.x <= ScreenWidth &&
+        projected.y >= 0.0f && projected.y <= ScreenHeight;
+}
 }
 
 Scene_Game::Scene_Game(ModelManager& modelManager, const Input& input)
@@ -40,12 +74,19 @@ bool Scene_Game::Initialize()
     m_player = AddGameObject<Player>(m_input);
     if (!m_player) return false;
 
-    m_enemy = AddGameObject<Enemy>(*m_player);
-    if (!m_enemy) return false;
-    m_enemy->SetPosition(3.0f, Terrain::HeightAt(3.0f, 3.0f), 3.0f);
+    m_boss = AddGameObject<Boss>();
+    if (!m_boss) return false;
+    const float bossScale = m_boss->GetVisualScale();
+    const float bossZ = Terrain::HalfSize + bossScale * 0.55f;
+    const float bossY = Terrain::HeightAt(0.0f, Terrain::HalfSize)
+        - bossScale * 0.9f;
+    m_boss->SetPosition(0.0f, bossY, bossZ);
+    m_boss->SetRotation(0.0f, DirectX::XM_PI, 0.0f);
 
     constexpr int TreeCount = 36;
     constexpr int TreesPerRing = TreeCount / 2;
+    constexpr float BossClearingHalfWidth = 18.0f;
+    constexpr float BossClearingMinZ = 30.0f;
     m_trees.reserve(TreeCount);
     for (int i = 0; i < TreeCount; ++i)
     {
@@ -64,6 +105,8 @@ bool Scene_Game::Initialize()
             + radiusRandom * 1.2f;
         const float x = std::cos(angle) * radius;
         const float z = std::sin(angle) * radius;
+        if (z >= BossClearingMinZ && std::abs(x) <= BossClearingHalfWidth)
+            continue;
 
         Tree* tree = AddGameObject<Tree>();
         if (!tree) return false;
@@ -74,7 +117,6 @@ bool Scene_Game::Initialize()
         m_trees.push_back(tree);
     }
     m_previousPlayerPosition = m_player->GetPosition();
-    m_previousEnemyPosition = m_enemy->GetPosition();
     return true;
 }
 
@@ -94,19 +136,19 @@ void Scene_Game::OnDrawUI(UIManager& ui)
     //ui.DrawQuad({ DirectX::XMFLOAT2 { 300, 40 }, { 500, 40 },
     //    { 500, 180 }, { 300, 180 } }, { 0.1f, 0.7f, 1.0f, 0.75f });
 
-    const float hpRatio = m_enemy->GetMaxHP() > 0
-        ? static_cast<float>(m_enemy->GetHP()) / m_enemy->GetMaxHP() : 0.0f;
+    const float hpRatio = m_boss->GetMaxHP() > 0
+        ? static_cast<float>(m_boss->GetHP()) / m_boss->GetMaxHP() : 0.0f;
     ui.DrawQuad({
-        DirectX::XMFLOAT2 { EnemyHPBarX, EnemyHPBarY },
-        DirectX::XMFLOAT2 { EnemyHPBarX + EnemyHPBarWidth, EnemyHPBarY },
-        DirectX::XMFLOAT2 { EnemyHPBarX + EnemyHPBarWidth, EnemyHPBarY + EnemyHPBarHeight },
-        DirectX::XMFLOAT2 { EnemyHPBarX, EnemyHPBarY + EnemyHPBarHeight }
+        DirectX::XMFLOAT2 { BossHPBarX, BossHPBarY },
+        DirectX::XMFLOAT2 { BossHPBarX + BossHPBarWidth, BossHPBarY },
+        DirectX::XMFLOAT2 { BossHPBarX + BossHPBarWidth, BossHPBarY + BossHPBarHeight },
+        DirectX::XMFLOAT2 { BossHPBarX, BossHPBarY + BossHPBarHeight }
     }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-    const float fillX = EnemyHPBarX + EnemyHPBarPadding;
-    const float fillY = EnemyHPBarY + EnemyHPBarPadding;
-    const float fillWidth = (EnemyHPBarWidth - EnemyHPBarPadding * 2.0f) * hpRatio;
-    const float fillHeight = EnemyHPBarHeight - EnemyHPBarPadding * 2.0f;
+    const float fillX = BossHPBarX + BossHPBarPadding;
+    const float fillY = BossHPBarY + BossHPBarPadding;
+    const float fillWidth = (BossHPBarWidth - BossHPBarPadding * 2.0f) * hpRatio;
+    const float fillHeight = BossHPBarHeight - BossHPBarPadding * 2.0f;
     if (fillWidth > 0.0f)
     {
         ui.DrawQuad({
@@ -115,6 +157,38 @@ void Scene_Game::OnDrawUI(UIManager& ui)
             DirectX::XMFLOAT2 { fillX + fillWidth, fillY + fillHeight },
             DirectX::XMFLOAT2 { fillX, fillY + fillHeight }
         }, { 0.9f, 0.05f, 0.05f, 1.0f });
+    }
+
+    for (const MiniCopy* miniCopy : m_miniCopies)
+    {
+        if (miniCopy->IsDead()) continue;
+        const auto headPosition = miniCopy->GetHPBarPosition();
+        DirectX::XMFLOAT2 center;
+        if (!WorldToScreen(headPosition, m_camera, center)) continue;
+
+        const float x = center.x - MiniCopyHPBarWidth * 0.5f;
+        const float y = center.y - MiniCopyHPBarHeight;
+        ui.DrawQuad({
+            DirectX::XMFLOAT2 { x, y },
+            DirectX::XMFLOAT2 { x + MiniCopyHPBarWidth, y },
+            DirectX::XMFLOAT2 { x + MiniCopyHPBarWidth, y + MiniCopyHPBarHeight },
+            DirectX::XMFLOAT2 { x, y + MiniCopyHPBarHeight }
+        }, { 0.0f, 0.0f, 0.0f, 0.9f });
+
+        const float miniRatio = miniCopy->GetMaxHP() > 0
+            ? static_cast<float>(miniCopy->GetHP()) / miniCopy->GetMaxHP() : 0.0f;
+        const float miniFillWidth =
+            (MiniCopyHPBarWidth - MiniCopyHPBarPadding * 2.0f) * miniRatio;
+        if (miniFillWidth <= 0.0f) continue;
+        const float miniFillX = x + MiniCopyHPBarPadding;
+        const float miniFillY = y + MiniCopyHPBarPadding;
+        const float miniFillHeight = MiniCopyHPBarHeight - MiniCopyHPBarPadding * 2.0f;
+        ui.DrawQuad({
+            DirectX::XMFLOAT2 { miniFillX, miniFillY },
+            DirectX::XMFLOAT2 { miniFillX + miniFillWidth, miniFillY },
+            DirectX::XMFLOAT2 { miniFillX + miniFillWidth, miniFillY + miniFillHeight },
+            DirectX::XMFLOAT2 { miniFillX, miniFillY + miniFillHeight }
+        }, { 0.9f, 0.1f, 0.1f, 1.0f });
     }
 
     const float playerHpRatio = m_player->GetMaxHP() > 0
@@ -181,8 +255,41 @@ void Scene_Game::OnUpdate(float)
 void Scene_Game::OnAfterUpdate(float deltaTime)
 {
     m_player->ResolveTerrainContact();
-    m_player->ResolveAttackHit(*m_enemy);
-    m_enemy->ResolveAttackHit(*m_player);
+
+    const int aliveCount = static_cast<int>(std::count_if(
+        m_miniCopies.begin(), m_miniCopies.end(),
+        [](const MiniCopy* miniCopy) { return !miniCopy->IsDead(); }));
+    if (aliveCount < MaxMiniCopies && m_boss->ConsumeSpawnRequest())
+    {
+        constexpr float SpawnX[] = { -12.0f, -4.0f, 4.0f, 12.0f };
+        const int slot = m_spawnSequence % MaxMiniCopies;
+        const float x = SpawnX[slot];
+        const float z = 27.0f + static_cast<float>(slot % 2) * 3.0f;
+        const DirectX::XMFLOAT3 spawnPosition { x, Terrain::HeightAt(x, z), z };
+
+        MiniCopy* miniCopy = nullptr;
+        const auto reusable = std::find_if(m_miniCopies.begin(), m_miniCopies.end(),
+            [](const MiniCopy* copy) { return copy->IsDead(); });
+        if (reusable != m_miniCopies.end())
+            miniCopy = *reusable;
+        else
+        {
+            miniCopy = AddGameObject<MiniCopy>(*m_player, *m_boss);
+            if (miniCopy) m_miniCopies.push_back(miniCopy);
+        }
+        if (miniCopy)
+        {
+            miniCopy->Respawn(spawnPosition);
+            ++m_spawnSequence;
+        }
+    }
+
+    for (MiniCopy* miniCopy : m_miniCopies)
+    {
+        if (miniCopy->IsDead()) continue;
+        m_player->ResolveAttackHit(*miniCopy);
+        miniCopy->ResolveAttackHit(*m_player);
+    }
     m_camera.SetTarget(m_player->GetPosition());
     for (Tree* tree : m_trees)
         tree->FaceCamera(m_camera.GetPosition());
@@ -203,20 +310,42 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         return previousStrength + (target - previousStrength) * response;
     };
     const auto playerPosition = m_player->GetPosition();
-    const auto enemyPosition = m_enemy->GetPosition();
     m_playerWaterMovement = updateWaterMovement(
         playerPosition, m_previousPlayerPosition, m_playerWaterMovement);
-    m_enemyWaterMovement = updateWaterMovement(
-        enemyPosition, m_previousEnemyPosition, m_enemyWaterMovement);
     m_previousPlayerPosition = playerPosition;
-    m_previousEnemyPosition = enemyPosition;
+
+    MiniCopy* environmentMiniCopy = nullptr;
+    for (MiniCopy* miniCopy : m_miniCopies)
+    {
+        if (!miniCopy->IsDead())
+        {
+            environmentMiniCopy = miniCopy;
+            break;
+        }
+    }
+    if (environmentMiniCopy != m_environmentMiniCopy)
+    {
+        m_environmentMiniCopy = environmentMiniCopy;
+        m_miniCopyWaterMovement = 0.0f;
+        if (m_environmentMiniCopy)
+            m_previousMiniCopyPosition = m_environmentMiniCopy->GetPosition();
+    }
+    if (m_environmentMiniCopy)
+    {
+        const auto miniCopyPosition = m_environmentMiniCopy->GetPosition();
+        m_miniCopyWaterMovement = updateWaterMovement(miniCopyPosition,
+            m_previousMiniCopyPosition, m_miniCopyWaterMovement);
+        m_previousMiniCopyPosition = miniCopyPosition;
+    }
 }
 
 void Scene_Game::OnDraw(Renderer& renderer)
 {
     renderer.SetCamera(m_camera.GetPosition(), m_camera.GetTarget());
-    renderer.SetGrassInteractors(m_player->GetPosition(), m_enemy->GetPosition(),
-        m_playerWaterMovement, m_enemyWaterMovement);
+    const auto secondaryInteractor = m_environmentMiniCopy
+        ? m_environmentMiniCopy->GetPosition() : m_boss->GetPosition();
+    renderer.SetGrassInteractors(m_player->GetPosition(), secondaryInteractor,
+        m_playerWaterMovement, m_miniCopyWaterMovement);
     if (!m_showColliders) return;
 
     for (const auto* playerCollider : m_player->GetComponents<Collider>())
@@ -230,15 +359,18 @@ void Scene_Game::OnDraw(Renderer& renderer)
             renderer.DrawCollider(playerShape.center, playerShape.halfExtents,
                 playerShape.radius, playerCollider->IsColliding());
     }
-    for (const auto* enemyCollider : m_enemy->GetComponents<Collider>())
+    for (MiniCopy* miniCopy : m_miniCopies)
     {
-        if (!enemyCollider->IsEnabled()) continue;
-        const auto enemyShape = enemyCollider->GetShape();
-        if (enemyShape.hasSegment)
-            renderer.DrawColliderSegment(enemyShape.segmentStart, enemyShape.segmentEnd,
-                enemyShape.radius, enemyCollider->IsColliding());
-        else
-            renderer.DrawCollider(enemyShape.center, enemyShape.halfExtents,
-                enemyShape.radius, enemyCollider->IsColliding());
+        for (const auto* collider : miniCopy->GetComponents<Collider>())
+        {
+            if (!collider->IsEnabled()) continue;
+            const auto shape = collider->GetShape();
+            if (shape.hasSegment)
+                renderer.DrawColliderSegment(shape.segmentStart, shape.segmentEnd,
+                    shape.radius, collider->IsColliding());
+            else
+                renderer.DrawCollider(shape.center, shape.halfExtents,
+                    shape.radius, collider->IsColliding());
+        }
     }
 }

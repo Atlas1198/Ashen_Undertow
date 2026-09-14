@@ -1,27 +1,35 @@
 #pragma once
 
 #include "GameObject.h"
+#include <vector>
 
 class AnimationComponent;
+class Boss;
 class Collider;
 class Player;
 
-class Enemy final : public GameObject
+class MiniCopy final : public GameObject
 {
 public:
-    explicit Enemy(Player& target) : m_target(target) {}
+    MiniCopy(Player& target, Boss& boss) : m_target(target), m_boss(boss) {}
     bool Initialize(ModelManager& modelManager) override;
     void Update(float deltaTime) override;
     void ResolveAttackHit(GameObject& target);
+    void Respawn(const DirectX::XMFLOAT3& position);
+    DirectX::XMFLOAT3 GetHPBarPosition() const;
 
 private:
     Player& m_target;
+    Boss& m_boss;
     AnimationComponent* m_animation = nullptr;
     Collider* m_attackCollider = nullptr;
     Collider* m_leftAttackCollider = nullptr;
+    Collider* m_headCollider = nullptr;
+    std::vector<Collider*> m_hurtboxes;
     float m_attackCooldown = 0.0f;
     bool m_inCombat = false;
     bool m_attacking = false;
     bool m_attackHit = false;
     bool m_running = false;
+    bool m_deathReported = false;
 };

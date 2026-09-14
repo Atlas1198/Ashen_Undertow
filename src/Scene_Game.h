@@ -6,7 +6,8 @@
 #include <vector>
 
 class Player;
-class Enemy;
+class Boss;
+class MiniCopy;
 class Tree;
 class Input;
 
@@ -27,13 +28,16 @@ private:
     float m_wonheeHeight = 0;
 
     Player* m_player = nullptr;
-    Enemy* m_enemy = nullptr;
+    Boss* m_boss = nullptr;
+    std::vector<MiniCopy*> m_miniCopies;
+    MiniCopy* m_environmentMiniCopy = nullptr;
     std::vector<Tree*> m_trees;
     const Input& m_input;
     Camera m_camera;
     bool m_showColliders = false;
+    int m_spawnSequence = 0;
     DirectX::XMFLOAT3 m_previousPlayerPosition {};
-    DirectX::XMFLOAT3 m_previousEnemyPosition {};
+    DirectX::XMFLOAT3 m_previousMiniCopyPosition {};
     float m_playerWaterMovement = 0.0f;
-    float m_enemyWaterMovement = 0.0f;
+    float m_miniCopyWaterMovement = 0.0f;
 };

@@ -1,6 +1,7 @@
-#include "Enemy.h"
+#include "MiniCopy.h"
 
 #include "AnimationComponent.h"
+#include "Boss.h"
 #include "Collider.h"
 #include "GameAssets.h"
 #include "ModelComponent.h"
@@ -25,13 +26,14 @@ constexpr float AttackCooldown = 0.5f;
 constexpr float AttackColliderRadius = 0.32f;
 constexpr float AttackHitStart = 0.25f;
 constexpr float AttackHitEnd = 0.70f;
-constexpr int AttackDamage = 10;
+constexpr int AttackDamage = 3;
 constexpr float BlockKnockbackDistance = 1.2f;
+constexpr int BossDamageOnDefeat = 100;
 }
 
-bool Enemy::Initialize(ModelManager& modelManager)
+bool MiniCopy::Initialize(ModelManager& modelManager)
 {
-    InitializeHP(1000);
+    InitializeHP(300);
     auto* model = AddComponent<ModelComponent>(modelManager, GameAssets::EnemyModel);
     if (!model) return false;
     model->SetLocalRotation(0.0f, DirectX::XM_PI, 0.0f);
@@ -62,8 +64,10 @@ bool Enemy::Initialize(ModelManager& modelManager)
         if (!hurtbox) return false;
         hurtbox->SetTrigger(trigger);
         hurtbox->SetRole(ColliderRole::Hurtbox);
-        return AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
-            *hurtbox, start, end) != nullptr;
+        if (!AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
+            *hurtbox, start, end)) return false;
+        m_hurtboxes.push_back(hurtbox);
+        return true;
     };
     if (!addHurtbox(0.40f, "mixamorig:Hips", "mixamorig:Spine2", false) ||
         !addHurtbox(0.23f, "mixamorig:LeftArm", "mixamorig:LeftHand") ||
@@ -76,10 +80,12 @@ bool Enemy::Initialize(ModelManager& modelManager)
     head->SetRole(ColliderRole::Hurtbox);
     if (!AddComponent<BoneColliderAttachment>(*m_animation, *model,
         *head, "mixamorig:Head")) return false;
+    m_headCollider = head;
+    m_hurtboxes.push_back(head);
     return true;
 }
 
-void Enemy::Update(float deltaTime)
+void MiniCopy::Update(float deltaTime)
 {
     m_attackCooldown = std::max(0.0f, m_attackCooldown - deltaTime);
     if (IsDead())
@@ -87,7 +93,13 @@ void Enemy::Update(float deltaTime)
         m_attacking = false;
         m_attackCollider->SetEnabled(false);
         m_leftAttackCollider->SetEnabled(false);
-        m_animation->Play("Idle", true, 1.0f, AnimationBlendDuration);
+        for (auto* hurtbox : m_hurtboxes) hurtbox->SetEnabled(false);
+        if (!m_deathReported)
+        {
+            m_boss.TakeDamage(BossDamageOnDefeat);
+            m_deathReported = true;
+            m_scale = { 0.0f, 0.0f, 0.0f };
+        }
         return;
     }
 
@@ -166,7 +178,7 @@ void Enemy::Update(float deltaTime)
     }
 }
 
-void Enemy::ResolveAttackHit(GameObject& target)
+void MiniCopy::ResolveAttackHit(GameObject& target)
 {
     const bool rightHit = m_attackCollider->IsEnabled() &&
         m_attackCollider->HasContactWith(target, ColliderRole::Hurtbox);
@@ -209,4 +221,29 @@ void Enemy::ResolveAttackHit(GameObject& target)
     }
     target.TakeDamage(AttackDamage);
     m_attackHit = true;
+}
+
+void MiniCopy::Respawn(const DirectX::XMFLOAT3& position)
+{
+    Heal(GetMaxHP());
+    m_position = position;
+    m_scale = { 1.0f, 1.0f, 1.0f };
+    m_attackCooldown = 0.0f;
+    m_inCombat = true;
+    m_attacking = false;
+    m_attackHit = false;
+    m_running = false;
+    m_deathReported = false;
+    m_attackCollider->SetEnabled(false);
+    m_leftAttackCollider->SetEnabled(false);
+    for (auto* hurtbox : m_hurtboxes) hurtbox->SetEnabled(true);
+    m_animation->Play("Idle", true, 1.0f, 0.0f);
+}
+
+DirectX::XMFLOAT3 MiniCopy::GetHPBarPosition() const
+{
+    const auto shape = m_headCollider->GetShape();
+    auto position = shape.center;
+    position.y += shape.radius + 0.12f;
+    return position;
 }

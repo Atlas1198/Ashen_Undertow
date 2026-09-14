@@ -160,7 +160,8 @@
     <ClCompile Include="src\Engine\CollisionResolver.cpp" />
     <ClCompile Include="src\Engine\Rigidbody.cpp" />
     <ClCompile Include="src\Player.cpp" />
-    <ClCompile Include="src\Enemy.cpp" />
+    <ClCompile Include="src\Boss.cpp" />
+    <ClCompile Include="src\MiniCopy.cpp" />
     <ClCompile Include="src\Tree.cpp" />
     <ClCompile Include="src\Engine\Renderer.cpp" />
     <ClCompile Include="src\Engine\Input.cpp" />
@@ -203,7 +204,8 @@
     <ClInclude Include="src\Engine\CollisionResolver.h" />
     <ClInclude Include="src\Engine\Rigidbody.h" />
     <ClInclude Include="src\Player.h" />
-    <ClInclude Include="src\Enemy.h" />
+    <ClInclude Include="src\Boss.h" />
+    <ClInclude Include="src\MiniCopy.h" />
     <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\Engine\SceneManager.h" />
     <ClInclude Include="src\Scene_Title.h" />
