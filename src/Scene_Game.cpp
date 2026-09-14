@@ -126,6 +126,10 @@ bool Scene_Game::InitializeUI(UIManager& ui)
     const auto* image = ui.GetImage(m_wonheeImage);
     if (!image) return false;
     m_wonheeHeight = 240.0f * image->height / image->width;
+    m_effectTexture = ui.LoadImageFile(
+        "assets/texture/effects/spark_particle.png");
+    if (!m_effectTexture.IsValid()) return false;
+    m_effectManager.SetTextureIndex(m_effectTexture.index);
     return true;
 }
 
@@ -254,6 +258,7 @@ void Scene_Game::OnUpdate(float)
 
 void Scene_Game::OnAfterUpdate(float deltaTime)
 {
+    m_effectManager.Update(deltaTime);
     m_player->ResolveTerrainContact();
 
     const int aliveCount = static_cast<int>(std::count_if(
@@ -289,7 +294,9 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         if (miniCopy->IsDead()) continue;
         m_player->ResolveChargeAttackHit(*miniCopy);
         if (miniCopy->IsDead()) continue;
-        m_player->ResolveAttackHit(*miniCopy);
+        DirectX::XMFLOAT3 hitPosition {};
+        if (m_player->ResolveAttackHit(*miniCopy, hitPosition))
+            m_effectManager.Spawn(EffectType::HitSpark, hitPosition);
         miniCopy->ResolveAttackHit(*m_player);
     }
     m_camera.SetTarget(m_player->GetPosition());
@@ -348,6 +355,7 @@ void Scene_Game::OnDraw(Renderer& renderer)
         ? m_environmentMiniCopy->GetPosition() : m_boss->GetPosition();
     renderer.SetGrassInteractors(m_player->GetPosition(), secondaryInteractor,
         m_playerWaterMovement, m_miniCopyWaterMovement);
+    m_effectManager.Draw(renderer);
     if (!m_showColliders) return;
 
     for (const auto* playerCollider : m_player->GetComponents<Collider>())

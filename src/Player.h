@@ -19,7 +19,7 @@ public:
     bool Initialize(ModelManager& modelManager) override;
     void Update(float deltaTime) override;
     void ResolveTerrainContact();
-    void ResolveAttackHit(GameObject& target);
+    bool ResolveAttackHit(GameObject& target, DirectX::XMFLOAT3& hitPosition);
     void ResolveChargeAttackHit(GameObject& target);
     void SetMovementYaw(float yaw) { m_movementYaw = yaw; }
     bool IsAttacking() const

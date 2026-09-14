@@ -242,9 +242,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Engine\RendererUI.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
+    <ClCompile Include="src\Engine\RendererEffects.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
     <ClCompile Include="src\Engine\UIManager.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
+    <ClCompile Include="src\Engine\EffectManager.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
     <ClInclude Include="src\Engine\UIManager.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
+    <ClInclude Include="src\Engine\EffectManager.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
     <None Include="shaders\UI.hlsl"><Filter>シェーダー</Filter></None>
+    <None Include="shaders\Effects.hlsl"><Filter>シェーダー</Filter></None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\Terrain.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>

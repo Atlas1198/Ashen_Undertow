@@ -64,6 +64,7 @@ bool Renderer::Initialize(HWND hwnd, uint32_t width, uint32_t height,
     if (!CreateBloomResources())    return false;
     if (!CreateBloomPipelines())    return false;
     if (!CreateUIResources())       return false;
+    if (!CreateEffectResources())   return false;
     return true;
 }
 

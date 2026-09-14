@@ -397,15 +397,30 @@ void Player::Update(float deltaTime)
 
 }
 
-void Player::ResolveAttackHit(GameObject& target)
+bool Player::ResolveAttackHit(
+    GameObject& target, DirectX::XMFLOAT3& hitPosition)
 {
     if (!m_attacking || !m_attackCollider->IsEnabled() || m_attackHit ||
         !m_attackCollider->HasContactWith(target, ColliderRole::Hurtbox))
     {
-        return;
+        return false;
+    }
+    const auto attackCenter = m_attackCollider->GetShape().center;
+    for (const auto* contact : m_attackCollider->GetContacts())
+    {
+        if (&contact->GetOwner() != &target ||
+            contact->GetRole() != ColliderRole::Hurtbox) continue;
+        const auto hurtCenter = contact->GetShape().center;
+        hitPosition = {
+            (attackCenter.x + hurtCenter.x) * 0.5f,
+            (attackCenter.y + hurtCenter.y) * 0.5f,
+            (attackCenter.z + hurtCenter.z) * 0.5f
+        };
+        break;
     }
     target.TakeDamage(AttackDamage);
     m_attackHit = true;
+    return true;
 }
 
 void Player::ResolveChargeAttackHit(GameObject& target)

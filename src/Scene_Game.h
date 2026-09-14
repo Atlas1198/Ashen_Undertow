@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Camera.h"
+#include "EffectManager.h"
 #include "SceneManager.h"
 #include "UIManager.h"
 #include <vector>
@@ -25,6 +26,7 @@ private:
     void OnDraw(Renderer& renderer) override;
     void OnDrawUI(UIManager& ui) override;
     UIImageHandle m_wonheeImage;
+    UIImageHandle m_effectTexture;
     float m_wonheeHeight = 0;
 
     Player* m_player = nullptr;
@@ -34,6 +36,7 @@ private:
     std::vector<Tree*> m_trees;
     const Input& m_input;
     Camera m_camera;
+    EffectManager m_effectManager;
     bool m_showColliders = false;
     int m_spawnSequence = 0;
     DirectX::XMFLOAT3 m_previousPlayerPosition {};

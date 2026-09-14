@@ -63,6 +63,7 @@ void Renderer::Render(const UIManager& ui)
         m_drawCommands.clear();
         m_drawMeshCount = 0;
         m_debugColliders.clear();
+        m_effectParticles.clear();
         return;
     }
     // --- 定数バッファの更新 ---
@@ -423,6 +424,7 @@ void Renderer::Render(const UIManager& ui)
         m_commandList->DrawInstanced(8 * 6, 64, 0, 0);
     }
 
+    DrawEffects(view * proj);
     DrawColliderDebug(view * proj);
 
     // ===== ブルーム =====
@@ -596,4 +598,6 @@ void Renderer::Render(const UIManager& ui)
     m_drawCommands.clear();
     m_drawMeshCount = 0;
     m_debugColliders.clear();
+    m_effectParticles.clear();
+    m_effectTextureIndex = UINT32_MAX;
 }

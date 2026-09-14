@@ -174,8 +174,10 @@
     <ClCompile Include="src\Engine\RendererPostProcess.cpp" />
     <ClCompile Include="src\Engine\RendererFrame.cpp" />
     <ClCompile Include="src\Engine\RendererDebug.cpp" />
+    <ClCompile Include="src\Engine\RendererEffects.cpp" />
     <ClCompile Include="src\Engine\RendererUI.cpp" />
     <ClCompile Include="src\Engine\UIManager.cpp" />
+    <ClCompile Include="src\Engine\EffectManager.cpp" />
     <ClCompile Include="src\Scene_Title.cpp" />
     <ClCompile Include="src\Engine\HdrLoader.cpp" />
     <ClCompile Include="src\Engine\Json.cpp" />
@@ -185,6 +187,7 @@
     <ClInclude Include="src\Engine\Terrain.h" />
     <ClInclude Include="src\Engine\Renderer.h" />
     <ClInclude Include="src\Engine\UIManager.h" />
+    <ClInclude Include="src\Engine\EffectManager.h" />
     <ClInclude Include="src\Engine\Input.h" />
     <ClInclude Include="src\Engine\Camera.h" />
     <ClInclude Include="src\Engine\ModelComponent.h" />
@@ -218,6 +221,7 @@
     <None Include="shaders\Common.hlsli" />
     <None Include="shaders\Triangle.hlsl" />
     <None Include="shaders\ColliderDebug.hlsl" />
+    <None Include="shaders\Effects.hlsl" />
     <None Include="shaders\UI.hlsl" />
     <None Include="shaders\Skybox.hlsl" />
   </ItemGroup>

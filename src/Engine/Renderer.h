@@ -59,6 +59,10 @@ public:
         const DirectX::XMFLOAT3& halfExtents, float radius, bool colliding);
     void DrawColliderSegment(const DirectX::XMFLOAT3& start,
         const DirectX::XMFLOAT3& end, float radius, bool colliding);
+    void DrawEffectParticle(uint32_t textureIndex,
+        const DirectX::XMFLOAT3& position,
+        const DirectX::XMFLOAT3& direction,
+        const DirectX::XMFLOAT4& color, float width, float length);
     void Render(const UIManager& ui);
 
 private:
@@ -95,6 +99,8 @@ private:
     bool CreateBloomPipelines();    // 輝度抽出とぼかしの PSO
     bool CreateColliderDebugResources();
     void DrawColliderDebug(const DirectX::XMMATRIX& viewProjection);
+    bool CreateEffectResources();
+    void DrawEffects(const DirectX::XMMATRIX& viewProjection);
 
     // テクスチャ 1 枚を GPU に転送する共通処理。
     // ピクセルは RGBA8(1 ピクセル 4 バイト)であることを前提とする
@@ -239,6 +245,21 @@ private:
     ComPtr<ID3D12PipelineState> m_debugLinePSO;
     ComPtr<ID3D12Resource> m_debugLineVertexBuffers[kFrameCount];
     void* m_debugLineMapped[kFrameCount] = {};
+
+    struct EffectParticleVertex
+    {
+        DirectX::XMFLOAT3 position;
+        DirectX::XMFLOAT3 direction;
+        DirectX::XMFLOAT4 color;
+        DirectX::XMFLOAT2 size;
+    };
+    static constexpr uint32_t kMaxEffectParticles = 4096;
+    std::vector<EffectParticleVertex> m_effectParticles;
+    uint32_t m_effectTextureIndex = UINT32_MAX;
+    ComPtr<ID3D12RootSignature> m_effectRootSignature;
+    ComPtr<ID3D12PipelineState> m_effectPSO;
+    ComPtr<ID3D12Resource> m_effectInstanceBuffers[kFrameCount];
+    void* m_effectInstanceMapped[kFrameCount] = {};
 
     // --- 環境マップ(IBL の元になる HDRI) ---
 	ComPtr<ID3D12DescriptorHeap> m_srvHeap;         // SRV 用ディスクリプタヒープ
