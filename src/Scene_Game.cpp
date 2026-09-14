@@ -39,9 +39,35 @@ bool Scene_Game::Initialize()
     if (!m_enemy) return false;
     m_enemy->SetPosition(3.0f, Terrain::HeightAt(3.0f, 3.0f), 3.0f);
 
-    m_tree = AddGameObject<Tree>();
-    if (!m_tree) return false;
-    m_tree->SetPosition(-3.0f, Terrain::HeightAt(-3.0f, 3.0f), 3.0f);
+    constexpr int TreeCount = 36;
+    constexpr int TreesPerRing = TreeCount / 2;
+    m_trees.reserve(TreeCount);
+    for (int i = 0; i < TreeCount; ++i)
+    {
+        const float index = static_cast<float>(i);
+        const float radialNoise = std::sin(index * 12.9898f) * 43758.5453f;
+        const float scaleNoise = std::sin(index * 31.4159f + 2.7f) * 15731.743f;
+        const float radiusRandom = radialNoise - std::floor(radialNoise);
+        const float scaleRandom = scaleNoise - std::floor(scaleNoise);
+        const int ring = i % 2;
+        const float slot = static_cast<float>(i / 2);
+        const float angle = DirectX::XM_2PI
+            * (slot + static_cast<float>(ring) * 0.5f)
+            / static_cast<float>(TreesPerRing)
+            + (radiusRandom - 0.5f) * 0.05f;
+        const float radius = 40.5f + static_cast<float>(ring) * 4.0f
+            + radiusRandom * 1.2f;
+        const float x = std::cos(angle) * radius;
+        const float z = std::sin(angle) * radius;
+
+        Tree* tree = AddGameObject<Tree>();
+        if (!tree) return false;
+        const float visualScale = 1.55f + scaleRandom * 0.35f;
+        const float groundSink = visualScale * 0.3f;
+        tree->SetPosition(x, Terrain::HeightAt(x, z) - groundSink, z);
+        tree->SetVisualScale(visualScale);
+        m_trees.push_back(tree);
+    }
     m_previousPlayerPosition = m_player->GetPosition();
     m_previousEnemyPosition = m_enemy->GetPosition();
     return true;
@@ -126,7 +152,8 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     m_player->ResolveAttackHit(*m_enemy);
     m_enemy->ResolveAttackHit(*m_player);
     m_camera.SetTarget(m_player->GetPosition());
-    m_tree->FaceCamera(m_camera.GetPosition());
+    for (Tree* tree : m_trees)
+        tree->FaceCamera(m_camera.GetPosition());
 
     const auto updateWaterMovement = [deltaTime](const DirectX::XMFLOAT3& current,
         const DirectX::XMFLOAT3& previous, float previousStrength)

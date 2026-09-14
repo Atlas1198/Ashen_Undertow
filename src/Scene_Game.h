@@ -3,6 +3,7 @@
 #include "Camera.h"
 #include "SceneManager.h"
 #include "UIManager.h"
+#include <vector>
 
 class Player;
 class Enemy;
@@ -27,7 +28,7 @@ private:
 
     Player* m_player = nullptr;
     Enemy* m_enemy = nullptr;
-    Tree* m_tree = nullptr;
+    std::vector<Tree*> m_trees;
     const Input& m_input;
     Camera m_camera;
     bool m_showColliders = false;

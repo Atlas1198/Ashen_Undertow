@@ -13,6 +13,7 @@ cbuffer SceneConstants : register(b0)
 {
     float4x4 mvp;
     float4x4 world;
+    float4x4 shadowWorld;
     float4x4 invViewProj; // スクリーン座標から視線方向を復元するのに使う
 
     float3 lightDirection;
@@ -51,6 +52,7 @@ cbuffer SceneConstants : register(b0)
 static const uint RenderFlagGrass = 1u;
 static const uint RenderFlagWater = 2u;
 static const uint RenderFlagTerrain = 4u;
+static const uint RenderFlagTree = 8u;
 
 // 根元は固定し、葉先ほど強く曲げる草用の風変形。
 // 位置から位相を作るため、大量の草が同時に同じ動きにならない。

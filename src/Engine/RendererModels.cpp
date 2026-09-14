@@ -537,6 +537,12 @@ bool Renderer::CreateFloor()
 
     constexpr float grassRadius = Terrain::WalkableRadius + 4.0f;
     constexpr float spacing = 0.24f;
+    const auto smoothStep = [](float minValue, float maxValue, float value)
+    {
+        const float t = std::clamp(
+            (value - minValue) / (maxValue - minValue), 0.0f, 1.0f);
+        return t * t * (3.0f - 2.0f * t);
+    };
     for (int gz = 0; gz <= static_cast<int>(grassRadius * 2.0f / spacing); ++gz)
     {
         for (int gx = 0; gx <= static_cast<int>(grassRadius * 2.0f / spacing); ++gx)
@@ -555,6 +561,14 @@ bool Renderer::CreateFloor()
             const float pondZ = z - Terrain::PondCenterZ;
             const float pondClearRadius = Terrain::PondRadius + 0.3f;
             if (pondX * pondX + pondZ * pondZ < pondClearRadius * pondClearRadius)
+                continue;
+            const float boundaryNoise =
+                std::sin(x * 0.31f) * std::sin(z * 0.27f) * 0.16f;
+            const float terrainHeight = Terrain::HeightAt(x, z) + boundaryNoise;
+            const float grassWeight = smoothStep(-1.85f, -1.18f, terrainHeight)
+                * (1.0f - smoothStep(0.55f, 1.65f, terrainHeight));
+            // 土砂が90%以上の場所だけ草を除外し、混合境界には草を残す。
+            if (grassWeight <= 0.10f)
                 continue;
             const float angle = XM_2PI * float(hash & 1023u) / 1024.0f;
             const float height = 0.40f + 0.18f * float((hash >> 20) & 255u) / 255.0f;

@@ -36,7 +36,8 @@ void Renderer::DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS consta
 }
 
 void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
-    const std::vector<XMFLOAT4X4>* skinMatrices)
+    const std::vector<XMFLOAT4X4>* skinMatrices, const XMFLOAT4X4* shadowWorld,
+    uint32_t renderFlags)
 {
     for (uint32_t i = 0; i < m_models.size(); ++i)
     {
@@ -44,7 +45,8 @@ void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
         if (model.handle.value != modelHandle.value) continue;
         if (m_drawMeshCount + model.meshes.size() > kMaxDrawMeshCount) return;
 
-        DrawCommand command { i, world };
+        DrawCommand command { i, world, shadowWorld ? *shadowWorld : world,
+            renderFlags };
         if (skinMatrices)
             command.skinMatrices = *skinMatrices;
         m_drawCommands.push_back(std::move(command));
@@ -126,14 +128,14 @@ void Renderer::Render(const UIManager& ui)
     // 透視投影と違い、距離によって影の大きさが変わらない
     const XMVECTOR sceneCenter = XMVectorSet(0.0f, 5.0f, 0.0f, 1.0f);
     const XMVECTOR lightEye =
-        XMVectorSubtract(sceneCenter, XMVectorScale(lightDir, 40.0f));
+        XMVectorSubtract(sceneCenter, XMVectorScale(lightDir, 75.0f));
 
     XMMATRIX lightView = XMMatrixLookAtLH(lightEye, sceneCenter,
         XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
     // 地形と外周の丘を覆う範囲。
     // 広げるほど 1 テクセルが担当する面積が増えて影が粗くなるので、
     // 「全部入る最小の広さ」を狙うのが定石
-    XMMATRIX lightProj = XMMatrixOrthographicLH(80.0f, 80.0f, 0.1f, 100.0f);
+    XMMATRIX lightProj = XMMatrixOrthographicLH(110.0f, 110.0f, 0.1f, 180.0f);
     XMMATRIX lightViewProj = lightView * lightProj;
 
     XMStoreFloat3(&cb.lightDirection, lightDir);
@@ -158,8 +160,10 @@ void Renderer::Render(const UIManager& ui)
         const auto& gpuModel = m_models[command.modelIndex];
         const auto& model = *gpuModel.model;
         const XMMATRIX objectWorld = XMLoadFloat4x4(&command.world);
+        const XMMATRIX objectShadowWorld = XMLoadFloat4x4(&command.shadowWorld);
         XMStoreFloat4x4(&cb.mvp, XMMatrixTranspose(objectWorld * view * proj));
         XMStoreFloat4x4(&cb.world, XMMatrixTranspose(objectWorld));
+        XMStoreFloat4x4(&cb.shadowWorld, XMMatrixTranspose(objectShadowWorld));
         cb.jointCount = static_cast<uint32_t>(std::min<size_t>(
             command.skinMatrices.size(), GltfMaxSkinJoints));
         for (uint32_t joint = 0; joint < cb.jointCount; ++joint)
@@ -193,7 +197,7 @@ void Renderer::Render(const UIManager& ui)
 
             cb.alphaCutoff = gpuModel.meshes[i].alphaCutoff;
             cb.materialOpacity = 1.0f;
-            cb.renderFlags = 0;
+            cb.renderFlags = command.renderFlags;
             memcpy(frameConstants + drawConstantIndex * m_cbStride,
                 &cb, sizeof(cb));
             ++drawConstantIndex;
@@ -204,6 +208,7 @@ void Renderer::Render(const UIManager& ui)
     const size_t floorConstantIndex = kMaxDrawMeshCount;
     XMStoreFloat4x4(&cb.mvp, XMMatrixTranspose(world * view * proj));
     XMStoreFloat4x4(&cb.world, XMMatrixTranspose(world));
+    XMStoreFloat4x4(&cb.shadowWorld, XMMatrixTranspose(world));
     cb.albedo = { 1.0f, 1.0f, 1.0f };
     cb.alphaCutoff = -1.0f;
     cb.metallic = 0.0f;

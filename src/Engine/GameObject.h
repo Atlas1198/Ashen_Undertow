@@ -1,6 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
+#include <cstdint>
 #include "ComponentManager.h"
 
 class Renderer;
@@ -73,6 +74,13 @@ public:
         XMStoreFloat4x4(&result, world);
         return result;
     }
+
+    // 通常は表示と同じ姿勢で影を作る。ビルボード等は個別に固定姿勢を返せる。
+    virtual DirectX::XMFLOAT4X4 CreateShadowWorldMatrix() const
+    {
+        return CreateWorldMatrix();
+    }
+    virtual uint32_t GetRenderFlags() const { return 0; }
 
 protected:
     // 各ObjectのInitializeで呼び、最大HPと現在HPを同時に設定する。

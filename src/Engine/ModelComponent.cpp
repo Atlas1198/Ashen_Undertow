@@ -14,8 +14,22 @@ void ModelComponent::Draw(Renderer& renderer)
 {
     const auto* animation = GetOwner().GetComponent<AnimationComponent>();
     const auto modelWorld = CreateModelWorldMatrix();
+    const auto shadowWorld = CreateModelShadowWorldMatrix();
     renderer.DrawModel(m_model, modelWorld,
-        animation ? &animation->GetSkinMatrices() : nullptr);
+        animation ? &animation->GetSkinMatrices() : nullptr, &shadowWorld,
+        GetOwner().GetRenderFlags());
+}
+
+DirectX::XMFLOAT4X4 ModelComponent::CreateModelShadowWorldMatrix() const
+{
+    const auto ownerWorld = GetOwner().CreateShadowWorldMatrix();
+    DirectX::XMFLOAT4X4 result;
+    DirectX::XMStoreFloat4x4(&result,
+        DirectX::XMMatrixRotationRollPitchYaw(
+            m_localRotation.x, m_localRotation.y, m_localRotation.z) *
+        DirectX::XMMatrixTranslation(m_offset.x, m_offset.y, m_offset.z) *
+        DirectX::XMLoadFloat4x4(&ownerWorld));
+    return result;
 }
 
 DirectX::XMFLOAT4X4 ModelComponent::CreateModelWorldMatrix() const

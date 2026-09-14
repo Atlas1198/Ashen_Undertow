@@ -28,7 +28,7 @@ PSInput VSMain(float3 position : POSITION, float2 uv : TEXCOORD0,
             weights.w * jointMatrices[joints.w];
         position = mul(float4(position, 1.0), skin).xyz;
     }
-    output.position = mul(mul(float4(position, 1.0), world), lightViewProj);
+    output.position = mul(mul(float4(position, 1.0), shadowWorld), lightViewProj);
     output.uv = uv;
     return output;
 }

@@ -37,6 +37,7 @@ namespace RendererDetail
     {
         XMFLOAT4X4 mvp;
         XMFLOAT4X4 world;
+		XMFLOAT4X4 shadowWorld;
 		XMFLOAT4X4 invViewProj; // 視点位置の計算に必要なので、ViewProj の逆行列も渡す
 
         XMFLOAT3 lightDirection;

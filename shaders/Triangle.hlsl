@@ -48,8 +48,12 @@ PSInput VSMain(VSInput input)
     }
     output.position = mul(float4(localPosition, 1.0), mvp);
 
+    // 木は表示板だけカメラへ追従し、明暗は太陽向きの固定姿勢で計算する。
+    const float4x4 lightingWorld =
+        (renderFlags & RenderFlagTree) != 0u ? shadowWorld : world;
+
     // 法線は w = 0 で掛けて平行移動の影響を除く
-    output.normal = mul(float4(localNormal, 0.0), world).xyz;
+    output.normal = mul(float4(localNormal, 0.0), lightingWorld).xyz;
     // 位置は w = 1。ピクセルごとの視線ベクトルを作るのに使う
     output.worldPos = mul(float4(localPosition, 1.0), world).xyz;
     
@@ -57,7 +61,7 @@ PSInput VSMain(VSInput input)
     output.uv = input.uv;
     
     // 接線もワールド空間へ。w(従法線の向き)はそのまま運ぶ
-    output.tangent = float4(mul(float4(localTangent, 0.0), world).xyz,
+    output.tangent = float4(mul(float4(localTangent, 0.0), lightingWorld).xyz,
                             input.tangent.w);
 
     return output;

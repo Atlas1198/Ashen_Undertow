@@ -52,7 +52,9 @@ public:
         m_waterInteractionStrength = { playerWaterMovement, enemyWaterMovement };
     }
     void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world,
-        const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr);
+        const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr,
+        const DirectX::XMFLOAT4X4* shadowWorld = nullptr,
+        uint32_t renderFlags = 0);
     void DrawCollider(const DirectX::XMFLOAT3& center,
         const DirectX::XMFLOAT3& halfExtents, float radius, bool colliding);
     void DrawColliderSegment(const DirectX::XMFLOAT3& start,
@@ -209,6 +211,8 @@ private:
     {
         uint32_t modelIndex;
         DirectX::XMFLOAT4X4 world;
+        DirectX::XMFLOAT4X4 shadowWorld;
+        uint32_t renderFlags;
         std::vector<DirectX::XMFLOAT4X4> skinMatrices;
     };
     std::vector<DrawCommand> m_drawCommands;
