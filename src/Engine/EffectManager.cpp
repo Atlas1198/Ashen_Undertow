@@ -82,18 +82,55 @@ std::uint64_t EffectManager::Spawn(
         }
         return firstId;
     }
+    if (type == EffectType::BlockSpark)
+    {
+        EffectDesc flash;
+        flash.type = type;
+        flash.position = position;
+        flash.startColor = { 1.8f, 4.0f, 6.0f, 1.0f };
+        flash.endColor = { 0.1f, 0.5f, 1.5f, 0.0f };
+        flash.startSize = 0.5f;
+        flash.endSize = 0.06f;
+        flash.lifetime = 0.2f;
+        const auto firstId = Spawn(flash);
+
+        constexpr int particleCount = 36;
+        for (int i = 0; i < particleCount; ++i)
+        {
+            float x = NextRandom() * 2.0f - 1.0f;
+            float y = NextRandom() * 1.5f - 0.25f;
+            float z = NextRandom() * 2.0f - 1.0f;
+            const float directionLength = std::sqrt(x * x + y * y + z * z);
+            if (directionLength <= 0.001f) x = 1.0f;
+            else
+            {
+                x /= directionLength;
+                y /= directionLength;
+                z /= directionLength;
+            }
+            const float speed = 4.5f + NextRandom() * 7.5f;
+            EffectDesc spark;
+            spark.type = type;
+            spark.position = position;
+            spark.velocity = { x * speed, y * speed, z * speed };
+            spark.acceleration = { 0.0f, -3.0f, 0.0f };
+            spark.startColor = {
+                0.8f + NextRandom(), 2.8f, 5.5f, 1.0f };
+            spark.endColor = { 0.05f, 0.25f, 1.0f, 0.0f };
+            spark.startSize = 0.025f + NextRandom() * 0.03f;
+            spark.endSize = 0.006f;
+            spark.lifetime = 0.18f + NextRandom() * 0.22f;
+            spark.drag = 2.4f;
+            Spawn(spark);
+        }
+        return firstId;
+    }
 
     EffectDesc desc;
     desc.type = type;
     desc.position = position;
     switch (type)
     {
-    case EffectType::BlockSpark:
-        desc.startColor = { 0.55f, 0.85f, 1.0f, 1.0f };
-        desc.startSize = 0.5f;
-        desc.endSize = 0.08f;
-        desc.lifetime = 0.28f;
-        break;
     case EffectType::ChargeAura:
         desc.startColor = { 0.35f, 0.7f, 1.0f, 0.8f };
         desc.endColor = { 0.8f, 0.95f, 1.0f, 0.0f };

@@ -14,7 +14,8 @@ public:
     MiniCopy(Player& target, Boss& boss) : m_target(target), m_boss(boss) {}
     bool Initialize(ModelManager& modelManager) override;
     void Update(float deltaTime) override;
-    void ResolveAttackHit(GameObject& target);
+    bool ResolveAttackHit(GameObject& target,
+        DirectX::XMFLOAT3& blockPosition);
     void Respawn(const DirectX::XMFLOAT3& position);
     DirectX::XMFLOAT3 GetHPBarPosition() const;
 

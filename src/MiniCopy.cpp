@@ -179,7 +179,8 @@ void MiniCopy::Update(float deltaTime)
     }
 }
 
-void MiniCopy::ResolveAttackHit(GameObject& target)
+bool MiniCopy::ResolveAttackHit(
+    GameObject& target, DirectX::XMFLOAT3& blockPosition)
 {
     const bool rightHit = m_attackCollider->IsEnabled() &&
         m_attackCollider->HasContactWith(target, ColliderRole::Hurtbox);
@@ -187,11 +188,27 @@ void MiniCopy::ResolveAttackHit(GameObject& target)
         m_leftAttackCollider->HasContactWith(target, ColliderRole::Hurtbox);
     if (m_attackHit || (!rightHit && !leftHit))
     {
-        return;
+        return false;
     }
     if (auto* player = dynamic_cast<Player*>(&target);
         player && player->CanBlockAttackFrom(m_position))
     {
+        const Collider* blockedAttack = rightHit
+            ? m_attackCollider : m_leftAttackCollider;
+        const auto attackCenter = blockedAttack->GetShape().center;
+        blockPosition = attackCenter;
+        for (const auto* contact : blockedAttack->GetContacts())
+        {
+            if (&contact->GetOwner() != &target ||
+                contact->GetRole() != ColliderRole::Hurtbox) continue;
+            const auto hurtCenter = contact->GetShape().center;
+            blockPosition = {
+                (attackCenter.x + hurtCenter.x) * 0.5f,
+                (attackCenter.y + hurtCenter.y) * 0.5f,
+                (attackCenter.z + hurtCenter.z) * 0.5f
+            };
+            break;
+        }
         player->ConsumeBlockStamina();
         const auto playerPosition = player->GetPosition();
         float awayX = m_position.x - playerPosition.x;
@@ -218,10 +235,11 @@ void MiniCopy::ResolveAttackHit(GameObject& target)
         m_attackCooldown = AttackCooldown;
         m_animation->Play("Idle", true, 1.0f, AnimationBlendDuration);
         m_attackHit = true;
-        return;
+        return true;
     }
     target.TakeDamage(AttackDamage);
     m_attackHit = true;
+    return false;
 }
 
 void MiniCopy::Respawn(const DirectX::XMFLOAT3& position)

@@ -297,7 +297,9 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         DirectX::XMFLOAT3 hitPosition {};
         if (m_player->ResolveAttackHit(*miniCopy, hitPosition))
             m_effectManager.Spawn(EffectType::HitSpark, hitPosition);
-        miniCopy->ResolveAttackHit(*m_player);
+        DirectX::XMFLOAT3 blockPosition {};
+        if (miniCopy->ResolveAttackHit(*m_player, blockPosition))
+            m_effectManager.Spawn(EffectType::BlockSpark, blockPosition);
     }
     m_camera.SetTarget(m_player->GetPosition());
     for (Tree* tree : m_trees)
