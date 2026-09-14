@@ -27,11 +27,14 @@ public:
         return m_attacking || m_attackInputPending || m_charging || m_chargeReleasing;
     }
     bool IsBlocking() const { return m_blocking; }
+    bool IsCharging() const { return m_charging; }
+    float GetChargeDuration() const { return m_chargeDuration; }
     bool CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const;
     void ConsumeBlockStamina();
     void ApplyBlockKnockback(const DirectX::XMFLOAT3& attackerPosition);
     float GetStamina() const { return m_stamina; }
     float GetMaxStamina() const { return MaxStamina; }
+    DirectX::XMFLOAT3 GetChargeAuraOrigin() const;
     ModelHandle GetModelHandle() const;
 
 private:    

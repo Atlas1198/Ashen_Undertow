@@ -261,6 +261,23 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     m_effectManager.Update(deltaTime);
     m_player->ResolveTerrainContact();
 
+    if (m_player->IsCharging())
+    {
+        m_chargeAuraSpawnTimer -= deltaTime;
+        if (m_chargeAuraSpawnTimer <= 0.0f)
+        {
+            m_effectManager.SpawnChargeAura(
+                m_player->GetChargeAuraOrigin(),
+                m_player->GetChargeDuration());
+            m_chargeAuraSpawnTimer = (std::max)(0.025f,
+                0.06f - m_player->GetChargeDuration() * 0.01f);
+        }
+    }
+    else
+    {
+        m_chargeAuraSpawnTimer = 0.0f;
+    }
+
     const int aliveCount = static_cast<int>(std::count_if(
         m_miniCopies.begin(), m_miniCopies.end(),
         [](const MiniCopy* miniCopy) { return !miniCopy->IsDead(); }));

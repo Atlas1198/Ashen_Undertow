@@ -55,6 +55,8 @@ class EffectManager
 public:
     std::uint64_t Spawn(const EffectDesc& desc);
     std::uint64_t Spawn(EffectType type, const DirectX::XMFLOAT3& position);
+    void SpawnChargeAura(const DirectX::XMFLOAT3& position,
+        float chargeSeconds);
     void Stop(std::uint64_t id);
     void Update(float deltaTime);
     void Draw(Renderer& renderer) const;

@@ -43,4 +43,5 @@ private:
     DirectX::XMFLOAT3 m_previousMiniCopyPosition {};
     float m_playerWaterMovement = 0.0f;
     float m_miniCopyWaterMovement = 0.0f;
+    float m_chargeAuraSpawnTimer = 0.0f;
 };

@@ -504,3 +504,34 @@ ModelHandle Player::GetModelHandle() const
     const auto* model = GetComponent<ModelComponent>();
     return model ? model->GetModelHandle() : ModelHandle {};
 }
+
+DirectX::XMFLOAT3 Player::GetChargeAuraOrigin() const
+{
+    const auto* model = GetComponent<ModelComponent>();
+    DirectX::XMFLOAT4X4 leftFootTransform;
+    DirectX::XMFLOAT4X4 rightFootTransform;
+    if (!model ||
+        !m_animation->GetNodeModelTransform(
+            "mixamorig:LeftFoot", leftFootTransform) ||
+        !m_animation->GetNodeModelTransform(
+            "mixamorig:RightFoot", rightFootTransform))
+    {
+        return { m_position.x, m_position.y - FootOffset, m_position.z };
+    }
+
+    const auto modelWorld = model->CreateModelWorldMatrix();
+    DirectX::XMFLOAT3 leftFoot;
+    DirectX::XMFLOAT3 rightFoot;
+    const auto origin = DirectX::XMVectorZero();
+    DirectX::XMStoreFloat3(&leftFoot, DirectX::XMVector3TransformCoord(
+        origin, DirectX::XMLoadFloat4x4(&leftFootTransform) *
+        DirectX::XMLoadFloat4x4(&modelWorld)));
+    DirectX::XMStoreFloat3(&rightFoot, DirectX::XMVector3TransformCoord(
+        origin, DirectX::XMLoadFloat4x4(&rightFootTransform) *
+        DirectX::XMLoadFloat4x4(&modelWorld)));
+    return {
+        (leftFoot.x + rightFoot.x) * 0.5f,
+        (leftFoot.y + rightFoot.y) * 0.5f,
+        (leftFoot.z + rightFoot.z) * 0.5f
+    };
+}

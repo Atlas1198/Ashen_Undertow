@@ -172,6 +172,68 @@ std::uint64_t EffectManager::Spawn(
     return Spawn(desc);
 }
 
+void EffectManager::SpawnChargeAura(
+    const DirectX::XMFLOAT3& position, float chargeSeconds)
+{
+    const float charge = std::clamp(chargeSeconds, 0.0f, 3.0f);
+    DirectX::XMFLOAT4 startColor;
+    DirectX::XMFLOAT4 endColor;
+    if (charge < 1.0f)
+    {
+        startColor = { 3.8f, 3.8f, 3.8f, 0.8f };
+        endColor = { 0.8f, 0.8f, 0.8f, 0.0f };
+    }
+    else if (charge < 2.0f)
+    {
+        startColor = { 0.25f, 1.2f, 5.0f, 0.85f };
+        endColor = { 0.05f, 0.3f, 1.2f, 0.0f };
+    }
+    else if (charge < 3.0f)
+    {
+        startColor = { 5.0f, 2.8f, 0.2f, 0.9f };
+        endColor = { 1.2f, 0.35f, 0.02f, 0.0f };
+    }
+    else
+    {
+        startColor = { 6.0f, 0.25f, 1.0f, 1.0f };
+        endColor = { 1.5f, 0.03f, 0.35f, 0.0f };
+    }
+
+    const int count = charge >= 3.0f ? 11 :
+        (charge >= 2.0f ? 9 : (charge >= 1.0f ? 7 : 5));
+    for (int i = 0; i < count; ++i)
+    {
+        const float angle = NextRandom() * DirectX::XM_2PI;
+        const float radius = 0.35f + NextRandom() * 0.32f;
+        const float radialX = std::cos(angle);
+        const float radialZ = std::sin(angle);
+        EffectDesc particle;
+        particle.type = EffectType::ChargeAura;
+        particle.position = {
+            position.x + radialX * radius,
+            position.y + 0.03f + NextRandom() * 0.16f,
+            position.z + radialZ * radius
+        };
+        const float swirlSpeed = 0.18f + charge * 0.06f;
+        const float inwardSpeed = 0.22f + NextRandom() * 0.18f;
+        particle.velocity = {
+            -radialX * inwardSpeed - radialZ * swirlSpeed,
+            1.35f + NextRandom() * 1.0f + charge * 0.18f,
+            -radialZ * inwardSpeed + radialX * swirlSpeed
+        };
+        particle.acceleration = {
+            -radialX * 0.25f, 0.18f, -radialZ * 0.25f
+        };
+        particle.startColor = startColor;
+        particle.endColor = endColor;
+        particle.startSize = 0.025f + charge * 0.006f + NextRandom() * 0.025f;
+        particle.endSize = 0.006f;
+        particle.lifetime = 0.62f + NextRandom() * 0.3f;
+        particle.drag = 0.3f;
+        Spawn(particle);
+    }
+}
+
 void EffectManager::Stop(std::uint64_t id)
 {
     std::erase_if(m_effects,
@@ -222,9 +284,13 @@ void EffectManager::Draw(Renderer& renderer) const
             effect.velocity.x * effect.velocity.x +
             effect.velocity.y * effect.velocity.y +
             effect.velocity.z * effect.velocity.z);
-        const float stretch = effect.size + speed * 0.055f;
+        const bool roundParticle = effect.type == EffectType::ChargeAura;
+        const float stretch = roundParticle
+            ? effect.size : effect.size + speed * 0.055f;
+        const DirectX::XMFLOAT3 drawDirection = roundParticle
+            ? DirectX::XMFLOAT3 {} : effect.velocity;
         renderer.DrawEffectParticle(m_textureIndex, effect.position,
-            effect.velocity, effect.color, effect.size, stretch);
+            drawDirection, effect.color, effect.size, stretch);
     }
 }
 
