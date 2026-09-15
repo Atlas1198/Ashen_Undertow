@@ -9,7 +9,7 @@ std::unique_ptr<SceneManager> CreateRequestedScene(SceneRequest request,
     ModelManager& models, const Input& input)
 {
     if (request == SceneRequest::Title)
-        return std::make_unique<Scene_Title>(models);
+        return std::make_unique<Scene_Title>(models, input);
     return std::make_unique<Scene_Game>(models, input);
 }
 }
@@ -17,7 +17,12 @@ std::unique_ptr<SceneManager> CreateRequestedScene(SceneRequest request,
 bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
 {
     m_input.Initialize(hwnd);
-    m_currentScene = std::make_unique<Scene_Game>(m_modelManager, m_input);
+    // Renderer初期化前にゲーム内モデルをCPUキャッシュへ揃える。
+    auto preloadScene = std::make_unique<Scene_Game>(m_modelManager, m_input);
+    if (!preloadScene->Initialize())
+        return false;
+
+    m_currentScene = std::make_unique<Scene_Title>(m_modelManager, m_input);
     if (!m_currentScene->Initialize())
         return false;
     if (!m_currentScene->InitializeUI(m_uiManager))
