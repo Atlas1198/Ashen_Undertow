@@ -66,6 +66,8 @@ void Renderer::Render(const UIManager& ui)
         m_debugColliders.clear();
         m_effectParticles.clear();
         m_alphaEffectParticles.clear();
+        m_bossFlameActive = false;
+        m_bossTelegraphStrength = 0.0f;
         m_waterRipples.clear();
         return;
     }
@@ -620,6 +622,8 @@ void Renderer::Render(const UIManager& ui)
     m_debugColliders.clear();
     m_effectParticles.clear();
     m_alphaEffectParticles.clear();
+    m_bossFlameActive = false;
+    m_bossTelegraphStrength = 0.0f;
     m_waterRipples.clear();
     m_effectTextureIndex = UINT32_MAX;
 }

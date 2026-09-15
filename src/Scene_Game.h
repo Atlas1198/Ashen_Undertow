@@ -29,6 +29,7 @@ private:
     void ResolveCombat();
     void UpdateCameraAndTrees();
     void UpdateEnvironmentEffects(float deltaTime);
+    void UpdateBossGlobalAttack();
     void TryLaunchSpecialAttack();
     void UpdateSpecialAttack(float deltaTime);
     void OnUpdate(float deltaTime) override;
@@ -66,4 +67,5 @@ private:
     std::array<SwordTrailPose, 4> m_swordTrailHistory {};
     size_t m_swordTrailHistoryCount = 0;
     bool m_wasPlayerEvading = false;
+    float m_bossAttackVisualTime = 0.0f;
 };

@@ -81,7 +81,7 @@ private:
     float m_evasionDirectionZ = 0.0f;
     float m_stamina = MaxStamina;
     float m_staminaRecoveryDelay = 0.0f;
-    float m_specialGauge = MaxSpecialGauge; // 必殺技確認用。通常開始時は0に戻す。
+    float m_specialGauge = 0.0f;
     float m_specialRimTime = 0.0f;
     float m_chargeDuration = 0.0f;
     float m_chargeDamageRatio = 0.0f;

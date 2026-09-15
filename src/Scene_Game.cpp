@@ -113,9 +113,24 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     UpdatePlayerEffects(deltaTime);
     UpdateMiniCopySpawning();
     ResolveCombat();
+    UpdateBossGlobalAttack();
     m_hud.Update(*m_player, deltaTime);
     UpdateCameraAndTrees();
     UpdateEnvironmentEffects(deltaTime);
+    m_bossAttackVisualTime += deltaTime;
+}
+
+void Scene_Game::UpdateBossGlobalAttack()
+{
+    if (m_boss->GetGlobalAttackPhase() != Boss::GlobalAttackPhase::Flame)
+        return;
+    const auto& position = m_player->GetPosition();
+    const float pondX = position.x - Terrain::PondCenterX;
+    const float pondZ = position.z - Terrain::PondCenterZ;
+    const bool inWater = pondX * pondX + pondZ * pondZ <=
+        Terrain::PondWaterRadius * Terrain::PondWaterRadius;
+    if (!inWater)
+        m_player->TakeDamage(GameBalance::Boss::GlobalAttackDamage);
 }
 
 void Scene_Game::UpdatePlayerEffects(float deltaTime)
@@ -452,6 +467,20 @@ void Scene_Game::OnDraw(Renderer& renderer)
     renderer.SetGrassInteractors(m_player->GetPosition(), secondaryInteractor,
         m_playerWaterMovement, m_miniCopyWaterMovement);
     m_effectManager.Draw(renderer);
+    const auto phase = m_boss->GetGlobalAttackPhase();
+    if (phase == Boss::GlobalAttackPhase::Warning)
+    {
+        renderer.DrawBossAttackTelegraph(m_boss->GetGlobalAttackProgress(),
+            m_bossAttackVisualTime);
+    }
+    else if (phase == Boss::GlobalAttackPhase::Flame)
+    {
+        const auto mouth = m_boss->GetMouthPosition();
+        DirectX::XMFLOAT3 direction { -mouth.x,
+            Terrain::BaseHeight - mouth.y, -mouth.z };
+        renderer.DrawBossFlame(mouth, direction,
+            m_boss->GetGlobalAttackProgress(), m_bossAttackVisualTime);
+    }
     if (!m_showColliders) return;
 
     for (const auto* playerCollider : m_player->GetComponents<Collider>())

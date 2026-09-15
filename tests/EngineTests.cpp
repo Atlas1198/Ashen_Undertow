@@ -105,8 +105,9 @@ int main()
     const auto* enemyData = models.GetModel(enemyModel);
     assert(enemyData && enemyData->Valid());
     assert(enemyData->skins.size() == 1);
-    assert(enemyData->animations.size() == 4);
-    bool enemyIdle = false, enemyWalk = false, enemyRun = false, enemyAttack = false;
+    assert(enemyData->animations.size() == 5);
+    bool enemyIdle = false, enemyWalk = false, enemyRun = false;
+    bool enemyAttack = false, enemyRoar = false;
     for (const auto& animation : enemyData->animations)
     {
         assert(!animation.channels.empty());
@@ -114,8 +115,9 @@ int main()
         enemyWalk = enemyWalk || animation.name == "Walk";
         enemyRun = enemyRun || animation.name == "Run";
         enemyAttack = enemyAttack || animation.name == "Attack";
+        enemyRoar = enemyRoar || animation.name == "Roar";
     }
-    assert(enemyIdle && enemyWalk && enemyRun && enemyAttack);
+    assert(enemyIdle && enemyWalk && enemyRun && enemyAttack && enemyRoar);
     AnimationComponent enemyAnimation(models, "assets/model/Mutant/mutant_idle.glb");
     assert(enemyAnimation.Initialize());
     assert(enemyAnimation.Play("Walk"));

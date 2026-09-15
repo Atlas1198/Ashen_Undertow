@@ -49,6 +49,11 @@ namespace Boss
 {
 constexpr float VisualScale = 40.0f;
 constexpr float MiniCopySpawnInterval = 8.0f;
+constexpr bool GlobalAttackTestAtStart = false;
+constexpr float GlobalAttackTriggerHpRatio = 0.1f;
+constexpr float GlobalAttackWarningDuration = 13.0f;
+constexpr float GlobalAttackFlameDuration = 4.0f;
+constexpr int GlobalAttackDamage = 100;
 }
 
 namespace MiniCopy

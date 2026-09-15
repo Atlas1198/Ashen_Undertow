@@ -269,6 +269,7 @@
     <ClInclude Include="src\Engine\EffectManager.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
     <None Include="shaders\UI.hlsl"><Filter>シェーダー</Filter></None>
     <None Include="shaders\Effects.hlsl"><Filter>シェーダー</Filter></None>
+    <None Include="shaders\BossAttack.hlsl"><Filter>シェーダー</Filter></None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\Terrain.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>

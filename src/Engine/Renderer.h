@@ -67,6 +67,9 @@ public:
         const DirectX::XMFLOAT4& color, float width, float length,
         bool additive = true, bool continuousTrail = false);
     void DrawWaterRipple(const DirectX::XMFLOAT3& position, float age, float strength);
+    void DrawBossAttackTelegraph(float strength, float time);
+    void DrawBossFlame(const DirectX::XMFLOAT3& mouth,
+        const DirectX::XMFLOAT3& direction, float progress, float time);
     void Render(const UIManager& ui);
 
 private:
@@ -270,8 +273,16 @@ private:
     ComPtr<ID3D12RootSignature> m_effectRootSignature;
     ComPtr<ID3D12PipelineState> m_effectPSO;
     ComPtr<ID3D12PipelineState> m_effectAlphaPSO;
+    ComPtr<ID3D12PipelineState> m_bossFlamePSO;
+    ComPtr<ID3D12PipelineState> m_bossTelegraphPSO;
     ComPtr<ID3D12Resource> m_effectInstanceBuffers[kFrameCount];
     void* m_effectInstanceMapped[kFrameCount] = {};
+    DirectX::XMFLOAT3 m_bossFlameMouth {};
+    DirectX::XMFLOAT3 m_bossFlameDirection {};
+    float m_bossFlameProgress = 0.0f;
+    bool m_bossFlameActive = false;
+    float m_bossAttackTime = 0.0f;
+    float m_bossTelegraphStrength = 0.0f;
 
     // --- 環境マップ(IBL の元になる HDRI) ---
 	ComPtr<ID3D12DescriptorHeap> m_srvHeap;         // SRV 用ディスクリプタヒープ
