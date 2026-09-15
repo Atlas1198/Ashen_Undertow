@@ -67,6 +67,13 @@ bool Scene_Game::Initialize()
         tree->SetVisualScale(visualScale);
         m_trees.push_back(tree);
     }
+    m_pendingMiniCopySpawns.reserve(MaxMiniCopies);
+    for (int i = 0; i < InitialMiniCopies; ++i)
+    {
+        const float angle = DirectX::XM_2PI * static_cast<float>(i) /
+            static_cast<float>(InitialMiniCopies);
+        QueueMiniCopySpawn(MakeMiniCopySpawnPosition(angle, 13.5f));
+    }
     m_previousPlayerPosition = m_player->GetPosition();
     return true;
 }
@@ -318,45 +325,112 @@ void Scene_Game::UpdateSpecialAttack(float deltaTime)
 
 void Scene_Game::UpdateMiniCopySpawning(float deltaTime)
 {
-    if (m_miniCopySpawnPending)
+    for (auto& pending : m_pendingMiniCopySpawns)
     {
-        m_miniCopySpawnDelay -= deltaTime;
-        if (m_miniCopySpawnDelay > 0.0f) return;
-
-        MiniCopy* miniCopy = nullptr;
-        const auto reusable = std::find_if(m_miniCopies.begin(), m_miniCopies.end(),
-            [](const MiniCopy* copy) { return copy->IsDead(); });
-        if (reusable != m_miniCopies.end())
-            miniCopy = *reusable;
+        if (!pending.lightningStarted)
+        {
+            m_effectManager.SpawnEnemyArrivalLightning(pending.position);
+            pending.lightningStarted = true;
+        }
         else
-        {
-            miniCopy = AddGameObject<MiniCopy>(*m_player, *m_boss);
-            if (miniCopy) m_miniCopies.push_back(miniCopy);
-        }
-        if (miniCopy)
-        {
-            miniCopy->Respawn(m_pendingMiniCopyPosition);
-            ++m_spawnSequence;
-        }
-        m_miniCopySpawnPending = false;
-        return;
+            pending.delay -= deltaTime;
     }
+    for (size_t i = m_pendingMiniCopySpawns.size(); i-- > 0;)
+    {
+        if (m_pendingMiniCopySpawns[i].delay > 0.0f) continue;
+        SpawnMiniCopyAt(m_pendingMiniCopySpawns[i].position);
+        m_pendingMiniCopySpawns.erase(m_pendingMiniCopySpawns.begin() + i);
+    }
+
+    if (m_boss->IsDead()) return;
+    m_miniCopySpawnTimer -= deltaTime;
 
     const int aliveCount = static_cast<int>(std::count_if(
         m_miniCopies.begin(), m_miniCopies.end(),
         [](const MiniCopy* miniCopy) { return !miniCopy->IsDead(); }));
-    if (aliveCount < MaxMiniCopies && m_boss->ConsumeSpawnRequest())
+    const float hpRatio = static_cast<float>(m_boss->GetHP()) /
+        static_cast<float>(m_boss->GetMaxHP());
+    const int phaseLimit = hpRatio > 0.70f ? 8 : (hpRatio > 0.35f ? 10 : 12);
+    if (m_miniCopySpawnTimer > 0.0f ||
+        aliveCount + static_cast<int>(m_pendingMiniCopySpawns.size()) >= phaseLimit)
+        return;
+
+    const float interval = hpRatio > 0.70f ? 6.0f : (hpRatio > 0.35f ? 4.5f : 3.0f);
+    int batchCount = hpRatio > 0.70f ? 1 :
+        (hpRatio > 0.35f ? 1 + (m_spawnWaveSequence & 1) : 2);
+    batchCount = (std::min)(batchCount, phaseLimit - aliveCount);
+    const float baseAngle = NextSpawnRandom() * DirectX::XM_2PI;
+    for (int i = 0; i < batchCount; ++i)
     {
-        constexpr float SpawnX[] = { -12.0f, -4.0f, 4.0f, 12.0f };
-        const int slot = m_spawnSequence % MaxMiniCopies;
-        const float x = SpawnX[slot];
-        const float z = 27.0f + static_cast<float>(slot % 2) * 3.0f;
-        const DirectX::XMFLOAT3 spawnPosition { x, Terrain::HeightAt(x, z), z };
-        m_effectManager.SpawnEnemyArrivalLightning(spawnPosition);
-        m_pendingMiniCopyPosition = spawnPosition;
-        m_miniCopySpawnDelay = 0.28f;
-        m_miniCopySpawnPending = true;
+        const float angle = baseAngle + DirectX::XM_2PI *
+            static_cast<float>(i) / static_cast<float>(batchCount) +
+            (NextSpawnRandom() - 0.5f) * 0.6f;
+        const float radius = MiniCopySpawnMinRadius + NextSpawnRandom() *
+            (MiniCopySpawnMaxRadius - MiniCopySpawnMinRadius);
+        QueueMiniCopySpawn(MakeMiniCopySpawnPosition(angle, radius));
     }
+    ++m_spawnWaveSequence;
+    m_miniCopySpawnTimer = interval;
+}
+
+void Scene_Game::QueueMiniCopySpawn(const DirectX::XMFLOAT3& position)
+{
+    m_pendingMiniCopySpawns.push_back(
+        { position, MiniCopySpawnWarning, false });
+}
+
+void Scene_Game::SpawnMiniCopyAt(const DirectX::XMFLOAT3& position)
+{
+    MiniCopy* miniCopy = nullptr;
+    const auto reusable = std::find_if(m_miniCopies.begin(), m_miniCopies.end(),
+        [](const MiniCopy* copy) { return copy->IsDead(); });
+    if (reusable != m_miniCopies.end())
+        miniCopy = *reusable;
+    else
+    {
+        miniCopy = AddGameObject<MiniCopy>(*m_player, *m_boss);
+        if (miniCopy) m_miniCopies.push_back(miniCopy);
+    }
+    if (miniCopy)
+    {
+        miniCopy->Respawn(position);
+        ++m_spawnSequence;
+    }
+}
+
+DirectX::XMFLOAT3 Scene_Game::MakeMiniCopySpawnPosition(
+    float angle, float radius) const
+{
+    const auto playerPosition = m_player->GetPosition();
+    float x = playerPosition.x + std::cos(angle) * radius;
+    float z = playerPosition.z + std::sin(angle) * radius;
+
+    const float pondX = x - Terrain::PondCenterX;
+    const float pondZ = z - Terrain::PondCenterZ;
+    const float pondDistance = std::sqrt(pondX * pondX + pondZ * pondZ);
+    constexpr float PondSafetyRadius = Terrain::PondRadius + 1.5f;
+    if (pondDistance < PondSafetyRadius)
+    {
+        const float safeLength = (std::max)(pondDistance, 0.001f);
+        x = Terrain::PondCenterX + pondX / safeLength * PondSafetyRadius;
+        z = Terrain::PondCenterZ + pondZ / safeLength * PondSafetyRadius;
+    }
+
+    constexpr float SpawnArenaRadius = Terrain::WalkableRadius - 2.0f;
+    const float arenaDistance = std::sqrt(x * x + z * z);
+    if (arenaDistance > SpawnArenaRadius)
+    {
+        x *= SpawnArenaRadius / arenaDistance;
+        z *= SpawnArenaRadius / arenaDistance;
+    }
+    return { x, Terrain::HeightAt(x, z), z };
+}
+
+float Scene_Game::NextSpawnRandom()
+{
+    m_spawnRandomState = m_spawnRandomState * 1664525u + 1013904223u;
+    return static_cast<float>((m_spawnRandomState >> 8) & 0x00ffffffu) /
+        static_cast<float>(0x01000000u);
 
 }
 

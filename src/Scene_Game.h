@@ -26,6 +26,10 @@ private:
     void UpdateCameraGroundConstraint();
     void UpdatePlayerEffects(float deltaTime);
     void UpdateMiniCopySpawning(float deltaTime);
+    void QueueMiniCopySpawn(const DirectX::XMFLOAT3& position);
+    void SpawnMiniCopyAt(const DirectX::XMFLOAT3& position);
+    DirectX::XMFLOAT3 MakeMiniCopySpawnPosition(float angle, float radius) const;
+    float NextSpawnRandom();
     void ResolveCombat();
     void UpdateCameraAndTrees();
     void UpdateEnvironmentEffects(float deltaTime);
@@ -60,9 +64,16 @@ private:
     float m_specialAttackEffectTimer = 0.0f;
     bool m_showColliders = false;
     int m_spawnSequence = 0;
-    DirectX::XMFLOAT3 m_pendingMiniCopyPosition {};
-    float m_miniCopySpawnDelay = 0.0f;
-    bool m_miniCopySpawnPending = false;
+    struct PendingMiniCopySpawn
+    {
+        DirectX::XMFLOAT3 position {};
+        float delay = 0.0f;
+        bool lightningStarted = false;
+    };
+    std::vector<PendingMiniCopySpawn> m_pendingMiniCopySpawns;
+    float m_miniCopySpawnTimer = 6.0f;
+    int m_spawnWaveSequence = 0;
+    std::uint32_t m_spawnRandomState = 0x51f15e5du;
     DirectX::XMFLOAT3 m_previousPlayerPosition {};
     DirectX::XMFLOAT3 m_previousMiniCopyPosition {};
     float m_playerWaterMovement = 0.0f;

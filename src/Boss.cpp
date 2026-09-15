@@ -64,8 +64,6 @@ float Boss::GetGlobalAttackProgress() const
 void Boss::Update(float deltaTime)
 {
     if (IsDead()) return;
-    m_spawnTimer = std::max(0.0f, m_spawnTimer - deltaTime);
-
     if (m_globalAttackPhase == GlobalAttackPhase::Cooldown)
     {
         m_animation->Play("Idle", true, 1.0f, 0.2f);
@@ -94,11 +92,4 @@ void Boss::Update(float deltaTime)
         if (m_globalAttackTimer <= 0.0f)
             m_globalAttackPhase = GlobalAttackPhase::Cooldown;
     }
-}
-
-bool Boss::ConsumeSpawnRequest()
-{
-    if (IsDead() || m_spawnTimer > 0.0f) return false;
-    m_spawnTimer = MiniCopySpawnInterval;
-    return true;
 }

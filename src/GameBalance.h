@@ -48,7 +48,6 @@ constexpr int AttackDamage = 100;
 namespace Boss
 {
 constexpr float VisualScale = 40.0f;
-constexpr float MiniCopySpawnInterval = 8.0f;
 constexpr bool GlobalAttackTestAtStart = false;
 constexpr float GlobalAttackTriggerHpRatio = 0.1f;
 constexpr float GlobalAttackWarningDuration = 13.0f;
@@ -79,7 +78,11 @@ constexpr float DeathEffectDuration = 1.6f;
 
 namespace Scene
 {
-constexpr int MaxMiniCopies = 4;
+constexpr int InitialMiniCopies = 8;
+constexpr int MaxMiniCopies = 12;
+constexpr float MiniCopySpawnWarning = 0.28f;
+constexpr float MiniCopySpawnMinRadius = 10.0f;
+constexpr float MiniCopySpawnMaxRadius = 15.0f;
 constexpr float MinChargeHitStop = 0.105f;
 constexpr float MaxChargeHitStop = 0.15f;
 }
