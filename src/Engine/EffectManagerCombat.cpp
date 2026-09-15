@@ -3,6 +3,70 @@
 #include <algorithm>
 #include <cmath>
 
+void EffectManager::SpawnEnemyArrivalLightning(
+    const DirectX::XMFLOAT3& position)
+{
+    constexpr int segmentCount = 7;
+    DirectX::XMFLOAT3 previous {
+        position.x + (NextRandom() - 0.5f) * 0.35f,
+        position.y + 7.0f,
+        position.z + (NextRandom() - 0.5f) * 0.35f
+    };
+    for (int i = 1; i <= segmentCount; ++i)
+    {
+        const float t = static_cast<float>(i) / segmentCount;
+        DirectX::XMFLOAT3 next {
+            position.x + (NextRandom() - 0.5f) * 0.65f * (1.0f - t),
+            position.y + 7.0f * (1.0f - t),
+            position.z + (NextRandom() - 0.5f) * 0.65f * (1.0f - t)
+        };
+        const DirectX::XMFLOAT3 direction {
+            next.x - previous.x, next.y - previous.y, next.z - previous.z
+        };
+        const float length = std::sqrt(direction.x * direction.x +
+            direction.y * direction.y + direction.z * direction.z);
+        EffectDesc bolt;
+        bolt.position = { (previous.x + next.x) * 0.5f,
+            (previous.y + next.y) * 0.5f,
+            (previous.z + next.z) * 0.5f };
+        bolt.visualDirection = direction;
+        bolt.visualLength = length;
+        bolt.startColor = { 2.8f, 4.8f, 7.0f, 1.0f };
+        bolt.endColor = { 0.2f, 1.0f, 2.8f, 0.0f };
+        bolt.startSize = 0.10f;
+        bolt.endSize = 0.025f;
+        bolt.lifetime = 0.24f;
+        Spawn(bolt);
+        previous = next;
+    }
+
+    EffectDesc flash;
+    flash.position = { position.x, position.y + 0.25f, position.z };
+    flash.startColor = { 2.5f, 4.5f, 7.0f, 1.0f };
+    flash.endColor = { 0.15f, 0.8f, 2.0f, 0.0f };
+    flash.startSize = 0.9f;
+    flash.endSize = 2.2f;
+    flash.lifetime = 0.30f;
+    Spawn(flash);
+
+    for (int i = 0; i < 24; ++i)
+    {
+        const float angle = NextRandom() * 6.2831853f;
+        const float speed = 1.5f + NextRandom() * 3.5f;
+        EffectDesc spark;
+        spark.position = { position.x, position.y + 0.15f, position.z };
+        spark.velocity = { std::cos(angle) * speed,
+            1.0f + NextRandom() * 3.0f, std::sin(angle) * speed };
+        spark.acceleration = { 0.0f, -7.0f, 0.0f };
+        spark.startColor = { 1.4f, 3.4f, 6.0f, 1.0f };
+        spark.endColor = { 0.1f, 0.5f, 1.8f, 0.0f };
+        spark.startSize = 0.035f + NextRandom() * 0.045f;
+        spark.endSize = 0.01f;
+        spark.lifetime = 0.25f + NextRandom() * 0.25f;
+        Spawn(spark);
+    }
+}
+
 std::uint64_t EffectManager::Spawn(
     EffectType type, const DirectX::XMFLOAT3& position)
 {

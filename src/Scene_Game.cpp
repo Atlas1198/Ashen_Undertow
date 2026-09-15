@@ -206,7 +206,7 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     }
     UpdateSpecialAttack(deltaTime);
     UpdatePlayerEffects(deltaTime);
-    UpdateMiniCopySpawning();
+    UpdateMiniCopySpawning(deltaTime);
     ResolveCombat();
     if (m_boss->IsDead() && !m_player->IsDead() && m_clearScreenTime < 0.0f)
         m_clearScreenTime = 0.0f;
@@ -316,18 +316,12 @@ void Scene_Game::UpdateSpecialAttack(float deltaTime)
     m_hitStopTimer = (std::max)(m_hitStopTimer, MaxChargeHitStop);
 }
 
-void Scene_Game::UpdateMiniCopySpawning()
+void Scene_Game::UpdateMiniCopySpawning(float deltaTime)
 {
-    const int aliveCount = static_cast<int>(std::count_if(
-        m_miniCopies.begin(), m_miniCopies.end(),
-        [](const MiniCopy* miniCopy) { return !miniCopy->IsDead(); }));
-    if (aliveCount < MaxMiniCopies && m_boss->ConsumeSpawnRequest())
+    if (m_miniCopySpawnPending)
     {
-        constexpr float SpawnX[] = { -12.0f, -4.0f, 4.0f, 12.0f };
-        const int slot = m_spawnSequence % MaxMiniCopies;
-        const float x = SpawnX[slot];
-        const float z = 27.0f + static_cast<float>(slot % 2) * 3.0f;
-        const DirectX::XMFLOAT3 spawnPosition { x, Terrain::HeightAt(x, z), z };
+        m_miniCopySpawnDelay -= deltaTime;
+        if (m_miniCopySpawnDelay > 0.0f) return;
 
         MiniCopy* miniCopy = nullptr;
         const auto reusable = std::find_if(m_miniCopies.begin(), m_miniCopies.end(),
@@ -341,9 +335,27 @@ void Scene_Game::UpdateMiniCopySpawning()
         }
         if (miniCopy)
         {
-            miniCopy->Respawn(spawnPosition);
+            miniCopy->Respawn(m_pendingMiniCopyPosition);
             ++m_spawnSequence;
         }
+        m_miniCopySpawnPending = false;
+        return;
+    }
+
+    const int aliveCount = static_cast<int>(std::count_if(
+        m_miniCopies.begin(), m_miniCopies.end(),
+        [](const MiniCopy* miniCopy) { return !miniCopy->IsDead(); }));
+    if (aliveCount < MaxMiniCopies && m_boss->ConsumeSpawnRequest())
+    {
+        constexpr float SpawnX[] = { -12.0f, -4.0f, 4.0f, 12.0f };
+        const int slot = m_spawnSequence % MaxMiniCopies;
+        const float x = SpawnX[slot];
+        const float z = 27.0f + static_cast<float>(slot % 2) * 3.0f;
+        const DirectX::XMFLOAT3 spawnPosition { x, Terrain::HeightAt(x, z), z };
+        m_effectManager.SpawnEnemyArrivalLightning(spawnPosition);
+        m_pendingMiniCopyPosition = spawnPosition;
+        m_miniCopySpawnDelay = 0.28f;
+        m_miniCopySpawnPending = true;
     }
 
 }

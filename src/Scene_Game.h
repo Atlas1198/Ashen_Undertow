@@ -25,7 +25,7 @@ public:
 private:
     void UpdateCameraGroundConstraint();
     void UpdatePlayerEffects(float deltaTime);
-    void UpdateMiniCopySpawning();
+    void UpdateMiniCopySpawning(float deltaTime);
     void ResolveCombat();
     void UpdateCameraAndTrees();
     void UpdateEnvironmentEffects(float deltaTime);
@@ -60,6 +60,9 @@ private:
     float m_specialAttackEffectTimer = 0.0f;
     bool m_showColliders = false;
     int m_spawnSequence = 0;
+    DirectX::XMFLOAT3 m_pendingMiniCopyPosition {};
+    float m_miniCopySpawnDelay = 0.0f;
+    bool m_miniCopySpawnPending = false;
     DirectX::XMFLOAT3 m_previousPlayerPosition {};
     DirectX::XMFLOAT3 m_previousMiniCopyPosition {};
     float m_playerWaterMovement = 0.0f;

@@ -85,6 +85,7 @@ public:
         const DirectX::XMFLOAT3& forward);
     void SpawnSpecialImpact(const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& forward);
+    void SpawnEnemyArrivalLightning(const DirectX::XMFLOAT3& position);
     void Stop(std::uint64_t id);
     void Update(float deltaTime);
     void Draw(Renderer& renderer) const;
