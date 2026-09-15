@@ -113,6 +113,7 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     UpdatePlayerEffects(deltaTime);
     UpdateMiniCopySpawning();
     ResolveCombat();
+    m_hud.Update(*m_player, deltaTime);
     UpdateCameraAndTrees();
     UpdateEnvironmentEffects(deltaTime);
 }

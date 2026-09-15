@@ -7,6 +7,7 @@
 #include "UIManager.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -127,6 +128,16 @@ void DrawSpecialGauge(UIManager& ui, float ratio)
 }
 }
 
+void GameHud::Update(const Player& player, float deltaTime)
+{
+    const int currentHp = player.GetHP();
+    if (m_previousPlayerHp >= 0 && currentHp < m_previousPlayerHp)
+        m_playerDamageEffectTimer = 0.38f;
+    m_previousPlayerHp = currentHp;
+    m_playerDamageEffectTimer = (std::max)(
+        0.0f, m_playerDamageEffectTimer - deltaTime);
+}
+
 void GameHud::Draw(UIManager& ui, const Player& player, const Boss& boss,
     const std::vector<MiniCopy*>& miniCopies, const Camera& camera) const
 {
@@ -147,8 +158,21 @@ void GameHud::Draw(UIManager& ui, const Player& player, const Boss& boss,
         ? player.GetSpecialGauge() / player.GetMaxSpecialGauge() : 0.0f;
     DrawSpecialGauge(ui, specialRatio);
 
-    DrawBar(ui, { 24.0f, 860.0f, 360.0f, 16.0f, 2.0f,
-        { 0.6f, 1.0f, 0.05f, 1.0f } }, Ratio(player.GetHP(), player.GetMaxHP()));
+    constexpr float DamageEffectDuration = 0.38f;
+    const float damageEffect = std::clamp(
+        m_playerDamageEffectTimer / DamageEffectDuration, 0.0f, 1.0f);
+    const float shake = std::sin(m_playerDamageEffectTimer * 115.0f) *
+        7.0f * damageEffect;
+    const float pulse = std::sin(damageEffect * DirectX::XM_PI) * 3.0f;
+    const DirectX::XMFLOAT4 playerHpColor{
+        0.6f + 0.4f * damageEffect,
+        1.0f - 0.92f * damageEffect,
+        0.05f - 0.03f * damageEffect,
+        1.0f
+    };
+    DrawBar(ui, { 24.0f + shake, 860.0f - pulse,
+        360.0f, 16.0f + pulse * 2.0f, 2.0f, playerHpColor },
+        Ratio(player.GetHP(), player.GetMaxHP()));
     const float staminaRatio = player.GetMaxStamina() > 0.0f
         ? player.GetStamina() / player.GetMaxStamina() : 0.0f;
     DrawBar(ui, { 24.0f, 881.0f, 360.0f, 8.0f, 1.0f,

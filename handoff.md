@@ -20,19 +20,23 @@
 - `Collider`: `src/Engine/Collider.h` だけをincludeすれば、`SphereCollider` / `CapsuleCollider` / `BoxCollider` を利用できる。各ColliderはObject座標からのOffsetを個別指定可能。
 - `CollisionResolver`: 接触後の押し出しを共通処理する。Rigidbodyを持つObjectを動的、持たないObjectを静的として扱う。Triggerは接触情報だけ更新し、押し出さない。
 - `Renderer`: DX12。実装は `RendererDevice/Models/Environment/Pipelines/PostProcess/Frame/Debug.cpp` に分割。複数モデル・複数Instanceを描画可能。定数バッファはバックバッファ別領域。
-- `GameHud`: Boss・MiniCopy・PlayerのHP／スタミナ表示を担当。`Scene_Game` はゲーム状態を渡すだけ。
+- `GameHud`: Boss・MiniCopy・PlayerのHP／スタミナ／必殺技ゲージ表示を担当。PlayerのHP減少も検出し、被弾時の赤色化・揺れ・脈動を約0.38秒再生する。
 - `GameBalance.h`: Player・Boss・MiniCopy・Sceneの調整値を集約。速度、攻撃判定時間、スタミナ消費量などはここから変更する。
 - `Player`: フレーム更新を接地、ジャンプ／回避、チャージ、通常攻撃、移動、スタミナへ分割済み。
-- `EffectManager`: 公開APIは1つのまま、実装をCore・Combat・Charge・SwordTrail・Environmentへ分割済み。
+- `EffectManager`: 公開APIは1つのまま、実装をCore・Combat・Charge・SwordTrail・Environment・Specialへ分割済み。
 - `RendererInternal`: D3D12のヒープ／バッファ記述子生成を共通ヘルパー化し、Renderer実装間の重複を削減。
 
 ## 実装済みゲーム機能
-- `Scene_Game` が `Player` と `Enemy` 1体を登録。
+- `Scene_Game` が`Player`・ステージ外の`Boss`・Bossが召喚する`MiniCopy`群を管理する。
 - Player: WASD移動、Shift＋WASDで速度2倍のダッシュ、左クリックで攻撃、Spaceでジャンプ。Rigidbodyで重力と上下速度を処理する。視点のY軸回転に合わせて本体と移動方向も回転。
-- 必殺技: ミニコピー撃破ごとに虹色ゲージが10%増加。満タン時はPlayerのリムが虹色に点灯し、FでBossへ自動追尾する三日月型斬撃波を発射する。着弾時はBossへ直接1000ダメージ。調整値は`GameBalance::SpecialAttack`。
+- 必殺技: ミニコピー撃破ごとにパステル虹色ゲージが10%増加。満タン時はPlayerのリムが虹色に点灯し、FでBossへ自動追尾する大型の三日月型斬撃波を発射する。現在は動作確認用に開始時から満タン。
+- 斬撃波は進行方向から見ると一本線、側面から三日月に見える向きで描画する。Bossの顔ボーンを追尾して直接1000ダメージを与える。調整値は`GameBalance::SpecialAttack`。
+- 必殺技の着弾判定は顔ボーン中心のまま、着弾エフェクトだけを斬撃波の進行方向と逆側へ`Boss::GetVisualScale() * 0.14f`移動し、モデル内部への埋まりを防止する。
+- 必殺技着弾エフェクトは三層の巨大フラッシュ、放射火花320本、上昇して散る残光80個で構成する。実装は`src/Engine/EffectManagerSpecial.cpp`。
+- PlayerのHPバーは被弾時に約0.38秒だけ赤くなり、減衰する横揺れと軽い縦脈動を行う。連続被弾時は演出時間をリセットする。
 - Playerモデル: `assets/model/SwordMen/sword_and_shield.glb`。`Idle` / `Walk` / `Run` / `Attack` / `Jump`を収録し、状態に応じて切り替える。Attackは1回再生後に移動状態へ復帰する。
-- Player Collider: `CapsuleCollider(0.4f, 0.4f)`、Offsetは`(0, -0.3, 0)`。
-- Enemyモデル: `assets/model/Mutant/mutant_idle.glb`。`Mutant Breathing Idle.fbx`から変換したIdleアニメーションをループ再生する。Colliderは`CapsuleCollider(0.4f, 0.4f)`、Offsetは`(0, 0.8, 0)`。
+- Player Collider: 胴体・両腕・両脚・頭のボーン追従Hurtbox、剣の通常／チャージ攻撃用Segment Hitbox、回避中のSphere Hurtboxで構成する。胴体Hurtboxは非Triggerで押し出しも担当する。
+- Boss／MiniCopyモデルはMutant系GLBを使用。MiniCopyはボーン追従の全身Hurtboxと左右武器Hitboxを持つ。
 - MixamoアニメーションのHipsに含まれるローカルX/Y移動は固定し、ローカルZの上下動だけ適用する。
 - Camera: Player追従、常時マウス視点操作、左右反転。Escでカーソル表示、左クリックで操作再開。Escは終了に使わない。
 - Tree: `assets/texture/tree.png`を使った1枚ポリゴンのビルボードを地面に1本配置。
@@ -52,9 +56,9 @@
 powershell -ExecutionPolicy Bypass -File tests/RunTests.ps1
 & "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" RenderEngine.vcxproj /p:Configuration=Debug /p:Platform=x64 /m /v:minimal
 ```
-- 最終確認: Debugビルド成功。全8テスト成功。
-- ウィンドウ上の見た目・操作は最終変更後未確認。
+- 最終確認: Debugビルド成功。全8テストは必殺技UI／エフェクトの最終調整前に成功済み。
+- ウィンドウ上の必殺技着弾位置・巨大エフェクト・Player HPバー被弾演出は最終変更後未確認。
 
 ## 作業状態
-- `.claude/` は既存の未追跡物。変更しない。今回の更新前は、それ以外に`git status --short`上の変更なし。
+- `.claude/` は既存の未追跡物。変更しない。作業ツリーには必殺技関連を含む進行中の変更があるため、まとめて破棄しない。
 - 次の機能は未決定。新チャットでは本ファイルを先に読み、依頼に関係するファイルだけ追加確認する。
