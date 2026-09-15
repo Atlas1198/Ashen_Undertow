@@ -40,6 +40,9 @@
     <ClCompile Include="src\Engine\Manager.cpp">
       <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\AudioManager.cpp">
+      <Filter>ソース ファイル\Engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\ModelManager.cpp">
       <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
@@ -166,6 +169,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Manager.h">
+      <Filter>ヘッダー ファイル\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\AudioManager.h">
       <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\ModelManager.h">

@@ -17,6 +17,7 @@ constexpr float AttackHitStart = 0.22f;
 constexpr float AttackHitEnd = 0.68f;
 constexpr float AttackComboTransition = 0.72f;
 constexpr float AttackComboBlendDuration = 0.1f;
+constexpr float ThirdAttackColliderLengthScale = 1.08f;
 constexpr const char* AttackAnimations[] = { "Attack", "Attack2", "Attack3" };
 constexpr int AttackComboCount = 3;
 constexpr float ChargeActivationTime = 0.25f;
@@ -85,6 +86,9 @@ constexpr float MiniCopySpawnMinRadius = 10.0f;
 constexpr float MiniCopySpawnMaxRadius = 15.0f;
 constexpr float MinChargeHitStop = 0.105f;
 constexpr float MaxChargeHitStop = 0.15f;
+constexpr float ClearSettleDuration = 0.6f;
+constexpr float SpecialPromptPulseSpeed = 4.5f;
+constexpr float StaminaShortageNoticeDuration = 2.0f;
 }
 
 namespace SpecialAttack

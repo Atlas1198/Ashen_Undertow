@@ -28,6 +28,17 @@ bool Boss::Initialize(ModelManager& modelManager)
     return m_animation != nullptr;
 }
 
+void Boss::TakeDamage(int amount)
+{
+    if (amount <= 0 || GetHP() <= 1) return;
+    GameObject::TakeDamage(amount < GetHP() ? amount : GetHP() - 1);
+}
+
+void Boss::TakeSpecialDamage(int amount)
+{
+    GameObject::TakeDamage(amount);
+}
+
 DirectX::XMFLOAT3 Boss::GetSpecialAttackTarget() const
 {
     DirectX::XMFLOAT4X4 headTransform;

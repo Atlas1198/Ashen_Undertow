@@ -1,6 +1,7 @@
 #include "Scene_Title.h"
 
 #include "Input.h"
+#include "AudioManager.h"
 
 #include <algorithm>
 #include <array>
@@ -8,6 +9,7 @@
 
 bool Scene_Title::Initialize()
 {
+    m_audio.PlayMusic(AudioId::TitleMusic, 0.34f);
     return true;
 }
 
@@ -30,8 +32,10 @@ void Scene_Title::OnUpdate(float deltaTime)
     m_time += deltaTime;
     if (!m_starting)
     {
-        if (m_input.MenuUpPressed()) m_selectedItem = 0;
-        if (m_input.MenuDownPressed()) m_selectedItem = 1;
+        if (m_input.MenuUpPressed() && m_selectedItem != 0)
+            m_selectedItem = 0;
+        if (m_input.MenuDownPressed() && m_selectedItem != 1)
+            m_selectedItem = 1;
         if (m_input.ConfirmPressed())
         {
             m_startRequest = m_selectedItem == 0

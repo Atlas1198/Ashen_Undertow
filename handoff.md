@@ -51,12 +51,20 @@
 - Blender Portableは`.tools/BlenderPortable/`に配置済み。今後も使うため削除しない。
 - Playerアニメーションを追加するときは、変換スクリプトの`clips`へ名前とFBXパスを追加して再実行する。
 
+## 直近の実装
+- `Scene_Title`から本編／チュートリアルを選択可能。上下キー・W/S・Enterに対応。
+- `Scene_Tutorial`は8操作を順番に判定し、Player HUDも表示する。溜め攻撃中はスタミナバーを水色で強調し、説明に「スタミナ消費」を表示。
+- チュートリアル完了時は`CLEAR`を表示。Enter後に暗転してGameSceneへ移動する。
+- GameScene開始時はステージ上へ`game_start.png`を約2.2秒フェードイン／アウト表示し、その間はゲーム進行とHUDを停止する。表示位置はY=240。
+- `AudioManager`でBGM／SEを管理。選択・決定音は使用せず、PlayerとEnemyへ草地の足音を追加済み（Enemyは小音量）。
+- Player死亡後は`YOU DIED`＋TITLE/RETRY、Boss撃破後は`CLEAR`＋TITLEを表示する。
+
 ## 検証
 ```powershell
 powershell -ExecutionPolicy Bypass -File tests/RunTests.ps1
 & "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" RenderEngine.vcxproj /p:Configuration=Debug /p:Platform=x64 /m /v:minimal
 ```
-- 最終確認: Debugビルド成功。全8テストは必殺技UI／エフェクトの最終調整前に成功済み。
+- 最終確認: Debugビルド成功。テストスクリプト終了コード0。
 - ウィンドウ上の必殺技着弾位置・巨大エフェクト・Player HPバー被弾演出は最終変更後未確認。
 
 ## 作業状態

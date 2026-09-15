@@ -154,6 +154,7 @@
     <ClCompile Include="src\GameHud.cpp" />
     <ClCompile Include="src\SpecialAttack.cpp" />
     <ClCompile Include="src\Engine\Manager.cpp" />
+    <ClCompile Include="src\Engine\AudioManager.cpp" />
     <ClCompile Include="src\Engine\ModelManager.cpp" />
     <ClCompile Include="src\Engine\ObjectManager.cpp" />
     <ClCompile Include="src\Engine\ComponentManager.cpp" />
@@ -210,6 +211,7 @@
     <ClInclude Include="src\SpecialAttack.h" />
     <ClInclude Include="src\GameBalance.h" />
     <ClInclude Include="src\Engine\Manager.h" />
+    <ClInclude Include="src\Engine\AudioManager.h" />
     <ClInclude Include="src\Engine\ModelManager.h" />
     <ClInclude Include="src\Engine\ObjectManager.h" />
     <ClInclude Include="src\Engine\Component.h" />

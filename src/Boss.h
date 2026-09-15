@@ -12,6 +12,8 @@ public:
 
     bool Initialize(ModelManager& modelManager) override;
     void Update(float deltaTime) override;
+    void TakeDamage(int amount);
+    void TakeSpecialDamage(int amount);
     float GetVisualScale() const { return m_scale.y; }
     DirectX::XMFLOAT3 GetSpecialAttackTarget() const;
     DirectX::XMFLOAT3 GetMouthPosition() const;

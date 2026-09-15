@@ -9,6 +9,7 @@
 #include "Player.h"
 #include "Renderer.h"
 #include "Terrain.h"
+#include "AudioManager.h"
 
 #include <algorithm>
 #include <array>
@@ -62,15 +63,17 @@ bool Scene_Tutorial::Initialize()
 
 bool Scene_Tutorial::InitializeUI(UIManager& ui)
 {
+    m_audio.PlayMusic(AudioId::BattleMusic, 0.30f);
+    if (!m_hud.InitializeUI(ui)) return false;
     m_effectTexture = ui.LoadImageFile(
         "assets/texture/effects/spark_particle.png");
     m_stepsTexture = ui.LoadImageFile(
         "assets/texture/ui/tutorial_steps_ja.png");
-    m_gameTexture = ui.LoadImageFile("assets/texture/ui/game.png");
+    m_clearTexture = ui.LoadImageFile("assets/texture/ui/clear.png");
     m_pressEnterTexture = ui.LoadImageFile(
         "assets/texture/ui/press_enter.png");
     if (!m_effectTexture.IsValid() || !m_stepsTexture.IsValid() ||
-        !m_gameTexture.IsValid() || !m_pressEnterTexture.IsValid()) return false;
+        !m_clearTexture.IsValid() || !m_pressEnterTexture.IsValid()) return false;
     m_effectManager.SetTextureIndex(m_effectTexture.index);
     return true;
 }
@@ -93,15 +96,20 @@ void Scene_Tutorial::OnUpdate(float deltaTime)
         {
             m_player->ConsumeSpecialGauge();
             m_specialEffectTimer = 0.0f;
+            m_audio.PlaySound(AudioId::SpecialAttack, 1.05f, 0.82f);
         }
     }
 
-    if (m_step >= TutorialStepCount && !m_leaving && m_input.ConfirmPressed())
-        m_leaving = true;
-    if (m_leaving)
+    if (m_step >= TutorialStepCount)
     {
-        m_fade = (std::min)(1.0f, m_fade + deltaTime);
-        if (m_fade >= 1.0f) RequestScene(SceneRequest::Game);
+        m_completionTime += deltaTime;
+        if (!m_leaving && m_completionTime >= 0.8f && m_input.ConfirmPressed())
+            m_leaving = true;
+        if (m_leaving)
+        {
+            m_fade = (std::min)(1.0f, m_fade + deltaTime / 0.75f);
+            if (m_fade >= 1.0f) RequestScene(SceneRequest::Game);
+        }
     }
 }
 
@@ -113,6 +121,22 @@ void Scene_Tutorial::OnAfterUpdate(float deltaTime)
     const float dx = current.x - m_previousPlayerPosition.x;
     const float dz = current.z - m_previousPlayerPosition.z;
     const float traveled = std::sqrt(dx * dx + dz * dz);
+    const float speed = deltaTime > 0.0f ? traveled / deltaTime : 0.0f;
+    if (m_player->IsGrounded() && !m_player->IsEvading() && speed > 0.2f)
+    {
+        m_footstepTimer -= deltaTime;
+        if (m_footstepTimer <= 0.0f)
+        {
+            const AudioId step = (m_footstepSequence++ & 1)
+                ? AudioId::Footstep2 : AudioId::Footstep1;
+            m_audio.PlaySound(step, 0.72f, speed >= 5.0f ? 1.08f : 0.96f);
+            m_footstepTimer = speed >= 5.0f ? 0.28f : 0.42f;
+        }
+    }
+    else
+    {
+        m_footstepTimer = 0.0f;
+    }
 
     if (m_step == 0)
     {
@@ -141,6 +165,7 @@ void Scene_Tutorial::OnAfterUpdate(float deltaTime)
         if (m_player->ResolveAttackHit(*m_dummy, hitPosition))
         {
             m_effectManager.Spawn(EffectType::HitSpark, hitPosition);
+            m_audio.PlaySound(AudioId::SwordImpact, 0.78f, 1.08f);
             ++m_comboHits;
             m_dummy->Heal(m_dummy->GetMaxHP());
             if (m_comboHits >= 3) AdvanceStep();
@@ -156,6 +181,8 @@ void Scene_Tutorial::OnAfterUpdate(float deltaTime)
             *m_dummy, hitPosition, chargePower))
         {
             m_effectManager.SpawnChargeHit(hitPosition, chargePower);
+            m_audio.PlaySound(AudioId::SwordImpact,
+                0.85f + chargePower * 0.25f, 0.72f);
             m_dummy->Heal(m_dummy->GetMaxHP());
             if (chargePower >= 0.85f) AdvanceStep();
         }
@@ -190,6 +217,7 @@ void Scene_Tutorial::OnAfterUpdate(float deltaTime)
     m_previousPlayerPosition = current;
     m_wasEvading = m_player->IsEvading();
     m_wasAttacking = m_player->IsAttacking();
+    m_hud.Update(*m_player, deltaTime);
     m_camera.SetTarget(current);
 }
 
@@ -270,6 +298,7 @@ void Scene_Tutorial::OnDrawUI(UIManager& ui)
             DirectX::XMFLOAT2 { a.x - px, a.y - py } }, color);
     };
 
+    m_hud.DrawPlayerStatus(ui, *m_player, m_step == 5);
     ui.DrawImage(m_stepsTexture, { 20.0f, 10.0f, 520.0f, 715.0f },
         { 1.0f, 1.0f, 1.0f, 1.0f });
     constexpr float RowY[] = {
@@ -299,18 +328,17 @@ void Scene_Tutorial::OnDrawUI(UIManager& ui)
 
     if (m_step >= TutorialStepCount)
     {
+        const float clearAlpha = std::clamp(m_completionTime / 0.75f, 0.0f, 1.0f);
         ui.DrawQuad(rectangle(0.0f, 0.0f, ScreenWidth, ScreenHeight),
-            { 0.0f, 0.0f, 0.0f, 0.42f });
+            { 0.0f, 0.0f, 0.0f, 0.42f + 0.58f * m_fade });
         const float pulse = 0.6f + 0.4f *
             (0.5f + 0.5f * std::sin(m_time * 2.4f));
-        ui.DrawImage(m_gameTexture, { 570.0f, 300.0f, 460.0f, 154.0f },
-            { 0.85f, 1.0f, 1.0f, pulse });
-        ui.DrawImage(m_pressEnterTexture,
-            { 625.0f, 505.0f, 350.0f, 117.0f },
-            { 1.0f, 1.0f, 1.0f, pulse * (1.0f - m_fade) });
+        if (m_fade < 1.0f)
+            ui.DrawImage(m_clearTexture, { 300.0f, 225.0f, 1000.0f, 333.0f },
+                { 1.0f, 1.0f, 1.0f, clearAlpha * (1.0f - m_fade) });
+        if (!m_leaving)
+            ui.DrawImage(m_pressEnterTexture,
+                { 625.0f, 505.0f, 350.0f, 117.0f },
+                { 1.0f, 1.0f, 1.0f, pulse * clearAlpha });
     }
-
-    if (m_fade > 0.0f)
-        ui.DrawQuad(rectangle(0.0f, 0.0f, ScreenWidth, ScreenHeight),
-            { 0.0f, 0.0f, 0.0f, m_fade });
 }

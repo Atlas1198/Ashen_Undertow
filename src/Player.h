@@ -6,6 +6,7 @@
 
 class Input;
 class AnimationComponent;
+class BoneSegmentColliderAttachment;
 class Collider;
 class Rigidbody;
 class SphereCollider;
@@ -37,6 +38,12 @@ public:
     void ApplyBlockKnockback(const DirectX::XMFLOAT3& attackerPosition);
     float GetStamina() const { return m_stamina; }
     float GetMaxStamina() const { return MaxStamina; }
+    bool ConsumeChargeStaminaShortageNotice()
+    {
+        const bool noticed = m_chargeStaminaShortageNotice;
+        m_chargeStaminaShortageNotice = false;
+        return noticed;
+    }
     float GetSpecialGauge() const { return m_specialGauge; }
     float GetMaxSpecialGauge() const { return MaxSpecialGauge; }
     bool IsSpecialGaugeFull() const { return m_specialGauge >= MaxSpecialGauge; }
@@ -71,6 +78,7 @@ private:
     static constexpr float MaxSpecialGauge = 100.0f;
     const Input& m_input;
     AnimationComponent* m_animation = nullptr;
+    BoneSegmentColliderAttachment* m_attackColliderAttachment = nullptr;
     SphereCollider* m_evasionCollider = nullptr;
     Collider* m_attackCollider = nullptr;
     Collider* m_chargeAttackCollider = nullptr;
@@ -92,6 +100,7 @@ private:
     bool m_attackInputPending = false;
     bool m_charging = false;
     bool m_chargeReleasing = false;
+    bool m_chargeStaminaShortageNotice = false;
     bool m_blocking = false;
     bool m_attackHit = false;
     bool m_evading = false;

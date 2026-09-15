@@ -7,6 +7,7 @@
 #include "Collider.h"
 #include "Input.h"
 #include "GameBalance.h"
+#include "AudioManager.h"
 
 #include "Renderer.h"
 #include "Terrain.h"
@@ -15,8 +16,9 @@
 
 using namespace GameBalance::Scene;
 
-Scene_Game::Scene_Game(ModelManager& modelManager, const Input& input)
-    : SceneManager(modelManager), m_input(input)
+Scene_Game::Scene_Game(ModelManager& modelManager, const Input& input,
+    AudioManager& audio)
+    : SceneManager(modelManager), m_input(input), m_audio(audio)
 {
 }
 
@@ -80,6 +82,7 @@ bool Scene_Game::Initialize()
 
 bool Scene_Game::InitializeUI(UIManager& ui)
 {
+    m_audio.PlayMusic(AudioId::BattleMusic, 0.36f);
     if (!m_hud.InitializeUI(ui)) return false;
     m_effectTexture = ui.LoadImageFile(
         "assets/texture/effects/spark_particle.png");
@@ -89,15 +92,52 @@ bool Scene_Game::InitializeUI(UIManager& ui)
     m_titleTexture = ui.LoadImageFile("assets/texture/ui/title.png");
     m_retryTexture = ui.LoadImageFile("assets/texture/ui/retry.png");
     m_clearTexture = ui.LoadImageFile("assets/texture/ui/clear.png");
+    m_gameStartTexture = ui.LoadImageFile("assets/texture/ui/game_start.png");
+    m_specialPromptTexture = ui.LoadImageFile(
+        "assets/texture/ui/use_special_attack.png");
+    m_staminaShortageTexture = ui.LoadImageFile(
+        "assets/texture/ui/charge_stamina_shortage.png");
     return m_youDiedTexture.IsValid() && m_titleTexture.IsValid() &&
-        m_retryTexture.IsValid() && m_clearTexture.IsValid();
+        m_retryTexture.IsValid() && m_clearTexture.IsValid() &&
+        m_gameStartTexture.IsValid() && m_specialPromptTexture.IsValid() &&
+        m_staminaShortageTexture.IsValid();
 }
 
 void Scene_Game::OnDrawUI(UIManager& ui)
 {
+    if (m_gameStartTime < 2.2f)
+    {
+        const float alpha = m_gameStartTime < 0.55f
+            ? m_gameStartTime / 0.55f
+            : (m_gameStartTime < 1.45f ? 1.0f
+                : std::clamp((2.2f - m_gameStartTime) / 0.75f, 0.0f, 1.0f));
+        ui.DrawImage(m_gameStartTexture,
+            { 260.0f, 240.0f, 1080.0f, 405.0f },
+            { 1.0f, 1.0f, 1.0f, alpha });
+        return;
+    }
+
     m_hud.Draw(ui, *m_player, *m_boss, m_miniCopies, m_camera);
     const bool showingDeath = m_deathScreenTime >= 0.0f;
     const bool showingClear = m_clearScreenTime >= 0.0f;
+    if (!showingDeath && !showingClear && m_boss->GetHP() == 1 &&
+        !m_specialAttack.IsActive())
+    {
+        const float pulse = 0.82f + 0.18f *
+            (0.5f + 0.5f * std::sin(
+                m_bossAttackVisualTime * SpecialPromptPulseSpeed));
+        ui.DrawImage(m_specialPromptTexture,
+            { 450.0f, 105.0f, 700.0f, 120.0f },
+            { 1.0f, 1.0f, 1.0f, pulse });
+    }
+    if (!showingDeath && !showingClear && m_staminaShortageNoticeTime > 0.0f)
+    {
+        const float alpha = std::clamp(
+            m_staminaShortageNoticeTime / 0.3f, 0.0f, 1.0f);
+        ui.DrawImage(m_staminaShortageTexture,
+            { 350.0f, 650.0f, 900.0f, 110.0f },
+            { 1.0f, 1.0f, 1.0f, alpha });
+    }
     if (!showingDeath && !showingClear) return;
 
     constexpr float ScreenWidth = 1600.0f;
@@ -155,6 +195,12 @@ void Scene_Game::OnDrawUI(UIManager& ui)
 
 void Scene_Game::OnUpdate(float deltaTime)
 {
+    if (m_gameStartTime < 2.2f)
+    {
+        m_gameStartTime = (std::min)(2.2f, m_gameStartTime + deltaTime);
+        return;
+    }
+
     if (m_deathScreenTime >= 0.0f)
     {
         m_deathScreenTime += deltaTime;
@@ -174,8 +220,10 @@ void Scene_Game::OnUpdate(float deltaTime)
             if (m_input.MenuRightPressed()) m_deathMenuChoice = 1;
             if (m_input.AttackPressed() || m_input.JumpPressed() ||
                 m_input.ConfirmPressed())
+            {
                 RequestScene(m_deathMenuChoice == 0
                     ? SceneRequest::Title : SceneRequest::Retry);
+            }
         }
         return;
     }
@@ -186,7 +234,9 @@ void Scene_Game::OnUpdate(float deltaTime)
         if (m_clearScreenTime >= 1.45f &&
             (m_input.AttackPressed() || m_input.JumpPressed() ||
              m_input.ConfirmPressed()))
+        {
             RequestScene(SceneRequest::Title);
+        }
         return;
     }
 
@@ -212,10 +262,19 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
 {
     m_effectManager.Update(deltaTime);
     m_player->ResolveTerrainContact();
+    if (m_player->ConsumeChargeStaminaShortageNotice())
+        m_staminaShortageNoticeTime = StaminaShortageNoticeDuration;
+    else
+        m_staminaShortageNoticeTime = (std::max)(
+            0.0f, m_staminaShortageNoticeTime - deltaTime);
     if (m_player->IsDead())
     {
-        if (m_player->IsDeathAnimationFinished())
+        if (m_player->IsDeathAnimationFinished() && m_deathScreenTime < 0.0f)
+        {
             m_deathScreenTime = 0.0f;
+            m_audio.StopMusic();
+            m_audio.PlaySound(AudioId::PlayerDeath, 0.68f, 0.78f);
+        }
         m_hud.Update(*m_player, deltaTime);
         UpdateCameraAndTrees();
         return;
@@ -225,7 +284,22 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     UpdateMiniCopySpawning(deltaTime);
     ResolveCombat();
     if (m_boss->IsDead() && !m_player->IsDead() && m_clearScreenTime < 0.0f)
-        m_clearScreenTime = 0.0f;
+    {
+        if (m_player->IsAttacking())
+        {
+            m_clearSettleTime = 0.0f;
+        }
+        else
+        {
+            m_clearSettleTime += deltaTime;
+            if (m_clearSettleTime >= ClearSettleDuration)
+            {
+                m_clearScreenTime = 0.0f;
+                m_audio.StopMusic();
+                m_audio.PlaySound(AudioId::Victory, 1.0f);
+            }
+        }
+    }
     UpdateBossGlobalAttack();
     m_hud.Update(*m_player, deltaTime);
     UpdateCameraAndTrees();
@@ -236,7 +310,15 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
 void Scene_Game::UpdateBossGlobalAttack()
 {
     if (m_boss->GetGlobalAttackPhase() != Boss::GlobalAttackPhase::Flame)
+    {
+        m_bossFlameSoundActive = false;
         return;
+    }
+    if (!m_bossFlameSoundActive)
+    {
+        m_audio.PlaySound(AudioId::BossFlame, 1.25f, 0.72f);
+        m_bossFlameSoundActive = true;
+    }
     const auto& position = m_player->GetPosition();
     const float pondX = position.x - Terrain::PondCenterX;
     const float pondZ = position.z - Terrain::PondCenterZ;
@@ -301,6 +383,7 @@ void Scene_Game::TryLaunchSpecialAttack()
     {
         m_player->ConsumeSpecialGauge();
         m_specialAttackEffectTimer = 0.0f;
+        m_audio.PlaySound(AudioId::SpecialAttack, 1.15f, 0.82f);
     }
 }
 
@@ -319,7 +402,7 @@ void Scene_Game::UpdateSpecialAttack(float deltaTime)
     }
     if (!hit) return;
 
-    m_boss->TakeDamage(GameBalance::SpecialAttack::Damage);
+    m_boss->TakeSpecialDamage(GameBalance::SpecialAttack::Damage);
 
     const auto impactDirection = m_specialAttack.GetDirection();
     const float impactSurfaceOffset = m_boss->GetVisualScale() * 0.14f;
@@ -339,6 +422,8 @@ void Scene_Game::UpdateMiniCopySpawning(float deltaTime)
         if (!pending.lightningStarted)
         {
             m_effectManager.SpawnEnemyArrivalLightning(pending.position);
+            m_audio.PlaySound(AudioId::EnemyLightning, 0.55f,
+                0.90f + static_cast<float>(m_spawnSequence & 3) * 0.05f);
             pending.lightningStarted = true;
         }
         else
@@ -454,6 +539,8 @@ void Scene_Game::ResolveCombat()
             *miniCopy, chargeHitPosition, chargePower))
         {
             m_effectManager.SpawnChargeHit(chargeHitPosition, chargePower);
+            m_audio.PlaySound(AudioId::SwordImpact,
+                0.85f + chargePower * 0.3f, 0.68f + chargePower * 0.16f);
             const float hitStop = MinChargeHitStop +
                 (MaxChargeHitStop - MinChargeHitStop) *
                 std::clamp((chargePower - 0.4f) / 0.6f, 0.0f, 1.0f);
@@ -468,6 +555,7 @@ void Scene_Game::ResolveCombat()
         if (m_player->ResolveAttackHit(*miniCopy, hitPosition))
         {
             m_effectManager.Spawn(EffectType::HitSpark, hitPosition);
+            m_audio.PlaySound(AudioId::SwordImpact, 0.82f, 1.08f);
         }
         if (miniCopy->IsDead())
         {
@@ -476,7 +564,10 @@ void Scene_Game::ResolveCombat()
         }
         DirectX::XMFLOAT3 blockPosition {};
         if (miniCopy->ResolveAttackHit(*m_player, blockPosition))
+        {
             m_effectManager.Spawn(EffectType::BlockSpark, blockPosition);
+            m_audio.PlaySound(AudioId::SwordImpact, 0.95f, 1.32f);
+        }
     }
 }
 
@@ -552,6 +643,22 @@ void Scene_Game::UpdateEnvironmentEffects(float deltaTime)
         m_footstepDustTimer = 0.0f;
     }
     if (!m_player->IsEvading() && m_player->IsGrounded() &&
+        !playerInWater && playerSpeed > 0.2f)
+    {
+        m_playerFootstepTimer -= deltaTime;
+        if (m_playerFootstepTimer <= 0.0f)
+        {
+            const AudioId step = (m_playerFootstepSequence++ & 1)
+                ? AudioId::Footstep2 : AudioId::Footstep1;
+            m_audio.PlaySound(step, 0.72f, playerSpeed >= 5.0f ? 1.08f : 0.96f);
+            m_playerFootstepTimer = playerSpeed >= 5.0f ? 0.28f : 0.42f;
+        }
+    }
+    else
+    {
+        m_playerFootstepTimer = 0.0f;
+    }
+    if (!m_player->IsEvading() && m_player->IsGrounded() &&
         playerInWater && playerSpeed > 0.2f)
     {
         m_playerWaterSplashTimer -= deltaTime;
@@ -599,6 +706,7 @@ void Scene_Game::UpdateEnvironmentEffects(float deltaTime)
 
     m_previousMiniCopyEffectPositions.resize(m_miniCopies.size());
     m_miniCopyWaterSplashTimers.resize(m_miniCopies.size());
+    m_miniCopyFootstepTimers.resize(m_miniCopies.size());
     m_miniCopyWasDead.resize(m_miniCopies.size(), false);
     for (size_t i = 0; i < m_miniCopies.size(); ++i)
     {
@@ -614,6 +722,7 @@ void Scene_Game::UpdateEnvironmentEffects(float deltaTime)
         m_miniCopyWasDead[i] = isDead;
         auto& previous = m_previousMiniCopyEffectPositions[i];
         auto& timer = m_miniCopyWaterSplashTimers[i];
+        auto& footstepTimer = m_miniCopyFootstepTimers[i];
         const float dx = current.x - previous.x;
         const float dz = current.z - previous.z;
         const float distance = std::sqrt(dx * dx + dz * dz);
@@ -621,6 +730,7 @@ void Scene_Game::UpdateEnvironmentEffects(float deltaTime)
         {
             previous = current;
             timer = 0.0f;
+            footstepTimer = 0.0f;
             continue;
         }
         const float miniPondX = current.x - Terrain::PondCenterX;
@@ -628,6 +738,30 @@ void Scene_Game::UpdateEnvironmentEffects(float deltaTime)
         const bool inWater = miniPondX * miniPondX + miniPondZ * miniPondZ <=
             Terrain::PondWaterRadius * Terrain::PondWaterRadius;
         const float speed = distance / deltaTime;
+        if (!inWater && speed > 0.35f)
+        {
+            footstepTimer -= deltaTime;
+            if (footstepTimer <= 0.0f)
+            {
+                const float listenerX = current.x - playerPosition.x;
+                const float listenerZ = current.z - playerPosition.z;
+                const float listenerDistance = std::sqrt(
+                    listenerX * listenerX + listenerZ * listenerZ);
+                if (listenerDistance < 24.0f)
+                {
+                    const float volume = 0.18f *
+                        (1.0f - listenerDistance / 24.0f);
+                    const AudioId step = (m_enemyFootstepSequence++ & 1)
+                        ? AudioId::Footstep4 : AudioId::Footstep3;
+                    m_audio.PlaySound(step, volume, 0.78f);
+                }
+                footstepTimer = speed >= 2.5f ? 0.30f : 0.42f;
+            }
+        }
+        else
+        {
+            footstepTimer = 0.0f;
+        }
         if (inWater && speed > 0.2f)
         {
             timer -= deltaTime;

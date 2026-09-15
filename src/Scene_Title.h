@@ -4,12 +4,13 @@
 #include "UIManager.h"
 
 class Input;
+class AudioManager;
 
 class Scene_Title final : public SceneManager
 {
 public:
-    Scene_Title(ModelManager& modelManager, const Input& input)
-        : SceneManager(modelManager), m_input(input) {}
+    Scene_Title(ModelManager& modelManager, const Input& input, AudioManager& audio)
+        : SceneManager(modelManager), m_input(input), m_audio(audio) {}
 
     bool Initialize() override;
     bool InitializeUI(UIManager& ui) override;
@@ -19,6 +20,7 @@ private:
     void OnDrawUI(UIManager& ui) override;
 
     const Input& m_input;
+    AudioManager& m_audio;
     UIImageHandle m_backgroundTexture;
     UIImageHandle m_titleTexture;
     UIImageHandle m_tutorialTexture;

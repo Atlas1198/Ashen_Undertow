@@ -2,12 +2,14 @@
 
 #include "Camera.h"
 #include "EffectManager.h"
+#include "GameHud.h"
 #include "SceneManager.h"
 #include "SpecialAttack.h"
 #include "UIManager.h"
 #include <array>
 
 class Input;
+class AudioManager;
 class Player;
 class Boss;
 class GameObject;
@@ -15,8 +17,9 @@ class GameObject;
 class Scene_Tutorial final : public SceneManager
 {
 public:
-    Scene_Tutorial(ModelManager& modelManager, const Input& input)
-        : SceneManager(modelManager), m_input(input) {}
+    Scene_Tutorial(ModelManager& modelManager, const Input& input,
+        AudioManager& audio)
+        : SceneManager(modelManager), m_input(input), m_audio(audio) {}
 
     bool Initialize() override;
     bool InitializeUI(UIManager& ui) override;
@@ -33,15 +36,17 @@ private:
     DirectX::XMFLOAT3 GetDummyTarget() const;
 
     const Input& m_input;
+    AudioManager& m_audio;
     Player* m_player = nullptr;
     Boss* m_boss = nullptr;
     GameObject* m_dummy = nullptr;
     Camera m_camera;
     EffectManager m_effectManager;
+    GameHud m_hud;
     SpecialAttack m_specialAttack;
     UIImageHandle m_effectTexture;
     UIImageHandle m_stepsTexture;
-    UIImageHandle m_gameTexture;
+    UIImageHandle m_clearTexture;
     UIImageHandle m_pressEnterTexture;
     std::array<bool, TutorialStepCount> m_completed {};
     DirectX::XMFLOAT3 m_previousPlayerPosition {};
@@ -49,10 +54,13 @@ private:
     float m_dashDistance = 0.0f;
     float m_guardDuration = 0.0f;
     float m_specialEffectTimer = 0.0f;
+    float m_footstepTimer = 0.0f;
     float m_time = 0.0f;
+    float m_completionTime = 0.0f;
     float m_fade = 0.0f;
     int m_step = 0;
     int m_comboHits = 0;
+    int m_footstepSequence = 0;
     bool m_wasAirborne = false;
     bool m_wasEvading = false;
     bool m_wasAttacking = false;

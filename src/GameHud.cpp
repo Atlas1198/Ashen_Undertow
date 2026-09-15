@@ -167,6 +167,12 @@ void GameHud::Draw(UIManager& ui, const Player& player, const Boss& boss,
             Ratio(miniCopy->GetHP(), miniCopy->GetMaxHP()));
     }
 
+    DrawPlayerStatus(ui, player);
+}
+
+void GameHud::DrawPlayerStatus(UIManager& ui, const Player& player,
+    bool emphasizeStamina) const
+{
     const float specialRatio = player.GetMaxSpecialGauge() > 0.0f
         ? player.GetSpecialGauge() / player.GetMaxSpecialGauge() : 0.0f;
     DrawSpecialGauge(ui, specialRatio, m_elapsedTime);
@@ -192,6 +198,28 @@ void GameHud::Draw(UIManager& ui, const Player& player, const Boss& boss,
     const float staminaRatio = player.GetMaxStamina() > 0.0f
         ? player.GetStamina() / player.GetMaxStamina() : 0.0f;
     ui.DrawImage(m_staminaIcon, { 25.0f, 840.0f, 44.0f, 44.0f });
+    if (emphasizeStamina)
+    {
+        const float glow = 0.58f + 0.42f *
+            (0.5f + 0.5f * std::sin(m_elapsedTime * 5.0f));
+        const DirectX::XMFLOAT4 color { 0.05f, 0.95f, 1.0f, glow };
+        ui.DrawQuad({ DirectX::XMFLOAT2 { 78.0f, 848.0f },
+            DirectX::XMFLOAT2 { 430.0f, 848.0f },
+            DirectX::XMFLOAT2 { 430.0f, 851.0f },
+            DirectX::XMFLOAT2 { 78.0f, 851.0f } }, color);
+        ui.DrawQuad({ DirectX::XMFLOAT2 { 78.0f, 871.0f },
+            DirectX::XMFLOAT2 { 430.0f, 871.0f },
+            DirectX::XMFLOAT2 { 430.0f, 874.0f },
+            DirectX::XMFLOAT2 { 78.0f, 874.0f } }, color);
+        ui.DrawQuad({ DirectX::XMFLOAT2 { 78.0f, 848.0f },
+            DirectX::XMFLOAT2 { 81.0f, 848.0f },
+            DirectX::XMFLOAT2 { 81.0f, 874.0f },
+            DirectX::XMFLOAT2 { 78.0f, 874.0f } }, color);
+        ui.DrawQuad({ DirectX::XMFLOAT2 { 427.0f, 848.0f },
+            DirectX::XMFLOAT2 { 430.0f, 848.0f },
+            DirectX::XMFLOAT2 { 430.0f, 874.0f },
+            DirectX::XMFLOAT2 { 427.0f, 874.0f } }, color);
+    }
     DrawBar(ui, { 84.0f, 854.0f, 340.0f, 14.0f, 2.0f,
         { 1.0f, 0.82f, 0.05f, 1.0f } }, staminaRatio);
 }

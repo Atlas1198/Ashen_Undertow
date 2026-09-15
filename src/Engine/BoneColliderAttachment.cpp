@@ -51,5 +51,8 @@ void BoneSegmentColliderAttachment::Update(float deltaTime)
     DirectX::XMFLOAT3 start, end;
     if (!NodeWorldPosition(m_animation, m_model, m_startNode, m_startOffset, start) ||
         !NodeWorldPosition(m_animation, m_model, m_endNode, m_endOffset, end)) return;
+    end.x = start.x + (end.x - start.x) * m_lengthScale;
+    end.y = start.y + (end.y - start.y) * m_lengthScale;
+    end.z = start.z + (end.z - start.z) * m_lengthScale;
     m_collider.SetEndpoints(start, end);
 }

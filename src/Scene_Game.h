@@ -13,11 +13,12 @@ class Boss;
 class MiniCopy;
 class Tree;
 class Input;
+class AudioManager;
 
 class Scene_Game final : public SceneManager
 {
 public:
-    Scene_Game(ModelManager& modelManager, const Input& input);
+    Scene_Game(ModelManager& modelManager, const Input& input, AudioManager& audio);
 
     bool Initialize() override;
     bool InitializeUI(UIManager& ui) override;
@@ -41,7 +42,7 @@ private:
     bool IsSimulationPaused() const override
     {
         return m_hitStopThisFrame || m_deathScreenTime >= 0.0f ||
-            m_clearScreenTime >= 0.0f;
+            m_clearScreenTime >= 0.0f || m_gameStartTime < 2.2f;
     }
     void OnDraw(Renderer& renderer) override;
     void OnDrawUI(UIManager& ui) override;
@@ -50,6 +51,9 @@ private:
     UIImageHandle m_titleTexture;
     UIImageHandle m_retryTexture;
     UIImageHandle m_clearTexture;
+    UIImageHandle m_gameStartTexture;
+    UIImageHandle m_specialPromptTexture;
+    UIImageHandle m_staminaShortageTexture;
     GameHud m_hud;
 
     Player* m_player = nullptr;
@@ -58,6 +62,7 @@ private:
     MiniCopy* m_environmentMiniCopy = nullptr;
     std::vector<Tree*> m_trees;
     const Input& m_input;
+    AudioManager& m_audio;
     Camera m_camera;
     EffectManager m_effectManager;
     SpecialAttack m_specialAttack;
@@ -80,18 +85,26 @@ private:
     float m_miniCopyWaterMovement = 0.0f;
     float m_chargeAuraSpawnTimer = 0.0f;
     float m_footstepDustTimer = 0.0f;
+    float m_playerFootstepTimer = 0.0f;
+    int m_playerFootstepSequence = 0;
     float m_playerWaterSplashTimer = 0.0f;
     std::vector<DirectX::XMFLOAT3> m_previousMiniCopyEffectPositions;
     std::vector<float> m_miniCopyWaterSplashTimers;
+    std::vector<float> m_miniCopyFootstepTimers;
+    int m_enemyFootstepSequence = 0;
     std::vector<bool> m_miniCopyWasDead;
     float m_hitStopTimer = 0.0f;
     bool m_hitStopThisFrame = false;
     std::array<SwordTrailPose, 4> m_swordTrailHistory {};
     size_t m_swordTrailHistoryCount = 0;
     bool m_wasPlayerEvading = false;
+    bool m_bossFlameSoundActive = false;
     float m_bossAttackVisualTime = 0.0f;
+    float m_staminaShortageNoticeTime = 0.0f;
+    float m_gameStartTime = 0.0f;
     float m_deathScreenTime = -1.0f;
     int m_deathMenuChoice = 1;
     bool m_deathChoiceAxisReady = true;
+    float m_clearSettleTime = 0.0f;
     float m_clearScreenTime = -1.0f;
 };

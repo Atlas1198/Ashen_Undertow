@@ -14,6 +14,8 @@ class GameHud
 public:
     bool InitializeUI(UIManager& ui);
     void Update(const Player& player, float deltaTime);
+    void DrawPlayerStatus(UIManager& ui, const Player& player,
+        bool emphasizeStamina = false) const;
     void Draw(UIManager& ui, const Player& player, const Boss& boss,
         const std::vector<MiniCopy*>& miniCopies, const Camera& camera) const;
 

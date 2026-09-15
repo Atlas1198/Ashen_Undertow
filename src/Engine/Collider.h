@@ -160,6 +160,7 @@ public:
           m_startOffset(startOffset), m_endOffset(endOffset) {}
     bool Initialize() override;
     void Update(float deltaTime) override;
+    void SetLengthScale(float scale) { m_lengthScale = scale; }
 
 private:
     AnimationComponent& m_animation;
@@ -169,4 +170,5 @@ private:
     const char* m_endNode;
     DirectX::XMFLOAT3 m_startOffset;
     DirectX::XMFLOAT3 m_endOffset;
+    float m_lengthScale = 1.0f;
 };

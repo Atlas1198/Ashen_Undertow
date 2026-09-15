@@ -32,11 +32,12 @@ bool Player::Initialize(ModelManager& modelManager)
     m_attackCollider->SetTrigger(true);
     m_attackCollider->SetRole(ColliderRole::Hitbox);
     m_attackCollider->SetEnabled(false);
-    if (!AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
+    m_attackColliderAttachment = AddComponent<BoneSegmentColliderAttachment>(*m_animation, *model,
         *static_cast<SegmentCollider*>(m_attackCollider),
         "mixamorig:Sword_joint", "mixamorig:Sword_joint",
         DirectX::XMFLOAT3 { 5.247f, 1.044f, 20.344f },
-        DirectX::XMFLOAT3 { -20.701f, -5.250f, -81.074f })) return false;
+        DirectX::XMFLOAT3 { -20.701f, -5.250f, -81.074f });
+    if (!m_attackColliderAttachment) return false;
     m_chargeAttackCollider = AddComponent<SegmentCollider>(ChargeAttackColliderRadius);
     if (!m_chargeAttackCollider) return false;
     m_chargeAttackCollider->SetTrigger(true);
@@ -306,6 +307,11 @@ bool Player::UpdateChargeAttack(float deltaTime, bool attackPressed,
             }
             else
             {
+                if (m_chargeDuration >= ChargeLevelOneTime &&
+                    m_stamina < ChargeStaminaCost)
+                {
+                    m_chargeStaminaShortageNotice = true;
+                }
                 m_chargeDuration = 0.0f;
                 m_chargeDamageRatio = 0.0f;
                 m_chargeAttackCollider->SetEnabled(false);
@@ -376,6 +382,8 @@ void Player::UpdateNormalAttack(bool normalAttackInput, bool wasBlocking)
         const float progress = m_animation->GetNormalizedTime();
         m_attackCollider->SetEnabled(progress >= AttackHitStart && progress <= AttackHitEnd);
     }
+    m_attackColliderAttachment->SetLengthScale(
+        m_attackComboStep == AttackComboCount ? ThirdAttackColliderLengthScale : 1.0f);
 }
 
 void Player::UpdateLocomotionAnimation(float movementLength, bool dashing)
