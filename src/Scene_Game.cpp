@@ -122,27 +122,35 @@ void Scene_Game::OnDrawUI(UIManager& ui)
     if (screenTime < 1.45f) return;
     const float menuAlpha = std::clamp(
         (screenTime - 1.45f) / 0.55f, 0.0f, 1.0f);
-    const auto drawButton = [&](float x, UIImageHandle image, bool selected)
+    const float pulse = 0.55f + 0.45f *
+        (0.5f + 0.5f * std::sin(screenTime * 2.35f));
+    const auto drawMenuItem = [&](float centerX, UIImageHandle image, bool selected)
     {
         constexpr float Y = 655.0f;
-        constexpr float Width = 280.0f;
-        constexpr float Height = 82.0f;
-        const DirectX::XMFLOAT4 border = selected
-            ? DirectX::XMFLOAT4 { 0.75f, 0.08f, 0.035f, menuAlpha }
-            : DirectX::XMFLOAT4 { 0.32f, 0.29f, 0.25f, menuAlpha * 0.8f };
-        ui.DrawQuad(rectangle(x - 4.0f, Y - 4.0f, Width + 8.0f, Height + 8.0f), border);
-        ui.DrawQuad(rectangle(x, Y, Width, Height),
-            { 0.025f, 0.02f, 0.018f, menuAlpha * 0.92f });
-        ui.DrawImage(image, { x + 26.0f, Y + 8.0f, Width - 52.0f, Height - 16.0f },
-            { 1.0f, 1.0f, 1.0f, menuAlpha * (selected ? 1.0f : 0.58f) });
+        const float width = selected ? 340.0f : 310.0f;
+        const float height = width / 3.0f;
+        const float x = centerX - width * 0.5f;
+        if (selected)
+        {
+            constexpr float GlowSize = 12.0f;
+            ui.DrawImage(image,
+                { x - GlowSize * 0.5f, Y - GlowSize * 0.5f,
+                    width + GlowSize, height + GlowSize },
+                { 0.05f, 0.75f, 1.0f,
+                    menuAlpha * (0.20f + 0.16f * pulse) });
+        }
+        const float alpha = selected ? 0.90f + 0.10f * pulse : 0.70f;
+        ui.DrawImage(image, { x, Y, width, height },
+            { selected ? 0.88f : 0.78f, selected ? 1.0f : 0.84f,
+                1.0f, menuAlpha * alpha });
     };
     if (showingClear)
     {
-        drawButton(660.0f, m_titleTexture, true);
+        drawMenuItem(800.0f, m_titleTexture, true);
         return;
     }
-    drawButton(350.0f, m_titleTexture, m_deathMenuChoice == 0);
-    drawButton(970.0f, m_retryTexture, m_deathMenuChoice == 1);
+    drawMenuItem(490.0f, m_titleTexture, m_deathMenuChoice == 0);
+    drawMenuItem(1110.0f, m_retryTexture, m_deathMenuChoice == 1);
 }
 
 void Scene_Game::OnUpdate(float deltaTime)

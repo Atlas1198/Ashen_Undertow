@@ -75,12 +75,21 @@ void Scene_Title::OnDrawUI(UIManager& ui)
     for (int i = 0; i < 2; ++i)
     {
         const bool selected = i == m_selectedItem;
-        const float width = selected ? 370.0f : 340.0f;
+        const float width = selected ? 380.0f : 350.0f;
         const float height = width / 3.0f;
-        const float alpha = selected ? 0.72f + 0.28f * pulse : 0.26f;
+        if (selected)
+        {
+            constexpr float GlowSize = 12.0f;
+            ui.DrawImage(labels[i],
+                { (ScreenWidth - width) * 0.5f - GlowSize * 0.5f,
+                    ItemY[i] - GlowSize * 0.5f,
+                    width + GlowSize, height + GlowSize },
+                { 0.05f, 0.75f, 1.0f, titleAlpha * (0.20f + 0.16f * pulse) });
+        }
+        const float alpha = selected ? 0.90f + 0.10f * pulse : 0.70f;
         ui.DrawImage(labels[i],
             { (ScreenWidth - width) * 0.5f, ItemY[i], width, height },
-            { selected ? 0.85f : 0.55f, selected ? 1.0f : 0.65f,
+            { selected ? 0.88f : 0.78f, selected ? 1.0f : 0.84f,
                 1.0f, titleAlpha * alpha });
     }
 
