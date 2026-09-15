@@ -1,6 +1,18 @@
 #include "Manager.h"
 
 #include "Scene_Game.h"
+#include "Scene_Title.h"
+
+namespace
+{
+std::unique_ptr<SceneManager> CreateRequestedScene(SceneRequest request,
+    ModelManager& models, const Input& input)
+{
+    if (request == SceneRequest::Title)
+        return std::make_unique<Scene_Title>(models);
+    return std::make_unique<Scene_Game>(models, input);
+}
+}
 
 bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
 {
@@ -33,4 +45,12 @@ void Manager::RunFrame()
     m_uiManager.BeginFrame();
     m_currentScene->DrawUI(m_uiManager);
     m_renderer.Render(m_uiManager);
+
+    const auto request = m_currentScene->ConsumeSceneRequest();
+    if (request != SceneRequest::None)
+    {
+        auto nextScene = CreateRequestedScene(request, m_modelManager, m_input);
+        if (nextScene->Initialize() && nextScene->InitializeUI(m_uiManager))
+            m_currentScene = std::move(nextScene);
+    }
 }

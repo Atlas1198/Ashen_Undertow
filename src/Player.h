@@ -47,6 +47,7 @@ public:
     DirectX::XMFLOAT4 GetRimLightColor() const override;
     bool GetSwordTrailSegment(DirectX::XMFLOAT3& start,
         DirectX::XMFLOAT3& end) const;
+    bool IsDeathAnimationFinished() const;
 
 private:    
     bool UpdateGrounding();
@@ -95,4 +96,5 @@ private:
     bool m_attackHit = false;
     bool m_evading = false;
     bool m_jumping = false;
+    bool m_deathStarted = false;
 };

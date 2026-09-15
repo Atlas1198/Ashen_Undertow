@@ -77,16 +77,103 @@ bool Scene_Game::InitializeUI(UIManager& ui)
         "assets/texture/effects/spark_particle.png");
     if (!m_effectTexture.IsValid()) return false;
     m_effectManager.SetTextureIndex(m_effectTexture.index);
-    return true;
+    m_youDiedTexture = ui.LoadImageFile("assets/texture/ui/you_died.png");
+    m_titleTexture = ui.LoadImageFile("assets/texture/ui/title.png");
+    m_retryTexture = ui.LoadImageFile("assets/texture/ui/retry.png");
+    m_clearTexture = ui.LoadImageFile("assets/texture/ui/clear.png");
+    return m_youDiedTexture.IsValid() && m_titleTexture.IsValid() &&
+        m_retryTexture.IsValid() && m_clearTexture.IsValid();
 }
 
 void Scene_Game::OnDrawUI(UIManager& ui)
 {
     m_hud.Draw(ui, *m_player, *m_boss, m_miniCopies, m_camera);
+    const bool showingDeath = m_deathScreenTime >= 0.0f;
+    const bool showingClear = m_clearScreenTime >= 0.0f;
+    if (!showingDeath && !showingClear) return;
+
+    constexpr float ScreenWidth = 1600.0f;
+    constexpr float ScreenHeight = 900.0f;
+    const float screenTime = showingDeath ? m_deathScreenTime : m_clearScreenTime;
+    const float titleAlpha = std::clamp(screenTime / 1.15f, 0.0f, 1.0f);
+    const auto rectangle = [](float x, float y, float width, float height)
+    {
+        return std::array<DirectX::XMFLOAT2, 4> {
+            DirectX::XMFLOAT2 { x, y },
+            DirectX::XMFLOAT2 { x + width, y },
+            DirectX::XMFLOAT2 { x + width, y + height },
+            DirectX::XMFLOAT2 { x, y + height }
+        };
+    };
+    ui.DrawQuad(rectangle(0.0f, 0.0f, ScreenWidth, ScreenHeight),
+        { 0.0f, 0.0f, 0.0f, 0.68f * titleAlpha });
+    ui.DrawImage(showingDeath ? m_youDiedTexture : m_clearTexture,
+        { 300.0f, 225.0f, 1000.0f, 333.0f },
+        { 1.0f, 1.0f, 1.0f, titleAlpha });
+
+    if (screenTime < 1.45f) return;
+    const float menuAlpha = std::clamp(
+        (screenTime - 1.45f) / 0.55f, 0.0f, 1.0f);
+    const auto drawButton = [&](float x, UIImageHandle image, bool selected)
+    {
+        constexpr float Y = 655.0f;
+        constexpr float Width = 280.0f;
+        constexpr float Height = 82.0f;
+        const DirectX::XMFLOAT4 border = selected
+            ? DirectX::XMFLOAT4 { 0.75f, 0.08f, 0.035f, menuAlpha }
+            : DirectX::XMFLOAT4 { 0.32f, 0.29f, 0.25f, menuAlpha * 0.8f };
+        ui.DrawQuad(rectangle(x - 4.0f, Y - 4.0f, Width + 8.0f, Height + 8.0f), border);
+        ui.DrawQuad(rectangle(x, Y, Width, Height),
+            { 0.025f, 0.02f, 0.018f, menuAlpha * 0.92f });
+        ui.DrawImage(image, { x + 26.0f, Y + 8.0f, Width - 52.0f, Height - 16.0f },
+            { 1.0f, 1.0f, 1.0f, menuAlpha * (selected ? 1.0f : 0.58f) });
+    };
+    if (showingClear)
+    {
+        drawButton(660.0f, m_titleTexture, true);
+        return;
+    }
+    drawButton(350.0f, m_titleTexture, m_deathMenuChoice == 0);
+    drawButton(970.0f, m_retryTexture, m_deathMenuChoice == 1);
 }
 
 void Scene_Game::OnUpdate(float deltaTime)
 {
+    if (m_deathScreenTime >= 0.0f)
+    {
+        m_deathScreenTime += deltaTime;
+        if (m_deathScreenTime >= 1.45f)
+        {
+            const float axis = m_input.MoveX();
+            if (m_deathChoiceAxisReady && std::abs(axis) > 0.5f)
+            {
+                m_deathMenuChoice = axis < 0.0f ? 0 : 1;
+                m_deathChoiceAxisReady = false;
+            }
+            else if (std::abs(axis) < 0.2f)
+            {
+                m_deathChoiceAxisReady = true;
+            }
+            if (m_input.MenuLeftPressed()) m_deathMenuChoice = 0;
+            if (m_input.MenuRightPressed()) m_deathMenuChoice = 1;
+            if (m_input.AttackPressed() || m_input.JumpPressed() ||
+                m_input.ConfirmPressed())
+                RequestScene(m_deathMenuChoice == 0
+                    ? SceneRequest::Title : SceneRequest::Retry);
+        }
+        return;
+    }
+
+    if (m_clearScreenTime >= 0.0f)
+    {
+        m_clearScreenTime += deltaTime;
+        if (m_clearScreenTime >= 1.45f &&
+            (m_input.AttackPressed() || m_input.JumpPressed() ||
+             m_input.ConfirmPressed()))
+            RequestScene(SceneRequest::Title);
+        return;
+    }
+
     m_hitStopThisFrame = m_hitStopTimer > 0.0f;
     m_hitStopTimer = (std::max)(0.0f, m_hitStopTimer - deltaTime);
     if (m_input.ColliderVisualizationPressed())
@@ -109,10 +196,20 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
 {
     m_effectManager.Update(deltaTime);
     m_player->ResolveTerrainContact();
+    if (m_player->IsDead())
+    {
+        if (m_player->IsDeathAnimationFinished())
+            m_deathScreenTime = 0.0f;
+        m_hud.Update(*m_player, deltaTime);
+        UpdateCameraAndTrees();
+        return;
+    }
     UpdateSpecialAttack(deltaTime);
     UpdatePlayerEffects(deltaTime);
     UpdateMiniCopySpawning();
     ResolveCombat();
+    if (m_boss->IsDead() && !m_player->IsDead() && m_clearScreenTime < 0.0f)
+        m_clearScreenTime = 0.0f;
     UpdateBossGlobalAttack();
     m_hud.Update(*m_player, deltaTime);
     UpdateCameraAndTrees();

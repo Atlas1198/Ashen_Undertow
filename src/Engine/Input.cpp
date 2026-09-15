@@ -22,6 +22,9 @@ void Input::Update()
     m_jumpPressed = false;
     m_colliderVisualizationPressed = false;
     m_specialAttackPressed = false;
+    m_menuLeftPressed = false;
+    m_menuRightPressed = false;
+    m_confirmPressed = false;
     const bool focused = m_window && GetForegroundWindow() == m_window;
     const auto down = [](int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; };
     const bool leftDown = down(VK_LBUTTON);
@@ -30,6 +33,9 @@ void Input::Update()
     const bool cDown = down('C');
     const bool fDown = down('F');
     const bool escapeDown = down(VK_ESCAPE);
+    const bool leftArrowDown = down(VK_LEFT);
+    const bool rightArrowDown = down(VK_RIGHT);
+    const bool enterDown = down(VK_RETURN);
     if (!focused || escapeDown) m_controlEnabled = false;
 
     POINT mouse {};
@@ -51,6 +57,12 @@ void Input::Update()
     m_cWasDown = cDown;
     m_specialAttackPressed = focused && m_controlEnabled && fDown && !m_fWasDown;
     m_fWasDown = fDown;
+    m_menuLeftPressed = focused && leftArrowDown && !m_leftArrowWasDown;
+    m_menuRightPressed = focused && rightArrowDown && !m_rightArrowWasDown;
+    m_confirmPressed = focused && enterDown && !m_enterWasDown;
+    m_leftArrowWasDown = leftArrowDown;
+    m_rightArrowWasDown = rightArrowDown;
+    m_enterWasDown = enterDown;
 
     if (focused)
     {

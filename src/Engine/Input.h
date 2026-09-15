@@ -22,6 +22,9 @@ public:
     bool JumpPressed() const { return m_jumpPressed; }
     bool ColliderVisualizationPressed() const { return m_colliderVisualizationPressed; }
     bool SpecialAttackPressed() const { return m_specialAttackPressed; }
+    bool MenuLeftPressed() const { return m_menuLeftPressed; }
+    bool MenuRightPressed() const { return m_menuRightPressed; }
+    bool ConfirmPressed() const { return m_confirmPressed; }
     float LookX() const { return m_lookX; }
     float LookY() const { return m_lookY; }
 
@@ -43,6 +46,12 @@ private:
     bool m_jumpPressed = false;
     bool m_colliderVisualizationPressed = false;
     bool m_specialAttackPressed = false;
+    bool m_menuLeftPressed = false;
+    bool m_menuRightPressed = false;
+    bool m_confirmPressed = false;
+    bool m_leftArrowWasDown = false;
+    bool m_rightArrowWasDown = false;
+    bool m_enterWasDown = false;
     int m_hideCalls = 0;
     float m_moveX = 0, m_moveZ = 0, m_lookX = 0, m_lookY = 0;
 };

@@ -34,10 +34,18 @@ private:
     void UpdateSpecialAttack(float deltaTime);
     void OnUpdate(float deltaTime) override;
     void OnAfterUpdate(float deltaTime) override;
-    bool IsSimulationPaused() const override { return m_hitStopThisFrame; }
+    bool IsSimulationPaused() const override
+    {
+        return m_hitStopThisFrame || m_deathScreenTime >= 0.0f ||
+            m_clearScreenTime >= 0.0f;
+    }
     void OnDraw(Renderer& renderer) override;
     void OnDrawUI(UIManager& ui) override;
     UIImageHandle m_effectTexture;
+    UIImageHandle m_youDiedTexture;
+    UIImageHandle m_titleTexture;
+    UIImageHandle m_retryTexture;
+    UIImageHandle m_clearTexture;
     GameHud m_hud;
 
     Player* m_player = nullptr;
@@ -68,4 +76,8 @@ private:
     size_t m_swordTrailHistoryCount = 0;
     bool m_wasPlayerEvading = false;
     float m_bossAttackVisualTime = 0.0f;
+    float m_deathScreenTime = -1.0f;
+    int m_deathMenuChoice = 1;
+    bool m_deathChoiceAxisReady = true;
+    float m_clearScreenTime = -1.0f;
 };

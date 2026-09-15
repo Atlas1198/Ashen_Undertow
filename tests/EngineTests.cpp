@@ -88,7 +88,7 @@ int main()
     assert(playerData->skins[0].joints.size() == 69);
     assert(playerData->animations.size() >= 6);
     bool hasIdle = false, hasWalk = false, hasRun = false;
-    bool hasAttack = false, hasJump = false, hasEvasion = false;
+    bool hasAttack = false, hasJump = false, hasEvasion = false, hasDeath = false;
     for (const auto& animation : playerData->animations)
     {
         assert(!animation.channels.empty());
@@ -98,8 +98,9 @@ int main()
         hasAttack = hasAttack || animation.name == "Attack";
         hasJump = hasJump || animation.name == "Jump";
         hasEvasion = hasEvasion || animation.name == "Evasion";
+        hasDeath = hasDeath || animation.name == "Death";
     }
-    assert(hasIdle && hasWalk && hasRun && hasAttack && hasJump && hasEvasion);
+    assert(hasIdle && hasWalk && hasRun && hasAttack && hasJump && hasEvasion && hasDeath);
 
     const auto enemyModel = models.Load("assets/model/Mutant/mutant_idle.glb");
     const auto* enemyData = models.GetModel(enemyModel);

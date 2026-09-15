@@ -80,6 +80,25 @@ bool Player::Initialize(ModelManager& modelManager)
 
 void Player::Update(float deltaTime)
 {
+    if (IsDead())
+    {
+        if (!m_deathStarted)
+        {
+            m_deathStarted = true;
+            m_attacking = m_attackComboQueued = m_attackInputPending = false;
+            m_charging = m_chargeReleasing = m_blocking = m_evading = false;
+            m_attackCollider->SetEnabled(false);
+            m_chargeAttackCollider->SetEnabled(false);
+            m_evasionCollider->SetEnabled(false);
+            SetStandingHurtboxesEnabled(false);
+            m_rigidbody->SetVelocity(0.0f, 0.0f, 0.0f);
+            m_rigidbody->ClearForces();
+            m_rigidbody->SetKinematic(true);
+        }
+        m_animation->Play("Death", false, 1.0f, AnimationBlendDuration);
+        return;
+    }
+
     m_specialRimTime = IsSpecialGaugeFull()
         ? m_specialRimTime + deltaTime : 0.0f;
     const float moveX = m_input.MoveX();
@@ -116,6 +135,12 @@ void Player::Update(float deltaTime)
     UpdateMovement(deltaTime, length, movementX, movementZ, dashing,
         staminaConsumed, dashActive);
     UpdateStamina(deltaTime, staminaConsumed, dashActive);
+}
+
+bool Player::IsDeathAnimationFinished() const
+{
+    return m_deathStarted && m_animation->IsPlaying("Death") &&
+        m_animation->IsFinished();
 }
 
 void Player::AddSpecialGauge(float amount)

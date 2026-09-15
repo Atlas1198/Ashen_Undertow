@@ -6,6 +6,8 @@ class ModelManager;
 class Renderer;
 class UIManager;
 
+enum class SceneRequest { None, Title, Retry };
+
 // 各シーンが共通して実装するインターフェース。
 class SceneManager
 {
@@ -20,6 +22,12 @@ public:
     virtual bool Initialize() = 0;
     virtual bool InitializeUI(UIManager&) { return true; }
     void DrawUI(UIManager& ui) { OnDrawUI(ui); }
+    SceneRequest ConsumeSceneRequest()
+    {
+        const auto request = m_sceneRequest;
+        m_sceneRequest = SceneRequest::None;
+        return request;
+    }
 
     void Update(float deltaTime)
     {
@@ -47,7 +55,9 @@ protected:
     virtual bool IsSimulationPaused() const { return false; }
     virtual void OnDraw(Renderer& renderer) { (void)renderer; }
     virtual void OnDrawUI(UIManager&) {}
+    void RequestScene(SceneRequest request) { m_sceneRequest = request; }
 
 private:
     ObjectManager m_objectManager;
+    SceneRequest m_sceneRequest = SceneRequest::None;
 };
