@@ -21,8 +21,11 @@ private:
     const Input& m_input;
     UIImageHandle m_backgroundTexture;
     UIImageHandle m_titleTexture;
-    UIImageHandle m_pressEnterTexture;
+    UIImageHandle m_tutorialTexture;
+    UIImageHandle m_gameTexture;
     float m_time = 0.0f;
     float m_startFade = 0.0f;
+    int m_selectedItem = 0;
+    SceneRequest m_startRequest = SceneRequest::None;
     bool m_starting = false;
 };

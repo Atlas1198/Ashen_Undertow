@@ -34,17 +34,34 @@ void DrawBar(UIManager& ui, const BarStyle& style, float ratio)
         DirectX::XMFLOAT2 { style.x, style.y + style.height }
     }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-    const float fillWidth = (style.width - style.padding * 2.0f) * ratio;
-    if (fillWidth <= 0.0f) return;
     const float fillX = style.x + style.padding;
     const float fillY = style.y + style.padding;
     const float fillHeight = style.height - style.padding * 2.0f;
+    const float innerWidth = style.width - style.padding * 2.0f;
+    ui.DrawQuad({
+        DirectX::XMFLOAT2 { fillX, fillY },
+        DirectX::XMFLOAT2 { fillX + innerWidth, fillY },
+        DirectX::XMFLOAT2 { fillX + innerWidth, fillY + fillHeight },
+        DirectX::XMFLOAT2 { fillX, fillY + fillHeight }
+    }, { 0.035f, 0.045f, 0.055f, 0.92f });
+
+    const float fillWidth = innerWidth * ratio;
+    if (fillWidth <= 0.0f) return;
     ui.DrawQuad({
         DirectX::XMFLOAT2 { fillX, fillY },
         DirectX::XMFLOAT2 { fillX + fillWidth, fillY },
         DirectX::XMFLOAT2 { fillX + fillWidth, fillY + fillHeight },
         DirectX::XMFLOAT2 { fillX, fillY + fillHeight }
     }, style.fillColor);
+    const float highlightHeight = (std::max)(1.0f, fillHeight * 0.22f);
+    ui.DrawQuad({
+        DirectX::XMFLOAT2 { fillX, fillY },
+        DirectX::XMFLOAT2 { fillX + fillWidth, fillY },
+        DirectX::XMFLOAT2 { fillX + fillWidth, fillY + highlightHeight },
+        DirectX::XMFLOAT2 { fillX, fillY + highlightHeight }
+    }, { (std::min)(1.0f, style.fillColor.x + 0.25f),
+        (std::min)(1.0f, style.fillColor.y + 0.25f),
+        (std::min)(1.0f, style.fillColor.z + 0.25f), 0.75f });
 }
 
 bool WorldToScreen(const DirectX::XMFLOAT3& world, const Camera& camera,
@@ -79,57 +96,52 @@ float Ratio(int value, int maximum)
     return maximum > 0 ? static_cast<float>(value) / maximum : 0.0f;
 }
 
-DirectX::XMFLOAT4 RainbowColor(float hue)
+void DrawSpecialGauge(UIManager& ui, float ratio, float elapsedTime)
 {
-    const float r = std::clamp(std::abs(hue * 6.0f - 3.0f) - 1.0f, 0.0f, 1.0f);
-    const float g = std::clamp(2.0f - std::abs(hue * 6.0f - 2.0f), 0.0f, 1.0f);
-    const float b = std::clamp(2.0f - std::abs(hue * 6.0f - 4.0f), 0.0f, 1.0f);
-    constexpr float pastelAmount = 0.48f;
-    return {
-        r * (1.0f - pastelAmount) + pastelAmount,
-        g * (1.0f - pastelAmount) + pastelAmount,
-        b * (1.0f - pastelAmount) + pastelAmount,
-        1.0f
-    };
-}
-
-void DrawSpecialGauge(UIManager& ui, float ratio)
-{
-    constexpr float x = 24.0f;
-    constexpr float y = 844.0f;
-    constexpr float width = 360.0f;
-    constexpr float height = 10.0f;
-    constexpr float padding = 1.0f;
-    constexpr int segments = 24;
-    ui.DrawQuad({
-        DirectX::XMFLOAT2 { x, y }, DirectX::XMFLOAT2 { x + width, y },
-        DirectX::XMFLOAT2 { x + width, y + height }, DirectX::XMFLOAT2 { x, y + height }
-    }, { 0.0f, 0.0f, 0.0f, 1.0f });
-
     ratio = std::clamp(ratio, 0.0f, 1.0f);
-    const float innerWidth = width - padding * 2.0f;
+    constexpr DirectX::XMFLOAT2 center { 1480.0f, 785.0f };
+    constexpr float innerRadius = 34.0f;
+    constexpr float outerRadius = 61.0f;
+    constexpr int segments = 12;
+    const bool full = ratio >= 1.0f;
+    const float pulse = full
+        ? 0.78f + 0.22f * std::sin(elapsedTime * 5.0f) : 1.0f;
     for (int i = 0; i < segments; ++i)
     {
-        const float start = static_cast<float>(i) / segments;
-        if (start >= ratio) break;
-        const float end = (std::min)(
-            static_cast<float>(i + 1) / segments, ratio);
-        const float left = x + padding + innerWidth * start;
-        const float right = x + padding + innerWidth * end;
-        const auto leftColor = RainbowColor(start);
-        const auto rightColor = RainbowColor(end);
-        ui.DrawGradientQuad({
-            DirectX::XMFLOAT2 { left, y + padding },
-            DirectX::XMFLOAT2 { right, y + padding },
-            DirectX::XMFLOAT2 { right, y + height - padding },
-            DirectX::XMFLOAT2 { left, y + height - padding }
-        }, { leftColor, rightColor, rightColor, leftColor });
+        constexpr float Gap = 0.045f;
+        const float a0 = -DirectX::XM_PIDIV2 + DirectX::XM_2PI *
+            static_cast<float>(i) / segments + Gap;
+        const float a1 = -DirectX::XM_PIDIV2 + DirectX::XM_2PI *
+            static_cast<float>(i + 1) / segments - Gap;
+        const auto point = [&](float angle, float radius)
+        {
+            return DirectX::XMFLOAT2 { center.x + std::cos(angle) * radius,
+                center.y + std::sin(angle) * radius };
+        };
+        const bool active = static_cast<float>(i) / segments < ratio;
+        const DirectX::XMFLOAT4 color = active
+            ? DirectX::XMFLOAT4 { 0.05f, 0.72f * pulse, 1.0f * pulse, 1.0f }
+            : DirectX::XMFLOAT4 { 0.025f, 0.08f, 0.12f, 0.82f };
+        ui.DrawQuad({ point(a0, outerRadius), point(a1, outerRadius),
+            point(a1, innerRadius), point(a0, innerRadius) }, color);
     }
+
 }
+}
+
+bool GameHud::InitializeUI(UIManager& ui)
+{
+    m_vitalityIcon = ui.LoadImageFile("assets/texture/ui/hud_vitality_icon.png");
+    m_staminaIcon = ui.LoadImageFile("assets/texture/ui/hud_stamina_icon.png");
+    m_ultimateIcon = ui.LoadImageFile("assets/texture/ui/hud_ultimate_icon.png");
+    m_bossIcon = ui.LoadImageFile("assets/texture/ui/hud_boss_icon.png");
+    return m_vitalityIcon.IsValid() && m_staminaIcon.IsValid() &&
+        m_ultimateIcon.IsValid() && m_bossIcon.IsValid();
 }
 
 void GameHud::Update(const Player& player, float deltaTime)
 {
+    m_elapsedTime += deltaTime;
     const int currentHp = player.GetHP();
     if (m_previousPlayerHp >= 0 && currentHp < m_previousPlayerHp)
         m_playerDamageEffectTimer = 0.38f;
@@ -141,22 +153,25 @@ void GameHud::Update(const Player& player, float deltaTime)
 void GameHud::Draw(UIManager& ui, const Player& player, const Boss& boss,
     const std::vector<MiniCopy*>& miniCopies, const Camera& camera) const
 {
-    DrawBar(ui, { 550.0f, 24.0f, 500.0f, 16.0f, 2.0f,
-        { 0.9f, 0.05f, 0.05f, 1.0f } }, Ratio(boss.GetHP(), boss.GetMaxHP()));
+    ui.DrawImage(m_bossIcon, { 774.0f, 4.0f, 52.0f, 52.0f });
+    DrawBar(ui, { 500.0f, 58.0f, 600.0f, 22.0f, 3.0f,
+        { 0.78f, 0.025f, 0.04f, 1.0f } }, Ratio(boss.GetHP(), boss.GetMaxHP()));
 
     for (const MiniCopy* miniCopy : miniCopies)
     {
         if (miniCopy->IsDead()) continue;
         DirectX::XMFLOAT2 center;
         if (!WorldToScreen(miniCopy->GetHPBarPosition(), camera, center)) continue;
-        DrawBar(ui, { center.x - 45.0f, center.y - 8.0f, 90.0f, 8.0f, 1.0f,
+        DrawBar(ui, { center.x - 48.0f, center.y - 9.0f, 96.0f, 9.0f, 1.5f,
             { 0.9f, 0.1f, 0.1f, 1.0f } },
             Ratio(miniCopy->GetHP(), miniCopy->GetMaxHP()));
     }
 
     const float specialRatio = player.GetMaxSpecialGauge() > 0.0f
         ? player.GetSpecialGauge() / player.GetMaxSpecialGauge() : 0.0f;
-    DrawSpecialGauge(ui, specialRatio);
+    DrawSpecialGauge(ui, specialRatio, m_elapsedTime);
+    ui.DrawImage(m_ultimateIcon, { 1455.0f, 760.0f, 50.0f, 50.0f },
+        { 1.0f, 1.0f, 1.0f, 0.38f + specialRatio * 0.62f });
 
     constexpr float DamageEffectDuration = 0.38f;
     const float damageEffect = std::clamp(
@@ -170,11 +185,13 @@ void GameHud::Draw(UIManager& ui, const Player& player, const Boss& boss,
         0.05f - 0.03f * damageEffect,
         1.0f
     };
-    DrawBar(ui, { 24.0f + shake, 860.0f - pulse,
-        360.0f, 16.0f + pulse * 2.0f, 2.0f, playerHpColor },
+    ui.DrawImage(m_vitalityIcon, { 20.0f + shake, 784.0f, 54.0f, 54.0f });
+    DrawBar(ui, { 84.0f + shake, 800.0f - pulse,
+        400.0f, 24.0f + pulse * 2.0f, 3.0f, playerHpColor },
         Ratio(player.GetHP(), player.GetMaxHP()));
     const float staminaRatio = player.GetMaxStamina() > 0.0f
         ? player.GetStamina() / player.GetMaxStamina() : 0.0f;
-    DrawBar(ui, { 24.0f, 881.0f, 360.0f, 8.0f, 1.0f,
+    ui.DrawImage(m_staminaIcon, { 25.0f, 840.0f, 44.0f, 44.0f });
+    DrawBar(ui, { 84.0f, 854.0f, 340.0f, 14.0f, 2.0f,
         { 1.0f, 0.82f, 0.05f, 1.0f } }, staminaRatio);
 }

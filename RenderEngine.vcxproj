@@ -188,6 +188,7 @@
     <ClCompile Include="src\Engine\EffectManagerSpecial.cpp" />
     <ClCompile Include="src\Engine\EffectManagerEnvironment.cpp" />
     <ClCompile Include="src\Scene_Title.cpp" />
+    <ClCompile Include="src\Scene_Tutorial.cpp" />
     <ClCompile Include="src\Engine\HdrLoader.cpp" />
     <ClCompile Include="src\Engine\Json.cpp" />
     <ClCompile Include="src\Engine\GltfLoader.cpp" />
@@ -224,6 +225,7 @@
     <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\Engine\SceneManager.h" />
     <ClInclude Include="src\Scene_Title.h" />
+    <ClInclude Include="src\Scene_Tutorial.h" />
     <ClInclude Include="src\Engine\HdrLoader.h" />
     <ClInclude Include="src\Engine\Json.h" />
     <ClInclude Include="src\Engine\GltfLoader.h" />

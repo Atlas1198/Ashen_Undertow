@@ -24,6 +24,8 @@ public:
     bool SpecialAttackPressed() const { return m_specialAttackPressed; }
     bool MenuLeftPressed() const { return m_menuLeftPressed; }
     bool MenuRightPressed() const { return m_menuRightPressed; }
+    bool MenuUpPressed() const { return m_menuUpPressed; }
+    bool MenuDownPressed() const { return m_menuDownPressed; }
     bool ConfirmPressed() const { return m_confirmPressed; }
     float LookX() const { return m_lookX; }
     float LookY() const { return m_lookY; }
@@ -37,7 +39,7 @@ private:
     bool m_leftWasDown = false;
     bool m_spaceWasDown = false;
     bool m_cWasDown = false;
-    bool m_fWasDown = false;
+    bool m_bothMouseWasDown = false;
     bool m_dashHeld = false;
     bool m_attackPressed = false;
     bool m_attackHeld = false;
@@ -48,9 +50,15 @@ private:
     bool m_specialAttackPressed = false;
     bool m_menuLeftPressed = false;
     bool m_menuRightPressed = false;
+    bool m_menuUpPressed = false;
+    bool m_menuDownPressed = false;
     bool m_confirmPressed = false;
     bool m_leftArrowWasDown = false;
     bool m_rightArrowWasDown = false;
+    bool m_upArrowWasDown = false;
+    bool m_downArrowWasDown = false;
+    bool m_wWasDown = false;
+    bool m_sWasDown = false;
     bool m_enterWasDown = false;
     int m_hideCalls = 0;
     float m_moveX = 0, m_moveZ = 0, m_lookX = 0, m_lookY = 0;

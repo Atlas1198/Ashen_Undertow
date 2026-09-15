@@ -6,7 +6,7 @@ class ModelManager;
 class Renderer;
 class UIManager;
 
-enum class SceneRequest { None, Game, Title, Retry };
+enum class SceneRequest { None, Game, Tutorial, Title, Retry };
 
 // 各シーンが共通して実装するインターフェース。
 class SceneManager

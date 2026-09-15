@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UIManager.h"
 #include <vector>
 
 class Boss;
@@ -11,6 +12,7 @@ class UIManager;
 class GameHud
 {
 public:
+    bool InitializeUI(UIManager& ui);
     void Update(const Player& player, float deltaTime);
     void Draw(UIManager& ui, const Player& player, const Boss& boss,
         const std::vector<MiniCopy*>& miniCopies, const Camera& camera) const;
@@ -18,4 +20,9 @@ public:
 private:
     int m_previousPlayerHp = -1;
     float m_playerDamageEffectTimer = 0.0f;
+    float m_elapsedTime = 0.0f;
+    UIImageHandle m_vitalityIcon;
+    UIImageHandle m_staminaIcon;
+    UIImageHandle m_ultimateIcon;
+    UIImageHandle m_bossIcon;
 };

@@ -2,6 +2,7 @@
 
 #include "Scene_Game.h"
 #include "Scene_Title.h"
+#include "Scene_Tutorial.h"
 
 namespace
 {
@@ -10,6 +11,8 @@ std::unique_ptr<SceneManager> CreateRequestedScene(SceneRequest request,
 {
     if (request == SceneRequest::Title)
         return std::make_unique<Scene_Title>(models, input);
+    if (request == SceneRequest::Tutorial)
+        return std::make_unique<Scene_Tutorial>(models, input);
     return std::make_unique<Scene_Game>(models, input);
 }
 }

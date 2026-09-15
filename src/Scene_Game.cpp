@@ -80,6 +80,7 @@ bool Scene_Game::Initialize()
 
 bool Scene_Game::InitializeUI(UIManager& ui)
 {
+    if (!m_hud.InitializeUI(ui)) return false;
     m_effectTexture = ui.LoadImageFile(
         "assets/texture/effects/spark_particle.png");
     if (!m_effectTexture.IsValid()) return false;

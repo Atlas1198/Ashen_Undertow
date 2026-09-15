@@ -99,6 +99,18 @@ void Player::Update(float deltaTime)
         return;
     }
 
+    if (m_input.SpecialAttackPressed())
+    {
+        m_attacking = false;
+        m_attackComboQueued = false;
+        m_attackInputPending = false;
+        m_charging = false;
+        m_chargeReleasing = false;
+        m_blocking = false;
+        m_attackCollider->SetEnabled(false);
+        m_chargeAttackCollider->SetEnabled(false);
+    }
+
     m_specialRimTime = IsSpecialGaugeFull()
         ? m_specialRimTime + deltaTime : 0.0f;
     const float moveX = m_input.MoveX();
