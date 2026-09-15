@@ -21,12 +21,14 @@ void Input::Update()
     m_blockHeld = false;
     m_jumpPressed = false;
     m_colliderVisualizationPressed = false;
+    m_specialAttackPressed = false;
     const bool focused = m_window && GetForegroundWindow() == m_window;
     const auto down = [](int key) { return (GetAsyncKeyState(key) & 0x8000) != 0; };
     const bool leftDown = down(VK_LBUTTON);
     const bool rightDown = down(VK_RBUTTON);
     const bool spaceDown = down(VK_SPACE);
     const bool cDown = down('C');
+    const bool fDown = down('F');
     const bool escapeDown = down(VK_ESCAPE);
     if (!focused || escapeDown) m_controlEnabled = false;
 
@@ -47,6 +49,8 @@ void Input::Update()
     m_spaceWasDown = spaceDown;
     m_colliderVisualizationPressed = focused && cDown && !m_cWasDown;
     m_cWasDown = cDown;
+    m_specialAttackPressed = focused && m_controlEnabled && fDown && !m_fWasDown;
+    m_fWasDown = fDown;
 
     if (focused)
     {

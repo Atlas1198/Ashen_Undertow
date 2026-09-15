@@ -134,7 +134,7 @@ void Renderer::DrawUI(const UIManager& ui)
         {
             const auto& p = command.points[corner];
             vertices[count++] = { { 2.0f * p.x / m_width - 1.0f,
-                1.0f - 2.0f * p.y / m_height }, uvs[corner], command.color };
+                1.0f - 2.0f * p.y / m_height }, uvs[corner], command.colors[corner] };
         }
     D3D12_VERTEX_BUFFER_VIEW view = {};
     view.BufferLocation = m_uiVertexBuffers[m_frameIndex]->GetGPUVirtualAddress();

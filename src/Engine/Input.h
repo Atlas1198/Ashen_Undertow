@@ -21,6 +21,7 @@ public:
     bool BlockHeld() const { return m_blockHeld; }
     bool JumpPressed() const { return m_jumpPressed; }
     bool ColliderVisualizationPressed() const { return m_colliderVisualizationPressed; }
+    bool SpecialAttackPressed() const { return m_specialAttackPressed; }
     float LookX() const { return m_lookX; }
     float LookY() const { return m_lookY; }
 
@@ -33,6 +34,7 @@ private:
     bool m_leftWasDown = false;
     bool m_spaceWasDown = false;
     bool m_cWasDown = false;
+    bool m_fWasDown = false;
     bool m_dashHeld = false;
     bool m_attackPressed = false;
     bool m_attackHeld = false;
@@ -40,6 +42,7 @@ private:
     bool m_blockHeld = false;
     bool m_jumpPressed = false;
     bool m_colliderVisualizationPressed = false;
+    bool m_specialAttackPressed = false;
     int m_hideCalls = 0;
     float m_moveX = 0, m_moveZ = 0, m_lookX = 0, m_lookY = 0;
 };

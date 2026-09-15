@@ -77,6 +77,54 @@ float Ratio(int value, int maximum)
 {
     return maximum > 0 ? static_cast<float>(value) / maximum : 0.0f;
 }
+
+DirectX::XMFLOAT4 RainbowColor(float hue)
+{
+    const float r = std::clamp(std::abs(hue * 6.0f - 3.0f) - 1.0f, 0.0f, 1.0f);
+    const float g = std::clamp(2.0f - std::abs(hue * 6.0f - 2.0f), 0.0f, 1.0f);
+    const float b = std::clamp(2.0f - std::abs(hue * 6.0f - 4.0f), 0.0f, 1.0f);
+    constexpr float pastelAmount = 0.48f;
+    return {
+        r * (1.0f - pastelAmount) + pastelAmount,
+        g * (1.0f - pastelAmount) + pastelAmount,
+        b * (1.0f - pastelAmount) + pastelAmount,
+        1.0f
+    };
+}
+
+void DrawSpecialGauge(UIManager& ui, float ratio)
+{
+    constexpr float x = 24.0f;
+    constexpr float y = 844.0f;
+    constexpr float width = 360.0f;
+    constexpr float height = 10.0f;
+    constexpr float padding = 1.0f;
+    constexpr int segments = 24;
+    ui.DrawQuad({
+        DirectX::XMFLOAT2 { x, y }, DirectX::XMFLOAT2 { x + width, y },
+        DirectX::XMFLOAT2 { x + width, y + height }, DirectX::XMFLOAT2 { x, y + height }
+    }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+    ratio = std::clamp(ratio, 0.0f, 1.0f);
+    const float innerWidth = width - padding * 2.0f;
+    for (int i = 0; i < segments; ++i)
+    {
+        const float start = static_cast<float>(i) / segments;
+        if (start >= ratio) break;
+        const float end = (std::min)(
+            static_cast<float>(i + 1) / segments, ratio);
+        const float left = x + padding + innerWidth * start;
+        const float right = x + padding + innerWidth * end;
+        const auto leftColor = RainbowColor(start);
+        const auto rightColor = RainbowColor(end);
+        ui.DrawGradientQuad({
+            DirectX::XMFLOAT2 { left, y + padding },
+            DirectX::XMFLOAT2 { right, y + padding },
+            DirectX::XMFLOAT2 { right, y + height - padding },
+            DirectX::XMFLOAT2 { left, y + height - padding }
+        }, { leftColor, rightColor, rightColor, leftColor });
+    }
+}
 }
 
 void GameHud::Draw(UIManager& ui, const Player& player, const Boss& boss,
@@ -94,6 +142,10 @@ void GameHud::Draw(UIManager& ui, const Player& player, const Boss& boss,
             { 0.9f, 0.1f, 0.1f, 1.0f } },
             Ratio(miniCopy->GetHP(), miniCopy->GetMaxHP()));
     }
+
+    const float specialRatio = player.GetMaxSpecialGauge() > 0.0f
+        ? player.GetSpecialGauge() / player.GetMaxSpecialGauge() : 0.0f;
+    DrawSpecialGauge(ui, specialRatio);
 
     DrawBar(ui, { 24.0f, 860.0f, 360.0f, 16.0f, 2.0f,
         { 0.6f, 1.0f, 0.05f, 1.0f } }, Ratio(player.GetHP(), player.GetMaxHP()));

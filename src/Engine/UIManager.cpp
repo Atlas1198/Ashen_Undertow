@@ -67,9 +67,16 @@ bool UIManager::DrawImage(UIImageHandle image, UIRect rect, DirectX::XMFLOAT4 ti
 bool UIManager::DrawQuad(const std::array<DirectX::XMFLOAT2, 4>& points,
     DirectX::XMFLOAT4 color)
 {
+    return DrawGradientQuad(points, { color, color, color, color });
+}
+
+bool UIManager::DrawGradientQuad(
+    const std::array<DirectX::XMFLOAT2, 4>& points,
+    const std::array<DirectX::XMFLOAT4, 4>& colors)
+{
     if (m_commands.size() >= MaxQuads) return false;
     for (const auto& p : points)
         if (!std::isfinite(p.x) || !std::isfinite(p.y)) return false;
-    m_commands.push_back({ points, color, {} });
+    m_commands.push_back({ points, colors[0], colors, {} });
     return true;
 }

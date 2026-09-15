@@ -29,6 +29,8 @@ public:
     // 凸四角形の外周順（例: 左上、右上、右下、左下）。色はRGBA、0～1。
     bool DrawQuad(const std::array<DirectX::XMFLOAT2, 4>& points,
         DirectX::XMFLOAT4 color);
+    bool DrawGradientQuad(const std::array<DirectX::XMFLOAT2, 4>& points,
+        const std::array<DirectX::XMFLOAT4, 4>& colors);
 
     struct Image
     {
@@ -40,6 +42,7 @@ public:
     {
         std::array<DirectX::XMFLOAT2, 4> points;
         DirectX::XMFLOAT4 color;
+        std::array<DirectX::XMFLOAT4, 4> colors;
         UIImageHandle image; // 無効なら単色。
     };
     const Image* GetImage(UIImageHandle handle) const;

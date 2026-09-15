@@ -94,6 +94,7 @@ void Scene_Game::OnUpdate(float deltaTime)
     m_camera.Rotate(m_input.LookX(), m_input.LookY());
     UpdateCameraGroundConstraint();
     m_player->SetMovementYaw(-m_camera.GetYaw());
+    TryLaunchSpecialAttack();
 }
 
 void Scene_Game::UpdateCameraGroundConstraint()
@@ -108,6 +109,7 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
 {
     m_effectManager.Update(deltaTime);
     m_player->ResolveTerrainContact();
+    UpdateSpecialAttack(deltaTime);
     UpdatePlayerEffects(deltaTime);
     UpdateMiniCopySpawning();
     ResolveCombat();
@@ -157,6 +159,48 @@ void Scene_Game::UpdatePlayerEffects(float deltaTime)
         m_chargeAuraSpawnTimer = 0.0f;
     }
 
+}
+
+void Scene_Game::TryLaunchSpecialAttack()
+{
+    if (!m_input.SpecialAttackPressed() || m_specialAttack.IsActive() ||
+        !m_player->IsSpecialGaugeFull()) return;
+
+    auto start = m_player->GetPosition();
+    start.y += 1.0f;
+    if (m_specialAttack.Launch(start, m_boss->GetSpecialAttackTarget()))
+    {
+        m_player->ConsumeSpecialGauge();
+        m_specialAttackEffectTimer = 0.0f;
+    }
+}
+
+void Scene_Game::UpdateSpecialAttack(float deltaTime)
+{
+    if (!m_specialAttack.IsActive()) return;
+
+    const auto target = m_boss->GetSpecialAttackTarget();
+    const bool hit = m_specialAttack.Update(deltaTime, target);
+    m_specialAttackEffectTimer -= deltaTime;
+    if (m_specialAttackEffectTimer <= 0.0f)
+    {
+        m_effectManager.SpawnSpecialSlash(
+            m_specialAttack.GetPosition(), m_specialAttack.GetDirection());
+        m_specialAttackEffectTimer = 0.035f;
+    }
+    if (!hit) return;
+
+    m_boss->TakeDamage(GameBalance::SpecialAttack::Damage);
+
+    const auto impactDirection = m_specialAttack.GetDirection();
+    const float impactSurfaceOffset = m_boss->GetVisualScale() * 0.14f;
+    const DirectX::XMFLOAT3 impactPosition{
+        target.x - impactDirection.x * impactSurfaceOffset,
+        target.y - impactDirection.y * impactSurfaceOffset,
+        target.z - impactDirection.z * impactSurfaceOffset
+    };
+    m_effectManager.SpawnSpecialImpact(impactPosition, impactDirection);
+    m_hitStopTimer = (std::max)(m_hitStopTimer, MaxChargeHitStop);
 }
 
 void Scene_Game::UpdateMiniCopySpawning()
@@ -354,7 +398,11 @@ void Scene_Game::UpdateEnvironmentEffects(float deltaTime)
         const auto current = miniCopy->GetPosition();
         const bool isDead = miniCopy->IsDead();
         if (isDead && !m_miniCopyWasDead[i])
+        {
             m_effectManager.Spawn(EffectType::EnemyDefeat, current);
+            m_player->AddSpecialGauge(
+                GameBalance::SpecialAttack::GaugePerDefeat);
+        }
         m_miniCopyWasDead[i] = isDead;
         auto& previous = m_previousMiniCopyEffectPositions[i];
         auto& timer = m_miniCopyWaterSplashTimers[i];

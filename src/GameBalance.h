@@ -78,4 +78,14 @@ constexpr int MaxMiniCopies = 4;
 constexpr float MinChargeHitStop = 0.105f;
 constexpr float MaxChargeHitStop = 0.15f;
 }
+
+namespace SpecialAttack
+{
+constexpr float GaugePerDefeat = 10.0f;
+constexpr int Damage = 1000;
+constexpr float Speed = 20.0f;
+constexpr float HomingResponsiveness = 8.0f;
+constexpr float HitRadius = 3.5f;
+constexpr float MaximumLifetime = 5.0f;
+}
 }

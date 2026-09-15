@@ -29,6 +29,7 @@
 ## 実装済みゲーム機能
 - `Scene_Game` が `Player` と `Enemy` 1体を登録。
 - Player: WASD移動、Shift＋WASDで速度2倍のダッシュ、左クリックで攻撃、Spaceでジャンプ。Rigidbodyで重力と上下速度を処理する。視点のY軸回転に合わせて本体と移動方向も回転。
+- 必殺技: ミニコピー撃破ごとに虹色ゲージが10%増加。満タン時はPlayerのリムが虹色に点灯し、FでBossへ自動追尾する三日月型斬撃波を発射する。着弾時はBossへ直接1000ダメージ。調整値は`GameBalance::SpecialAttack`。
 - Playerモデル: `assets/model/SwordMen/sword_and_shield.glb`。`Idle` / `Walk` / `Run` / `Attack` / `Jump`を収録し、状態に応じて切り替える。Attackは1回再生後に移動状態へ復帰する。
 - Player Collider: `CapsuleCollider(0.4f, 0.4f)`、Offsetは`(0, -0.3, 0)`。
 - Enemyモデル: `assets/model/Mutant/mutant_idle.glb`。`Mutant Breathing Idle.fbx`から変換したIdleアニメーションをループ再生する。Colliderは`CapsuleCollider(0.4f, 0.4f)`、Offsetは`(0, 0.8, 0)`。
@@ -51,7 +52,7 @@
 powershell -ExecutionPolicy Bypass -File tests/RunTests.ps1
 & "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" RenderEngine.vcxproj /p:Configuration=Debug /p:Platform=x64 /m /v:minimal
 ```
-- 最終確認: Debugビルド成功。全7テスト成功。
+- 最終確認: Debugビルド成功。全8テスト成功。
 - ウィンドウ上の見た目・操作は最終変更後未確認。
 
 ## 作業状態

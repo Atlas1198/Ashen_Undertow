@@ -25,7 +25,8 @@ enum class EffectType
     WaterSplash,
     EnemyDefeat,
     BossTelegraph,
-    WaterRipple
+    WaterRipple,
+    SpecialSlash
 };
 
 struct EffectDesc
@@ -80,6 +81,10 @@ public:
     void SpawnWaterSplash(const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& moveDirection, float intensity);
     void SpawnWaterRipple(const DirectX::XMFLOAT3& position, float intensity);
+    void SpawnSpecialSlash(const DirectX::XMFLOAT3& position,
+        const DirectX::XMFLOAT3& forward);
+    void SpawnSpecialImpact(const DirectX::XMFLOAT3& position,
+        const DirectX::XMFLOAT3& forward);
     void Stop(std::uint64_t id);
     void Update(float deltaTime);
     void Draw(Renderer& renderer) const;

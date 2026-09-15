@@ -37,6 +37,11 @@ public:
     void ApplyBlockKnockback(const DirectX::XMFLOAT3& attackerPosition);
     float GetStamina() const { return m_stamina; }
     float GetMaxStamina() const { return MaxStamina; }
+    float GetSpecialGauge() const { return m_specialGauge; }
+    float GetMaxSpecialGauge() const { return MaxSpecialGauge; }
+    bool IsSpecialGaugeFull() const { return m_specialGauge >= MaxSpecialGauge; }
+    void AddSpecialGauge(float amount);
+    bool ConsumeSpecialGauge();
     DirectX::XMFLOAT3 GetFootPosition() const;
     ModelHandle GetModelHandle() const;
     DirectX::XMFLOAT4 GetRimLightColor() const override;
@@ -62,6 +67,7 @@ private:
     void SetStandingHurtboxesEnabled(bool enabled);
 
     static constexpr float MaxStamina = 100.0f;
+    static constexpr float MaxSpecialGauge = 100.0f;
     const Input& m_input;
     AnimationComponent* m_animation = nullptr;
     SphereCollider* m_evasionCollider = nullptr;
@@ -75,6 +81,8 @@ private:
     float m_evasionDirectionZ = 0.0f;
     float m_stamina = MaxStamina;
     float m_staminaRecoveryDelay = 0.0f;
+    float m_specialGauge = MaxSpecialGauge; // 必殺技確認用。通常開始時は0に戻す。
+    float m_specialRimTime = 0.0f;
     float m_chargeDuration = 0.0f;
     float m_chargeDamageRatio = 0.0f;
     int m_attackComboStep = 0;

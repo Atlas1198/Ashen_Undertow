@@ -80,6 +80,8 @@ bool Player::Initialize(ModelManager& modelManager)
 
 void Player::Update(float deltaTime)
 {
+    m_specialRimTime = IsSpecialGaugeFull()
+        ? m_specialRimTime + deltaTime : 0.0f;
     const float moveX = m_input.MoveX();
     const float moveZ = m_input.MoveZ();
 
@@ -114,6 +116,20 @@ void Player::Update(float deltaTime)
     UpdateMovement(deltaTime, length, movementX, movementZ, dashing,
         staminaConsumed, dashActive);
     UpdateStamina(deltaTime, staminaConsumed, dashActive);
+}
+
+void Player::AddSpecialGauge(float amount)
+{
+    m_specialGauge = std::clamp(
+        m_specialGauge + (std::max)(amount, 0.0f), 0.0f, MaxSpecialGauge);
+}
+
+bool Player::ConsumeSpecialGauge()
+{
+    if (!IsSpecialGaugeFull()) return false;
+    m_specialGauge = 0.0f;
+    m_specialRimTime = 0.0f;
+    return true;
 }
 
 bool Player::UpdateGrounding()
@@ -543,14 +559,25 @@ DirectX::XMFLOAT3 Player::GetFootPosition() const
 
 DirectX::XMFLOAT4 Player::GetRimLightColor() const
 {
-    if (!m_charging) return {};
-    if (m_chargeDuration < ChargeLevelOneTime)
-        return { 2.4f, 2.4f, 2.4f, 0.35f };
-    if (m_chargeDuration < ChargeLevelTwoTime)
-        return { 0.18f, 1.0f, 4.5f, 0.42f };
-    if (m_chargeDuration < ChargeLevelThreeTime)
-        return { 5.0f, 2.8f, 0.18f, 0.48f };
-    return { 5.5f, 0.12f, 1.8f, 0.55f };
+    if (m_charging)
+    {
+        if (m_chargeDuration < ChargeLevelOneTime)
+            return { 2.4f, 2.4f, 2.4f, 0.35f };
+        if (m_chargeDuration < ChargeLevelTwoTime)
+            return { 0.18f, 1.0f, 4.5f, 0.42f };
+        if (m_chargeDuration < ChargeLevelThreeTime)
+            return { 5.0f, 2.8f, 0.18f, 0.48f };
+        return { 5.5f, 0.12f, 1.8f, 0.55f };
+    }
+    if (!IsSpecialGaugeFull()) return {};
+
+    const float phase = m_specialRimTime * 2.4f;
+    return {
+        1.4f + 1.2f * std::sin(phase),
+        1.4f + 1.2f * std::sin(phase + DirectX::XM_2PI / 3.0f),
+        1.4f + 1.2f * std::sin(phase + DirectX::XM_2PI * 2.0f / 3.0f),
+        0.42f
+    };
 }
 
 bool Player::GetSwordTrailSegment(DirectX::XMFLOAT3& start,

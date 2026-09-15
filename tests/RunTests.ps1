@@ -7,6 +7,7 @@ $devCmd = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
 $common = 'src\Engine\ComponentManager.cpp src\Engine\ObjectManager.cpp src\Engine\Collider.cpp src\Engine\CollisionManager.cpp src\Engine\CollisionResolver.cpp src\Engine\Rigidbody.cpp'
 $suites = @{
     TerrainTests = ''
+    SpecialAttackTests = 'src\SpecialAttack.cpp'
     GameObjectHPTests = $common
     UIManagerTests = 'src\Engine\UIManager.cpp'
     ComponentManagerTests = $common
