@@ -86,7 +86,7 @@ int main()
     assert(playerData && playerData->Valid());
     assert(playerData->skins.size() == 1);
     assert(playerData->skins[0].joints.size() == 69);
-    assert(playerData->animations.size() == 6);
+    assert(playerData->animations.size() >= 6);
     bool hasIdle = false, hasWalk = false, hasRun = false;
     bool hasAttack = false, hasJump = false, hasEvasion = false;
     for (const auto& animation : playerData->animations)

@@ -149,6 +149,7 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Scene_Game.cpp" />
+    <ClCompile Include="src\GameHud.cpp" />
     <ClCompile Include="src\Engine\Manager.cpp" />
     <ClCompile Include="src\Engine\ModelManager.cpp" />
     <ClCompile Include="src\Engine\ObjectManager.cpp" />
@@ -178,6 +179,10 @@
     <ClCompile Include="src\Engine\RendererUI.cpp" />
     <ClCompile Include="src\Engine\UIManager.cpp" />
     <ClCompile Include="src\Engine\EffectManager.cpp" />
+    <ClCompile Include="src\Engine\EffectManagerCombat.cpp" />
+    <ClCompile Include="src\Engine\EffectManagerCharge.cpp" />
+    <ClCompile Include="src\Engine\EffectManagerSwordTrail.cpp" />
+    <ClCompile Include="src\Engine\EffectManagerEnvironment.cpp" />
     <ClCompile Include="src\Scene_Title.cpp" />
     <ClCompile Include="src\Engine\HdrLoader.cpp" />
     <ClCompile Include="src\Engine\Json.cpp" />
@@ -196,6 +201,8 @@
     <ClInclude Include="src\Engine\RendererInternal.h" />
     <ClInclude Include="src\Engine\GameObject.h" />
     <ClInclude Include="src\Scene_Game.h" />
+    <ClInclude Include="src\GameHud.h" />
+    <ClInclude Include="src\GameBalance.h" />
     <ClInclude Include="src\Engine\Manager.h" />
     <ClInclude Include="src\Engine\ModelManager.h" />
     <ClInclude Include="src\Engine\ObjectManager.h" />

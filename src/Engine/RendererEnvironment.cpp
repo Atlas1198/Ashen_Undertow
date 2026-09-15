@@ -14,8 +14,7 @@ bool Renderer::CreateEnvironmentTexture()
     }
 
     // --- 2. GPU 専用メモリ(DEFAULT ヒープ)にテクスチャ本体を作る ---
-    D3D12_HEAP_PROPERTIES defaultHeap = {};
-    defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    const auto defaultHeap = HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -48,18 +47,9 @@ bool Renderer::CreateEnvironmentTexture()
     m_device->GetCopyableFootprints(&texDesc, 0, 1, 0,
         &footprint, &numRows, &rowSizeBytes, &uploadSize);
 
-    D3D12_HEAP_PROPERTIES uploadHeap = {};
-    uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    const auto uploadHeap = HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 
-    D3D12_RESOURCE_DESC bufDesc = {};
-    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    bufDesc.Width = uploadSize;
-    bufDesc.Height = 1;
-    bufDesc.DepthOrArraySize = 1;
-    bufDesc.MipLevels = 1;
-    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
-    bufDesc.SampleDesc.Count = 1;
-    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    auto bufDesc = BufferDescription(uploadSize);
 
     ComPtr<ID3D12Resource> uploadBuffer;
     if (!Check(m_device->CreateCommittedResource(
@@ -210,8 +200,7 @@ bool Renderer::CreateIrradianceMap()
     const UINT kHeight = 32;   // 等距円筒図法は横:縦 = 2:1
 
     // --- 1. 描き込み先のテクスチャ ---
-    D3D12_HEAP_PROPERTIES defaultHeap = {};
-    defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    const auto defaultHeap = HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -405,8 +394,7 @@ bool Renderer::CreatePrefilterMap()
     const UINT kMipLevels = 6;   // Triangle.hlsl の kMaxReflectionLod + 1 と一致させる
 
     // --- 1. ミップ付きテクスチャ ---
-    D3D12_HEAP_PROPERTIES defaultHeap = {};
-    defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    const auto defaultHeap = HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -626,8 +614,7 @@ bool Renderer::CreateBrdfLut()
     const UINT kSize = 256;
 
     // --- 1. テクスチャ ---
-    D3D12_HEAP_PROPERTIES defaultHeap = {};
-    defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    const auto defaultHeap = HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;

@@ -31,6 +31,9 @@
     <ClCompile Include="src\Scene_Game.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="src\GameHud.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="src\Engine\Manager.cpp">
       <Filter>ソース ファイル\Engine</Filter>
     </ClCompile>
@@ -147,6 +150,12 @@
     <ClInclude Include="src\Scene_Game.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="src\GameHud.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GameBalance.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\Manager.h">
       <Filter>ヘッダー ファイル\Engine</Filter>
     </ClInclude>
@@ -245,6 +254,10 @@
     <ClCompile Include="src\Engine\RendererEffects.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
     <ClCompile Include="src\Engine\UIManager.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
     <ClCompile Include="src\Engine\EffectManager.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
+    <ClCompile Include="src\Engine\EffectManagerCombat.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
+    <ClCompile Include="src\Engine\EffectManagerCharge.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
+    <ClCompile Include="src\Engine\EffectManagerSwordTrail.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
+    <ClCompile Include="src\Engine\EffectManagerEnvironment.cpp"><Filter>ソース ファイル\Engine</Filter></ClCompile>
     <ClInclude Include="src\Engine\UIManager.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
     <ClInclude Include="src\Engine\EffectManager.h"><Filter>ヘッダー ファイル\Engine</Filter></ClInclude>
     <None Include="shaders\UI.hlsl"><Filter>シェーダー</Filter></None>

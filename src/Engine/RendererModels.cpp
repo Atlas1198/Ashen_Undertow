@@ -6,17 +6,9 @@ using namespace RendererDetail;
 
 bool Renderer::CreateVertexBuffer()
 {
-    D3D12_HEAP_PROPERTIES heapProps = {};
-    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+    const auto heapProps = HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 
-    D3D12_RESOURCE_DESC resourceDesc = {};
-    resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    resourceDesc.Height = 1;
-    resourceDesc.DepthOrArraySize = 1;
-    resourceDesc.MipLevels = 1;
-    resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-    resourceDesc.SampleDesc.Count = 1;
-    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    auto resourceDesc = BufferDescription(0);
 
     D3D12_RANGE readRange = { 0, 0 };
 
@@ -183,8 +175,7 @@ bool Renderer::UploadTexture(const void* pixels, UINT width, UINT height,
     }
 
     // --- 3. テクスチャ本体(ミップ付き) ---
-    D3D12_HEAP_PROPERTIES defaultHeap = {};
-    defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    const auto defaultHeap = HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -214,18 +205,9 @@ bool Renderer::UploadTexture(const void* pixels, UINT width, UINT height,
         footprints.data(), numRows.data(),
         rowSizes.data(), &uploadSize);
 
-    D3D12_HEAP_PROPERTIES uploadHeap = {};
-    uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    const auto uploadHeap = HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 
-    D3D12_RESOURCE_DESC bufDesc = {};
-    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    bufDesc.Width = uploadSize;
-    bufDesc.Height = 1;
-    bufDesc.DepthOrArraySize = 1;
-    bufDesc.MipLevels = 1;
-    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
-    bufDesc.SampleDesc.Count = 1;
-    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    auto bufDesc = BufferDescription(uploadSize);
 
     ComPtr<ID3D12Resource> uploadBuffer;
     if (!Check(m_device->CreateCommittedResource(
@@ -464,17 +446,8 @@ bool Renderer::CreateFloor()
             sourceVertices.size() * sizeof(Vertex));
         const UINT indexBufferSize = static_cast<UINT>(
             sourceIndices.size() * sizeof(uint32_t));
-        D3D12_HEAP_PROPERTIES heapProps = {};
-        heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-        D3D12_RESOURCE_DESC resourceDesc = {};
-        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        resourceDesc.Width = vertexBufferSize;
-        resourceDesc.Height = 1;
-        resourceDesc.DepthOrArraySize = 1;
-        resourceDesc.MipLevels = 1;
-        resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-        resourceDesc.SampleDesc.Count = 1;
-        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        const auto heapProps = HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
+        auto resourceDesc = BufferDescription(vertexBufferSize);
         if (!Check(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
             &resourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
             IID_PPV_ARGS(&vertexBuffer)))) return false;
@@ -649,18 +622,9 @@ bool Renderer::CreateConstantBuffer()
     m_objectCount = kMaxDrawMeshCount + 3;
     const UINT bufferSize = m_cbStride * m_objectCount * kFrameCount;
 
-    D3D12_HEAP_PROPERTIES heapProps = {};
-    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+    const auto heapProps = HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 
-    D3D12_RESOURCE_DESC resourceDesc = {};
-    resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    resourceDesc.Width = bufferSize;
-    resourceDesc.Height = 1;
-    resourceDesc.DepthOrArraySize = 1;
-    resourceDesc.MipLevels = 1;
-    resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-    resourceDesc.SampleDesc.Count = 1;
-    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    auto resourceDesc = BufferDescription(bufferSize);
 
     if (!Check(m_device->CreateCommittedResource(
         &heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,

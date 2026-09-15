@@ -15,6 +15,27 @@
 namespace RendererDetail
 {
     using namespace DirectX;
+
+    inline D3D12_HEAP_PROPERTIES HeapProperties(D3D12_HEAP_TYPE type)
+    {
+        D3D12_HEAP_PROPERTIES properties = {};
+        properties.Type = type;
+        return properties;
+    }
+
+    inline D3D12_RESOURCE_DESC BufferDescription(UINT64 size)
+    {
+        D3D12_RESOURCE_DESC description = {};
+        description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        description.Width = size;
+        description.Height = 1;
+        description.DepthOrArraySize = 1;
+        description.MipLevels = 1;
+        description.SampleDesc.Count = 1;
+        description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        return description;
+    }
+
     // 頂点フォーマット。
 // GltfVertex とメモリ配置を完全に一致させてあるので、
 // ローダーの出力をそのまま memcpy できる

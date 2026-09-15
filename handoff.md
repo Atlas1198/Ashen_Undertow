@@ -20,6 +20,11 @@
 - `Collider`: `src/Engine/Collider.h` だけをincludeすれば、`SphereCollider` / `CapsuleCollider` / `BoxCollider` を利用できる。各ColliderはObject座標からのOffsetを個別指定可能。
 - `CollisionResolver`: 接触後の押し出しを共通処理する。Rigidbodyを持つObjectを動的、持たないObjectを静的として扱う。Triggerは接触情報だけ更新し、押し出さない。
 - `Renderer`: DX12。実装は `RendererDevice/Models/Environment/Pipelines/PostProcess/Frame/Debug.cpp` に分割。複数モデル・複数Instanceを描画可能。定数バッファはバックバッファ別領域。
+- `GameHud`: Boss・MiniCopy・PlayerのHP／スタミナ表示を担当。`Scene_Game` はゲーム状態を渡すだけ。
+- `GameBalance.h`: Player・Boss・MiniCopy・Sceneの調整値を集約。速度、攻撃判定時間、スタミナ消費量などはここから変更する。
+- `Player`: フレーム更新を接地、ジャンプ／回避、チャージ、通常攻撃、移動、スタミナへ分割済み。
+- `EffectManager`: 公開APIは1つのまま、実装をCore・Combat・Charge・SwordTrail・Environmentへ分割済み。
+- `RendererInternal`: D3D12のヒープ／バッファ記述子生成を共通ヘルパー化し、Renderer実装間の重複を削減。
 
 ## 実装済みゲーム機能
 - `Scene_Game` が `Player` と `Enemy` 1体を登録。
@@ -46,7 +51,7 @@
 powershell -ExecutionPolicy Bypass -File tests/RunTests.ps1
 & "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" RenderEngine.vcxproj /p:Configuration=Debug /p:Platform=x64 /m /v:minimal
 ```
-- 最終確認: Debugビルド成功。ComponentManager/Collision/Engine/Rigidbodyテスト成功。
+- 最終確認: Debugビルド成功。全7テスト成功。
 - ウィンドウ上の見た目・操作は最終変更後未確認。
 
 ## 作業状態

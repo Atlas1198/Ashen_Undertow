@@ -4,6 +4,7 @@
 #include "Boss.h"
 #include "Collider.h"
 #include "GameAssets.h"
+#include "GameBalance.h"
 #include "ModelComponent.h"
 #include "Player.h"
 #include "Terrain.h"
@@ -11,26 +12,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace
-{
-constexpr float SightRange = 10.0f;
-constexpr float RunEnterDistance = 5.5f;
-constexpr float RunExitDistance = 4.5f;
-constexpr float AttackDistance = 1.8f;
-constexpr float WalkSpeed = 1.5f;
-constexpr float RunSpeed = 3.0f;
-constexpr float RotationResponsiveness = 8.0f;
-constexpr float AnimationBlendDuration = 0.2f;
-constexpr float AttackPlaybackSpeed = 2.0f;
-constexpr float AttackCooldown = 0.5f;
-constexpr float AttackColliderRadius = 0.32f;
-constexpr float AttackHitStart = 0.25f;
-constexpr float AttackHitEnd = 0.70f;
-constexpr int AttackDamage = 3;
-constexpr float BlockKnockbackDistance = 1.2f;
-constexpr int BossDamageOnDefeat = 100;
-constexpr float DeathEffectDuration = 1.6f;
-}
+using namespace GameBalance::MiniCopy;
 
 bool MiniCopy::Initialize(ModelManager& modelManager)
 {

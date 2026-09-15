@@ -44,6 +44,23 @@ public:
         DirectX::XMFLOAT3& end) const;
 
 private:    
+    bool UpdateGrounding();
+    void FinishEvasionIfNeeded();
+    void UpdateTraversalAction(bool grounded, bool dashRequested,
+        float movementX, float movementZ, bool& staminaConsumed);
+    void UpdateJumpAnimation();
+    void UpdateCombat(float deltaTime, float movementLength,
+        bool dashing, bool wasBlocking, bool& staminaConsumed);
+    bool UpdateChargeAttack(float deltaTime, bool attackPressed,
+        bool attackHeld, bool attackReleased, bool& staminaConsumed);
+    void UpdateNormalAttack(bool normalAttackInput, bool wasBlocking);
+    void UpdateLocomotionAnimation(float movementLength, bool dashing);
+    void UpdateMovement(float deltaTime, float movementLength,
+        float movementX, float movementZ, bool dashing,
+        bool& staminaConsumed, bool& dashActive);
+    void UpdateStamina(float deltaTime, bool staminaConsumed, bool dashActive);
+    void SetStandingHurtboxesEnabled(bool enabled);
+
     static constexpr float MaxStamina = 100.0f;
     const Input& m_input;
     AnimationComponent* m_animation = nullptr;

@@ -2,20 +2,17 @@
 
 #include "AnimationComponent.h"
 #include "GameAssets.h"
+#include "GameBalance.h"
 #include "ModelComponent.h"
 
 #include <algorithm>
 
-namespace
-{
-constexpr float BossVisualScale = 40.0f;
-constexpr float MiniCopySpawnInterval = 8.0f;
-}
+using namespace GameBalance::Boss;
 
 bool Boss::Initialize(ModelManager& modelManager)
 {
     InitializeHP(5000);
-    m_scale = { BossVisualScale, BossVisualScale, BossVisualScale };
+    m_scale = { VisualScale, VisualScale, VisualScale };
 
     auto* model = AddComponent<ModelComponent>(modelManager, GameAssets::EnemyModel);
     if (!model) return false;

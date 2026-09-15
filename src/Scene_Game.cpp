@@ -6,65 +6,14 @@
 #include "Tree.h"
 #include "Collider.h"
 #include "Input.h"
+#include "GameBalance.h"
 
 #include "Renderer.h"
 #include "Terrain.h"
 #include <algorithm>
 #include <cmath>
 
-namespace
-{
-constexpr float ScreenWidth = 1600.0f;
-constexpr float ScreenHeight = 900.0f;
-constexpr float BossHPBarX = 550.0f;
-constexpr float BossHPBarY = 24.0f;
-constexpr float BossHPBarWidth = 500.0f;
-constexpr float BossHPBarHeight = 16.0f;
-constexpr float BossHPBarPadding = 2.0f;
-constexpr float MiniCopyHPBarWidth = 90.0f;
-constexpr float MiniCopyHPBarHeight = 8.0f;
-constexpr float MiniCopyHPBarPadding = 1.0f;
-constexpr int MaxMiniCopies = 4;
-constexpr float PlayerHPBarX = 24.0f;
-constexpr float PlayerHPBarY = 860.0f;
-constexpr float PlayerHPBarWidth = 360.0f;
-constexpr float PlayerHPBarHeight = 16.0f;
-constexpr float PlayerHPBarPadding = 2.0f;
-constexpr float PlayerStaminaBarX = PlayerHPBarX;
-constexpr float PlayerStaminaBarY = PlayerHPBarY + PlayerHPBarHeight + 5.0f;
-constexpr float PlayerStaminaBarWidth = PlayerHPBarWidth;
-constexpr float PlayerStaminaBarHeight = 8.0f;
-constexpr float MinChargeHitStop = 0.105f;
-constexpr float MaxChargeHitStop = 0.15f;
-constexpr float PlayerStaminaBarPadding = 1.0f;
-
-bool WorldToScreen(const DirectX::XMFLOAT3& world, const Camera& camera,
-    DirectX::XMFLOAT2& screen)
-{
-    using namespace DirectX;
-    const auto cameraPosition = camera.GetPosition();
-    const auto cameraTarget = camera.GetTarget();
-    const XMVECTOR eye = XMLoadFloat3(&cameraPosition);
-    const XMVECTOR target = XMLoadFloat3(&cameraTarget);
-    const XMVECTOR point = XMLoadFloat3(&world);
-    const XMVECTOR forward = XMVector3Normalize(XMVectorSubtract(target, eye));
-    if (XMVectorGetX(XMVector3Dot(XMVectorSubtract(point, eye), forward)) <= 0.0f)
-        return false;
-
-    const XMMATRIX view = XMMatrixLookAtLH(
-        eye, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-    const XMMATRIX projection = XMMatrixPerspectiveFovLH(
-        XMConvertToRadians(60.0f), ScreenWidth / ScreenHeight, 0.5f, 100.0f);
-    XMFLOAT3 projected;
-    XMStoreFloat3(&projected, XMVector3Project(point, 0.0f, 0.0f,
-        ScreenWidth, ScreenHeight, 0.0f, 1.0f,
-        projection, view, XMMatrixIdentity()));
-    if (projected.z < 0.0f || projected.z > 1.0f) return false;
-    screen = { projected.x, projected.y };
-    return projected.x >= 0.0f && projected.x <= ScreenWidth &&
-        projected.y >= 0.0f && projected.y <= ScreenHeight;
-}
-}
+using namespace GameBalance::Scene;
 
 Scene_Game::Scene_Game(ModelManager& modelManager, const Input& input)
     : SceneManager(modelManager), m_input(input)
@@ -124,10 +73,6 @@ bool Scene_Game::Initialize()
 
 bool Scene_Game::InitializeUI(UIManager& ui)
 {
-    m_wonheeImage = ui.LoadImageFile("assets/texture/wonhee.jpg");
-    const auto* image = ui.GetImage(m_wonheeImage);
-    if (!image) return false;
-    m_wonheeHeight = 240.0f * image->height / image->width;
     m_effectTexture = ui.LoadImageFile(
         "assets/texture/effects/spark_particle.png");
     if (!m_effectTexture.IsValid()) return false;
@@ -137,117 +82,7 @@ bool Scene_Game::InitializeUI(UIManager& ui)
 
 void Scene_Game::OnDrawUI(UIManager& ui)
 {
-    //ui.DrawImage(m_wonheeImage, { 24, 24, 240, m_wonheeHeight });
-    //// 4頂点を画面ピクセル座標で手打ちした四角形。
-    //ui.DrawQuad({ DirectX::XMFLOAT2 { 300, 40 }, { 500, 40 },
-    //    { 500, 180 }, { 300, 180 } }, { 0.1f, 0.7f, 1.0f, 0.75f });
-
-    const float hpRatio = m_boss->GetMaxHP() > 0
-        ? static_cast<float>(m_boss->GetHP()) / m_boss->GetMaxHP() : 0.0f;
-    ui.DrawQuad({
-        DirectX::XMFLOAT2 { BossHPBarX, BossHPBarY },
-        DirectX::XMFLOAT2 { BossHPBarX + BossHPBarWidth, BossHPBarY },
-        DirectX::XMFLOAT2 { BossHPBarX + BossHPBarWidth, BossHPBarY + BossHPBarHeight },
-        DirectX::XMFLOAT2 { BossHPBarX, BossHPBarY + BossHPBarHeight }
-    }, { 0.0f, 0.0f, 0.0f, 1.0f });
-
-    const float fillX = BossHPBarX + BossHPBarPadding;
-    const float fillY = BossHPBarY + BossHPBarPadding;
-    const float fillWidth = (BossHPBarWidth - BossHPBarPadding * 2.0f) * hpRatio;
-    const float fillHeight = BossHPBarHeight - BossHPBarPadding * 2.0f;
-    if (fillWidth > 0.0f)
-    {
-        ui.DrawQuad({
-            DirectX::XMFLOAT2 { fillX, fillY },
-            DirectX::XMFLOAT2 { fillX + fillWidth, fillY },
-            DirectX::XMFLOAT2 { fillX + fillWidth, fillY + fillHeight },
-            DirectX::XMFLOAT2 { fillX, fillY + fillHeight }
-        }, { 0.9f, 0.05f, 0.05f, 1.0f });
-    }
-
-    for (const MiniCopy* miniCopy : m_miniCopies)
-    {
-        if (miniCopy->IsDead()) continue;
-        const auto headPosition = miniCopy->GetHPBarPosition();
-        DirectX::XMFLOAT2 center;
-        if (!WorldToScreen(headPosition, m_camera, center)) continue;
-
-        const float x = center.x - MiniCopyHPBarWidth * 0.5f;
-        const float y = center.y - MiniCopyHPBarHeight;
-        ui.DrawQuad({
-            DirectX::XMFLOAT2 { x, y },
-            DirectX::XMFLOAT2 { x + MiniCopyHPBarWidth, y },
-            DirectX::XMFLOAT2 { x + MiniCopyHPBarWidth, y + MiniCopyHPBarHeight },
-            DirectX::XMFLOAT2 { x, y + MiniCopyHPBarHeight }
-        }, { 0.0f, 0.0f, 0.0f, 0.9f });
-
-        const float miniRatio = miniCopy->GetMaxHP() > 0
-            ? static_cast<float>(miniCopy->GetHP()) / miniCopy->GetMaxHP() : 0.0f;
-        const float miniFillWidth =
-            (MiniCopyHPBarWidth - MiniCopyHPBarPadding * 2.0f) * miniRatio;
-        if (miniFillWidth <= 0.0f) continue;
-        const float miniFillX = x + MiniCopyHPBarPadding;
-        const float miniFillY = y + MiniCopyHPBarPadding;
-        const float miniFillHeight = MiniCopyHPBarHeight - MiniCopyHPBarPadding * 2.0f;
-        ui.DrawQuad({
-            DirectX::XMFLOAT2 { miniFillX, miniFillY },
-            DirectX::XMFLOAT2 { miniFillX + miniFillWidth, miniFillY },
-            DirectX::XMFLOAT2 { miniFillX + miniFillWidth, miniFillY + miniFillHeight },
-            DirectX::XMFLOAT2 { miniFillX, miniFillY + miniFillHeight }
-        }, { 0.9f, 0.1f, 0.1f, 1.0f });
-    }
-
-    const float playerHpRatio = m_player->GetMaxHP() > 0
-        ? static_cast<float>(m_player->GetHP()) / m_player->GetMaxHP() : 0.0f;
-    ui.DrawQuad({
-        DirectX::XMFLOAT2 { PlayerHPBarX, PlayerHPBarY },
-        DirectX::XMFLOAT2 { PlayerHPBarX + PlayerHPBarWidth, PlayerHPBarY },
-        DirectX::XMFLOAT2 { PlayerHPBarX + PlayerHPBarWidth, PlayerHPBarY + PlayerHPBarHeight },
-        DirectX::XMFLOAT2 { PlayerHPBarX, PlayerHPBarY + PlayerHPBarHeight }
-    }, { 0.0f, 0.0f, 0.0f, 1.0f });
-
-    const float playerFillX = PlayerHPBarX + PlayerHPBarPadding;
-    const float playerFillY = PlayerHPBarY + PlayerHPBarPadding;
-    const float playerFillWidth =
-        (PlayerHPBarWidth - PlayerHPBarPadding * 2.0f) * playerHpRatio;
-    const float playerFillHeight = PlayerHPBarHeight - PlayerHPBarPadding * 2.0f;
-    if (playerFillWidth > 0.0f)
-    {
-        ui.DrawQuad({
-            DirectX::XMFLOAT2 { playerFillX, playerFillY },
-            DirectX::XMFLOAT2 { playerFillX + playerFillWidth, playerFillY },
-            DirectX::XMFLOAT2 { playerFillX + playerFillWidth,
-                playerFillY + playerFillHeight },
-            DirectX::XMFLOAT2 { playerFillX, playerFillY + playerFillHeight }
-        }, { 0.6f, 1.0f, 0.05f, 1.0f });
-    }
-
-    const float staminaRatio = m_player->GetMaxStamina() > 0.0f
-        ? m_player->GetStamina() / m_player->GetMaxStamina() : 0.0f;
-    ui.DrawQuad({
-        DirectX::XMFLOAT2 { PlayerStaminaBarX, PlayerStaminaBarY },
-        DirectX::XMFLOAT2 { PlayerStaminaBarX + PlayerStaminaBarWidth, PlayerStaminaBarY },
-        DirectX::XMFLOAT2 { PlayerStaminaBarX + PlayerStaminaBarWidth,
-            PlayerStaminaBarY + PlayerStaminaBarHeight },
-        DirectX::XMFLOAT2 { PlayerStaminaBarX, PlayerStaminaBarY + PlayerStaminaBarHeight }
-    }, { 0.0f, 0.0f, 0.0f, 1.0f });
-
-    const float staminaFillX = PlayerStaminaBarX + PlayerStaminaBarPadding;
-    const float staminaFillY = PlayerStaminaBarY + PlayerStaminaBarPadding;
-    const float staminaFillWidth =
-        (PlayerStaminaBarWidth - PlayerStaminaBarPadding * 2.0f) * staminaRatio;
-    const float staminaFillHeight =
-        PlayerStaminaBarHeight - PlayerStaminaBarPadding * 2.0f;
-    if (staminaFillWidth > 0.0f)
-    {
-        ui.DrawQuad({
-            DirectX::XMFLOAT2 { staminaFillX, staminaFillY },
-            DirectX::XMFLOAT2 { staminaFillX + staminaFillWidth, staminaFillY },
-            DirectX::XMFLOAT2 { staminaFillX + staminaFillWidth,
-                staminaFillY + staminaFillHeight },
-            DirectX::XMFLOAT2 { staminaFillX, staminaFillY + staminaFillHeight }
-        }, { 1.0f, 0.82f, 0.05f, 1.0f });
-    }
+    m_hud.Draw(ui, *m_player, *m_boss, m_miniCopies, m_camera);
 }
 
 void Scene_Game::OnUpdate(float deltaTime)
@@ -273,7 +108,15 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
 {
     m_effectManager.Update(deltaTime);
     m_player->ResolveTerrainContact();
+    UpdatePlayerEffects(deltaTime);
+    UpdateMiniCopySpawning();
+    ResolveCombat();
+    UpdateCameraAndTrees();
+    UpdateEnvironmentEffects(deltaTime);
+}
 
+void Scene_Game::UpdatePlayerEffects(float deltaTime)
+{
     DirectX::XMFLOAT3 swordStart {};
     DirectX::XMFLOAT3 swordEnd {};
     if (m_player->GetSwordTrailSegment(swordStart, swordEnd))
@@ -314,6 +157,10 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         m_chargeAuraSpawnTimer = 0.0f;
     }
 
+}
+
+void Scene_Game::UpdateMiniCopySpawning()
+{
     const int aliveCount = static_cast<int>(std::count_if(
         m_miniCopies.begin(), m_miniCopies.end(),
         [](const MiniCopy* miniCopy) { return !miniCopy->IsDead(); }));
@@ -342,6 +189,10 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         }
     }
 
+}
+
+void Scene_Game::ResolveCombat()
+{
     for (MiniCopy* miniCopy : m_miniCopies)
     {
         if (miniCopy->IsDead()) continue;
@@ -375,11 +226,19 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         if (miniCopy->ResolveAttackHit(*m_player, blockPosition))
             m_effectManager.Spawn(EffectType::BlockSpark, blockPosition);
     }
+}
+
+void Scene_Game::UpdateCameraAndTrees()
+{
     m_camera.SetTarget(m_player->GetPosition());
     UpdateCameraGroundConstraint();
     for (Tree* tree : m_trees)
         tree->FaceCamera(m_camera.GetPosition());
 
+}
+
+void Scene_Game::UpdateEnvironmentEffects(float deltaTime)
+{
     const auto updateWaterMovement = [deltaTime](const DirectX::XMFLOAT3& current,
         const DirectX::XMFLOAT3& previous, float previousStrength)
     {
@@ -534,8 +393,8 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         }
         previous = current;
     }
-}
 
+}
 void Scene_Game::OnDraw(Renderer& renderer)
 {
     renderer.SetCamera(m_camera.GetPosition(), m_camera.GetTarget());

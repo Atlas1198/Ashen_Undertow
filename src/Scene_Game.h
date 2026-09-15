@@ -2,6 +2,7 @@
 
 #include "Camera.h"
 #include "EffectManager.h"
+#include "GameHud.h"
 #include "SceneManager.h"
 #include "UIManager.h"
 #include <vector>
@@ -22,14 +23,18 @@ public:
 
 private:
     void UpdateCameraGroundConstraint();
+    void UpdatePlayerEffects(float deltaTime);
+    void UpdateMiniCopySpawning();
+    void ResolveCombat();
+    void UpdateCameraAndTrees();
+    void UpdateEnvironmentEffects(float deltaTime);
     void OnUpdate(float deltaTime) override;
     void OnAfterUpdate(float deltaTime) override;
     bool IsSimulationPaused() const override { return m_hitStopThisFrame; }
     void OnDraw(Renderer& renderer) override;
     void OnDrawUI(UIManager& ui) override;
-    UIImageHandle m_wonheeImage;
     UIImageHandle m_effectTexture;
-    float m_wonheeHeight = 0;
+    GameHud m_hud;
 
     Player* m_player = nullptr;
     Boss* m_boss = nullptr;
