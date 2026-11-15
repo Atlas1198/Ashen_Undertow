@@ -250,8 +250,10 @@ void Scene_Game::OnUpdate(float deltaTime)
 
     m_hitStopThisFrame = m_hitStopTimer > 0.0f;
     m_hitStopTimer = (std::max)(0.0f, m_hitStopTimer - deltaTime);
+#if defined(_DEBUG)
     if (m_input.ColliderVisualizationPressed())
         m_showColliders = !m_showColliders;
+#endif
     m_camera.Rotate(m_input.LookX(), m_input.LookY());
     UpdateCameraGroundConstraint();
     m_player->SetMovementYaw(-m_camera.GetYaw());
@@ -829,6 +831,7 @@ void Scene_Game::OnDraw(Renderer& renderer)
         renderer.DrawBossFlame(mouth, direction,
             m_boss->GetGlobalAttackProgress(), m_bossAttackVisualTime);
     }
+#if defined(_DEBUG)
     if (!m_showColliders) return;
 
     for (const auto* playerCollider : m_player->GetComponents<Collider>())
@@ -856,4 +859,5 @@ void Scene_Game::OnDraw(Renderer& renderer)
                     shape.radius, collider->IsColliding());
         }
     }
+#endif
 }
