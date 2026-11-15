@@ -1,8 +1,16 @@
+//-------------------------------------------------
+//
+//          Rigidbody.cpp
+//
+//  速度・力・重力を積分して GameObject の位置を進める。
+//-------------------------------------------------
+
 #include "Rigidbody.h"
 
 #include "GameObject.h"
 #include <algorithm>
 
+// 力から加速度を求め、抗力と重力を反映してから位置へ積分する。
 void Rigidbody::Update(float deltaTime)
 {
     if (deltaTime <= 0.0f) return;
@@ -41,6 +49,7 @@ void Rigidbody::AddForce(float x, float y, float z)
     m_force.z += z;
 }
 
+// 瞬間的な運動量を質量で割って速度へ直接加える。
 void Rigidbody::AddImpulse(float x, float y, float z)
 {
     if (m_isKinematic) return;

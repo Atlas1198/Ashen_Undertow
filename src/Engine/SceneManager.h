@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          SceneManager.h
+//
+//  シーンの更新順と画面遷移の共通インターフェースを定義する。
+//-------------------------------------------------
+
 #pragma once
 
 #include "ObjectManager.h"
@@ -6,6 +13,7 @@ class ModelManager;
 class Renderer;
 class UIManager;
 
+// シーンが Manager に渡す一回限りの遷移要求。
 enum class SceneRequest { None, Game, Tutorial, Title, Retry };
 
 // 各シーンが共通して実装するインターフェース。
@@ -22,6 +30,7 @@ public:
     virtual bool Initialize() = 0;
     virtual bool InitializeUI(UIManager&) { return true; }
     void DrawUI(UIManager& ui) { OnDrawUI(ui); }
+    // 読み取りと同時にクリアし、次フレームへの持ち越しを防ぐ。
     SceneRequest ConsumeSceneRequest()
     {
         const auto request = m_sceneRequest;
@@ -29,6 +38,7 @@ public:
         return request;
     }
 
+    // シーンの事前処理、オブジェクト更新、接触結果の事後処理の順。
     void Update(float deltaTime)
     {
         OnUpdate(deltaTime);
@@ -58,6 +68,7 @@ protected:
     void RequestScene(SceneRequest request) { m_sceneRequest = request; }
 
 private:
+    // オブジェクトはシーンに属し、シーン破棄時にまとめて解放される。
     ObjectManager m_objectManager;
     SceneRequest m_sceneRequest = SceneRequest::None;
 };

@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          GameHud.h
+//
+//  プレイヤーと敵の状態を HUD 表示へ変換する。
+//-------------------------------------------------
+
 #pragma once
 
 #include "UIManager.h"
@@ -9,6 +16,7 @@ class MiniCopy;
 class Player;
 class UIManager;
 
+// HP・スタミナ・特殊ゲージと敵 HP を UI 描画命令へ変換する。
 class GameHud
 {
 public:
@@ -20,6 +28,7 @@ public:
         const std::vector<MiniCopy*>& miniCopies, const Camera& camera) const;
 
 private:
+    // 前フレーム HP との差で被弾演出を起動する。タイマーは秒単位。
     int m_previousPlayerHp = -1;
     float m_playerDamageEffectTimer = 0.0f;
     float m_elapsedTime = 0.0f;

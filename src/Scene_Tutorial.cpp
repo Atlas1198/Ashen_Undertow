@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Scene_Tutorial.cpp
+//
+//  操作課題の判定と練習用オブジェクトの配置を扱う。
+//-------------------------------------------------
+
 #include "Scene_Tutorial.h"
 
 #include "AnimationComponent.h"
@@ -94,6 +101,7 @@ void Scene_Tutorial::OnUpdate(float deltaTime)
         start.y += 1.0f;
         if (m_specialAttack.Launch(start, m_boss->GetSpecialAttackTarget()))
         {
+            m_player->InterruptCombatForSpecialAttack();
             m_player->ConsumeSpecialGauge();
             m_specialEffectTimer = 0.0f;
             m_audio.PlaySound(AudioId::SpecialAttack, 1.05f, 0.82f);
@@ -113,6 +121,7 @@ void Scene_Tutorial::OnUpdate(float deltaTime)
     }
 }
 
+// 現在の課題だけを判定し、成功時に次の操作へ進める。
 void Scene_Tutorial::OnAfterUpdate(float deltaTime)
 {
     m_effectManager.Update(deltaTime);
@@ -138,6 +147,8 @@ void Scene_Tutorial::OnAfterUpdate(float deltaTime)
         m_footstepTimer = 0.0f;
     }
 
+    // 0: 歩く、1: ジャンプ、2: ダッシュ、3: 回避。
+    // 4: 三連撃、5: 最大溜め、6: ガード、7: 特殊攻撃。
     if (m_step == 0)
     {
         if (!m_input.DashHeld()) m_moveDistance += traveled;
@@ -221,6 +232,7 @@ void Scene_Tutorial::OnAfterUpdate(float deltaTime)
     m_camera.SetTarget(current);
 }
 
+// 課題ごとの配置を切り替え、最後の課題では特殊ゲージを満タンにする。
 void Scene_Tutorial::AdvanceStep()
 {
     if (m_step >= TutorialStepCount) return;

@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          ModelComponent.h
+//
+//  共有モデルのハンドルと個別配置の補正を管理する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <DirectXMath.h>
@@ -7,6 +14,7 @@
 
 class ModelManager;
 
+// 共有モデルのハンドルと、個々の配置に必要な補正だけを持つ表示部品。
 class ModelComponent final : public Component
 {
 public:
@@ -23,6 +31,7 @@ public:
 private:
     ModelManager& m_models;
     std::string m_path;
+    // ハンドルは ModelManager が所有する読み込み済みモデルを指す。
     ModelHandle m_model;
     DirectX::XMFLOAT3 m_offset { 0, 0, 0 };
     DirectX::XMFLOAT3 m_localRotation { 0, 0, 0 };

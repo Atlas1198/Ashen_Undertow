@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          RendererUI.cpp
+//
+//  UI 画像を GPU へ送り、画面座標の四角形として描く。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 #include "UIManager.h"
 
@@ -95,6 +102,7 @@ bool Renderer::CreateUIResources()
     return true;
 }
 
+// 未転送の画像だけを GPU へアップロードし、既存のテクスチャを再利用する。
 bool Renderer::PrepareUIImages(const UIManager& ui)
 {
     // Renderのコマンド記録開始前に転送。既存の画像は再転送しない。

@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Player.cpp
+//
+//  入力に応じた移動、攻撃、防御、回避とスタミナを更新する。
+//-------------------------------------------------
+
 #include "Player.h"
 #include "Collider.h"
 #include "AnimationComponent.h"
@@ -13,6 +20,7 @@
 
 using namespace GameBalance::Player;
 
+// モデル、剣の攻撃判定、被弾判定、移動用 Rigidbody を組み立てる。
 bool Player::Initialize(ModelManager& modelManager)
 {
     InitializeHP(100);
@@ -79,6 +87,7 @@ bool Player::Initialize(ModelManager& modelManager)
     return true;
 }
 
+// 死亡状態を先に処理し、通常時は移動入力→行動→スタミナの順で更新する。
 void Player::Update(float deltaTime)
 {
     if (IsDead())
@@ -98,18 +107,6 @@ void Player::Update(float deltaTime)
         }
         m_animation->Play("Death", false, 1.0f, AnimationBlendDuration);
         return;
-    }
-
-    if (m_input.SpecialAttackPressed())
-    {
-        m_attacking = false;
-        m_attackComboQueued = false;
-        m_attackInputPending = false;
-        m_charging = false;
-        m_chargeReleasing = false;
-        m_blocking = false;
-        m_attackCollider->SetEnabled(false);
-        m_chargeAttackCollider->SetEnabled(false);
     }
 
     m_specialRimTime = IsSpecialGaugeFull()
@@ -148,6 +145,18 @@ void Player::Update(float deltaTime)
     UpdateMovement(deltaTime, length, movementX, movementZ, dashing,
         staminaConsumed, dashActive);
     UpdateStamina(deltaTime, staminaConsumed, dashActive);
+}
+
+void Player::InterruptCombatForSpecialAttack()
+{
+    m_attacking = false;
+    m_attackComboQueued = false;
+    m_attackInputPending = false;
+    m_charging = false;
+    m_chargeReleasing = false;
+    m_blocking = false;
+    m_attackCollider->SetEnabled(false);
+    m_chargeAttackCollider->SetEnabled(false);
 }
 
 bool Player::IsDeathAnimationFinished() const
@@ -261,6 +270,7 @@ void Player::UpdateCombat(float deltaTime, float movementLength,
         UpdateLocomotionAnimation(movementLength, dashing);
 }
 
+// 短押しを通常攻撃へ、長押しを溜めへ分岐する。解放後の命中区間だけ判定を有効にする。
 bool Player::UpdateChargeAttack(float deltaTime, bool attackPressed,
     bool attackHeld, bool attackReleased, bool& staminaConsumed)
 {
@@ -273,6 +283,7 @@ bool Player::UpdateChargeAttack(float deltaTime, bool attackPressed,
     if ((m_attackInputPending || m_charging) && attackHeld)
         m_chargeDuration = (std::min)(m_chargeDuration + deltaTime, ChargeLevelThreeTime);
 
+    // 押した直後は入力を保留し、一定時間保持した時点で溜め姿勢に移る。
     if (m_attackInputPending && m_chargeDuration >= ChargeActivationTime)
     {
         m_attackInputPending = false;
@@ -295,6 +306,7 @@ bool Player::UpdateChargeAttack(float deltaTime, bool attackPressed,
         if (attackReleased)
         {
             m_charging = false;
+            // 溜め時間で三段階の威力を選び、成立した場合だけスタミナを消費する。
             if (m_chargeDuration >= ChargeLevelOneTime && m_stamina >= ChargeStaminaCost)
             {
                 m_chargeDamageRatio = m_chargeDuration >= ChargeLevelThreeTime
@@ -334,6 +346,7 @@ bool Player::UpdateChargeAttack(float deltaTime, bool attackPressed,
     return normalAttackInput;
 }
 
+// 次段入力を保持し、モーション後半でコンボへ接続する。
 void Player::UpdateNormalAttack(bool normalAttackInput, bool wasBlocking)
 {
     if (m_attacking && normalAttackInput && m_attackComboStep < AttackComboCount)
@@ -380,12 +393,14 @@ void Player::UpdateNormalAttack(bool normalAttackInput, bool wasBlocking)
     if (m_attacking)
     {
         const float progress = m_animation->GetNormalizedTime();
+        // 見た目の剣振りと被弾可能時間を一致させる。
         m_attackCollider->SetEnabled(progress >= AttackHitStart && progress <= AttackHitEnd);
     }
     m_attackColliderAttachment->SetLengthScale(
         m_attackComboStep == AttackComboCount ? ThirdAttackColliderLengthScale : 1.0f);
 }
 
+// 行動モーションから歩行へ戻る場合も、現在姿勢から短くブレンドする。
 void Player::UpdateLocomotionAnimation(float movementLength, bool dashing)
 {
     const bool blendFromCurrent = m_animation->IsPlaying("Idle") ||
@@ -403,6 +418,7 @@ void Player::UpdateLocomotionAnimation(float movementLength, bool dashing)
         m_animation->Play("Idle", true, 1.0f, blendDuration);
 }
 
+// 回避中は保存した方向へ移動し、通常移動では向きとダッシュ消費を更新する。
 void Player::UpdateMovement(float deltaTime, float movementLength,
     float movementX, float movementZ, bool dashing,
     bool& staminaConsumed, bool& dashActive)
@@ -431,6 +447,7 @@ void Player::UpdateMovement(float deltaTime, float movementLength,
     dashActive = true;
 }
 
+// 行動中の消費と、消費後の回復待ちを一箇所で扱う。
 void Player::UpdateStamina(float deltaTime, bool staminaConsumed, bool dashActive)
 {
     if (staminaConsumed)
@@ -446,6 +463,7 @@ void Player::UpdateStamina(float deltaTime, bool staminaConsumed, bool dashActiv
             m_stamina + StaminaRecoveryPerSecond * deltaTime, 0.0f, MaxStamina);
 }
 
+// 攻撃中に一回だけ Hurtbox との接触をダメージへ変換する。
 bool Player::ResolveAttackHit(
     GameObject& target, DirectX::XMFLOAT3& hitPosition)
 {
@@ -472,6 +490,7 @@ bool Player::ResolveAttackHit(
     return true;
 }
 
+// 一振りで同じ敵に複数回当たらないよう命中済み対象を記録する。
 bool Player::ResolveChargeAttackHit(GameObject& target,
     DirectX::XMFLOAT3& hitPosition, float& chargePower)
 {
@@ -498,6 +517,7 @@ bool Player::ResolveChargeAttackHit(GameObject& target,
         break;
     }
     chargePower = m_chargeDamageRatio;
+    // 溜め段階を対象の最大 HP に対する割合ダメージとして適用する。
     const int damage = static_cast<int>(
         static_cast<float>(target.GetMaxHP()) * m_chargeDamageRatio + 0.5f);
     target.TakeDamage(damage);
@@ -505,6 +525,7 @@ bool Player::ResolveChargeAttackHit(GameObject& target,
     return true;
 }
 
+// 正面方向との内積でガード可能な角度を判定する。
 bool Player::CanBlockAttackFrom(const DirectX::XMFLOAT3& attackerPosition) const
 {
     if (!m_blocking)

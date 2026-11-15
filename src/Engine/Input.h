@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Input.h
+//
+//  Win32 の入力状態と一フレームだけ有効な押下情報を管理する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <Windows.h>
@@ -36,6 +43,7 @@ private:
     POINT m_lastMouse {};
     bool m_controlEnabled = true;
     bool m_haveMouseSample = false;
+    // 前フレームの押下状態から Pressed/Released を一フレームだけ立てる。
     bool m_leftWasDown = false;
     bool m_spaceWasDown = false;
     bool m_cWasDown = false;
@@ -60,6 +68,8 @@ private:
     bool m_wWasDown = false;
     bool m_sWasDown = false;
     bool m_enterWasDown = false;
+    // ShowCursor の内部カウントを対にして、シーン切替後もカーソルを戻す。
     int m_hideCalls = 0;
+    // 移動軸は -1～1、視線は前フレームからのマウス移動量。
     float m_moveX = 0, m_moveZ = 0, m_lookX = 0, m_lookY = 0;
 };

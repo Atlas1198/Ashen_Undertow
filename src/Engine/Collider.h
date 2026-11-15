@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Collider.h
+//
+//  衝突形状と接触情報を扱うコンポーネントを定義する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <cmath>
@@ -9,6 +16,7 @@ class CollisionManager;
 class AnimationComponent;
 class ModelComponent;
 
+// Body は押し戻し、Hurtbox は被弾、Hitbox は攻撃に用いる。
 enum class ColliderRole
 {
     Body,
@@ -24,6 +32,7 @@ struct CollisionShape
     float radius;
     DirectX::XMFLOAT3 segmentStart { 0, 0, 0 };
     DirectX::XMFLOAT3 segmentEnd { 0, 0, 0 };
+    // 任意方向のカプセルだけ線分を使う。他形状では center/halfExtents を使う。
     bool hasSegment = false;
 };
 
@@ -50,6 +59,7 @@ private:
     friend class CollisionManager;
     // サイズ・オフセットはワールド単位。描画の回転・拡縮からは独立。
     DirectX::XMFLOAT3 m_offset { 0, 0, 0 };
+    // Trigger は接触を通知するが、物理的な押し戻しは行わない。
     bool m_isTrigger = false;
     ColliderRole m_role = ColliderRole::Body;
     std::vector<Collider*> m_contacts;

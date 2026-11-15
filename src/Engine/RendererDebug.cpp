@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          RendererDebug.cpp
+//
+//  コライダー形状を線分へ変換し、デバッグ表示する。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 
 #include <algorithm>
@@ -5,6 +12,7 @@
 using namespace DirectX;
 using namespace RendererDetail;
 
+// 球・箱・カプセルの線画に使う頂点バッファと PSO を用意する。
 bool Renderer::CreateColliderDebugResources()
 {
     D3D12_ROOT_PARAMETER rootParameter = {};
@@ -113,6 +121,7 @@ void Renderer::DrawColliderSegment(const XMFLOAT3& start, const XMFLOAT3& end,
         { center, {}, radius, colliding, start, end, true });
 }
 
+// 衝突中の色を変え、登録済み形状を線分へ展開して描く。
 void Renderer::DrawColliderDebug(const XMMATRIX& viewProjection)
 {
     if (m_debugColliders.empty()) return;

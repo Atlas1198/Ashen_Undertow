@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Boss.cpp
+//
+//  ボスの HP 制御と全体攻撃フェーズを実装する。
+//-------------------------------------------------
+
 #include "Boss.h"
 
 #include "AnimationComponent.h"
@@ -28,6 +35,7 @@ bool Boss::Initialize(ModelManager& modelManager)
     return m_animation != nullptr;
 }
 
+// 通常攻撃では HP を 1 残し、特殊攻撃でのみ決着できるようにする。
 void Boss::TakeDamage(int amount)
 {
     if (amount <= 0 || GetHP() <= 1) return;
@@ -37,8 +45,14 @@ void Boss::TakeDamage(int amount)
 void Boss::TakeSpecialDamage(int amount)
 {
     GameObject::TakeDamage(amount);
+    if (IsDead())
+    {
+        m_globalAttackPhase = GlobalAttackPhase::Cooldown;
+        m_globalAttackTimer = 0.0f;
+    }
 }
 
+// 頭ボーンが取れればそのワールド位置を使い、取れないモデルでは概算位置へ戻す。
 DirectX::XMFLOAT3 Boss::GetSpecialAttackTarget() const
 {
     DirectX::XMFLOAT4X4 headTransform;
@@ -72,6 +86,7 @@ float Boss::GetGlobalAttackProgress() const
     return 0.0f;
 }
 
+// HP 閾値で一度だけ全体攻撃を始め、予兆と炎の残り時間を進める。
 void Boss::Update(float deltaTime)
 {
     if (IsDead()) return;

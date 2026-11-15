@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Effects.hlsl
+//
+//  パーティクルの向き・寸法を四角形の頂点へ展開する。
+//-------------------------------------------------
+
 cbuffer EffectConstants : register(b0)
 {
     float4x4 viewProjection;
@@ -24,6 +31,7 @@ struct VSOutput
     nointerpolation uint effectFlags : TEXCOORD1;
 };
 
+// 速度方向に伸ばした板を作り、方向がない粒子はカメラ正面へ向ける。
 VSOutput VSMain(VSInput input, uint vertexId : SV_VertexID)
 {
     static const float2 corners[6] = {
@@ -52,6 +60,7 @@ VSOutput VSMain(VSInput input, uint vertexId : SV_VertexID)
     return output;
 }
 
+// flag 1 はテクスチャ無しの帯。通常粒子は画像色と個別色を乗算する。
 float4 PSMain(VSOutput input) : SV_TARGET
 {
     if ((input.effectFlags & 1u) != 0u)

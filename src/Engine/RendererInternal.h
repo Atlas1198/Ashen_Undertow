@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          RendererInternal.h
+//
+//  Renderer の実装間で共有する GPU 定数と補助型を定義する。
+//-------------------------------------------------
+
 #pragma once
 
 // Renderer実装ファイル間だけで共有するGPU定数・補助関数。
@@ -36,9 +43,8 @@ namespace RendererDetail
         return description;
     }
 
-    // 頂点フォーマット。
-// GltfVertex とメモリ配置を完全に一致させてあるので、
-// ローダーの出力をそのまま memcpy できる
+    // 頂点フォーマット。GltfVertex とメモリ配置を一致させ、
+    // ローダーの出力をそのまま memcpy できる。
     struct Vertex
     {
         XMFLOAT3 position;   // offset  0
@@ -53,7 +59,7 @@ namespace RendererDetail
         "Vertex と GltfVertex のメモリ配置が一致していません");
 
     // 定数バッファの中身。HLSL の cbuffer SceneConstants と
-   // メンバの並び・型を一致させること。
+    // メンバの並び・型を一致させること。
     struct SceneConstants
     {
         XMFLOAT4X4 mvp;

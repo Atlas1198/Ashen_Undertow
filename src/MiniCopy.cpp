@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          MiniCopy.cpp
+//
+//  雑魚敵の追跡、攻撃、被弾、消滅を更新する。
+//-------------------------------------------------
+
 #include "MiniCopy.h"
 
 #include "AnimationComponent.h"
@@ -69,6 +76,7 @@ bool MiniCopy::Initialize(ModelManager& modelManager)
     return true;
 }
 
+// 索敵→接近→攻撃の順に行動し、死亡後は消滅演出だけを進める。
 void MiniCopy::Update(float deltaTime)
 {
     m_attackCooldown = std::max(0.0f, m_attackCooldown - deltaTime);
@@ -128,6 +136,7 @@ void MiniCopy::Update(float deltaTime)
         }
         else if (!m_attacking && distance > AttackDistance)
         {
+            // 走り始め／歩きへ戻る距離をずらし、境界でアニメーションが揺れないようにする。
             if (m_running)
                 m_running = distance > RunExitDistance;
             else
@@ -149,6 +158,7 @@ void MiniCopy::Update(float deltaTime)
     if (m_attacking)
     {
         const float progress = m_animation->GetNormalizedTime();
+        // 攻撃モーションの命中区間にだけ左右の当たり判定を出す。
         m_attackCollider->SetEnabled(
             progress >= AttackHitStart && progress <= AttackHitEnd);
         m_leftAttackCollider->SetEnabled(
@@ -219,6 +229,7 @@ bool MiniCopy::ResolveAttackHit(
     return false;
 }
 
+// 撃破報告と報酬を一度だけ処理し、以後は消滅演出へ移る。
 void MiniCopy::EnterDefeatedState()
 {
     if (!IsDead() || m_deathReported) return;

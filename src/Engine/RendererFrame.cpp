@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          RendererFrame.cpp
+//
+//  影、本描画、後処理、UI の順に GPU コマンドを記録する。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 
 #include <algorithm>
@@ -5,6 +12,7 @@
 using namespace DirectX;
 using namespace RendererDetail;
 
+// 同じ描画キューを影と本描画に使い、メッシュごとのマテリアルを結び付ける。
 void Renderer::DrawSceneMeshes(bool shadowPass, D3D12_GPU_VIRTUAL_ADDRESS constantBase)
 {
     const UINT srvStep = m_device->GetDescriptorHandleIncrementSize(
@@ -56,6 +64,7 @@ void Renderer::DrawModel(ModelHandle modelHandle, const XMFLOAT4X4& world,
     }
 }
 
+// フレーム専用バッファに定数を書き、影→HDR シーン→後処理→UI の順で描く。
 void Renderer::Render(const UIManager& ui)
 {
     if (!PrepareUIImages(ui))
@@ -155,7 +164,7 @@ void Renderer::Render(const UIManager& ui)
                       0.97f * lightIntensity,
                       0.92f * lightIntensity };
 
-    // 環境光。次のレッスンで IBL に置き換わる仮の値
+    // IBL と併用する低強度の基礎環境光。
     cb.ambientColor = { 0.10f, 0.11f, 0.14f };
 
     XMStoreFloat4x4(&cb.lightViewProj, XMMatrixTranspose(lightViewProj));

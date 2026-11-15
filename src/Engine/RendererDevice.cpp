@@ -1,8 +1,16 @@
+//-------------------------------------------------
+//
+//          RendererDevice.cpp
+//
+//  DXGI デバイス、スワップチェーン、描画先、深度資源を生成する。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 
 using namespace DirectX;
 using namespace RendererDetail;
 
+// DXGI アダプターを選び、デバッグ設定を適用して D3D12 デバイスを作る。
 bool Renderer::CreateDevice()
 {
     UINT dxgiFactoryFlags = 0;
@@ -60,6 +68,7 @@ bool Renderer::CreateDevice()
     return false;
 }
 
+// GPU への提出キューとフレーム別の記録領域を作る。
 bool Renderer::CreateCommandObjects()
 {
     // DIRECT キュー = 描画もコピーも計算も全部できる汎用キュー
@@ -96,6 +105,7 @@ bool Renderer::CreateCommandObjects()
     return true;
 }
 
+// 画面表示用のダブルバッファをウィンドウへ結び付ける。
 bool Renderer::CreateSwapChain(HWND hwnd)
 {
     DXGI_SWAP_CHAIN_DESC1 desc = {};

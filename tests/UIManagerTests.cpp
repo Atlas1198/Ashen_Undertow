@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          UIManagerTests.cpp
+//
+//  画像キャッシュ、描画キュー、容量上限を検証する。
+//-------------------------------------------------
+
 #include "UIManager.h"
 #include <cassert>
 
@@ -5,9 +12,9 @@ int main()
 {
     UIManager ui;
     assert(!ui.LoadImageFile("tests/fixtures/missing-ui.jpg").IsValid());
-    const auto image = ui.LoadImageFile("assets/texture/wonhee.jpg");
+    const auto image = ui.LoadImageFile("tests/fixtures/ui-valid.png");
     assert(image.IsValid());
-    assert(ui.LoadImageFile("assets/texture/../texture/wonhee.jpg").index == image.index);
+    assert(ui.LoadImageFile("tests/fixtures/../fixtures/ui-valid.png").index == image.index);
     assert(ui.GetImages().size() == 1);
     const auto* decoded = ui.GetImage(image);
     assert(decoded && decoded->width && decoded->height);

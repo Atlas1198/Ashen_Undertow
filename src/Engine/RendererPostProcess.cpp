@@ -1,8 +1,16 @@
+//-------------------------------------------------
+//
+//          RendererPostProcess.cpp
+//
+//  HDR 描画先、ブルーム、トーンマップの資源と PSO を生成する。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 
 using namespace DirectX;
 using namespace RendererDetail;
 
+// 1.0 を超える輝度を保持できる中間描画先を作る。
 bool Renderer::CreateHdrBuffer()
 {
     D3D12_HEAP_PROPERTIES defaultHeap = {};
@@ -67,6 +75,7 @@ bool Renderer::CreateHdrBuffer()
     return true;
 }
 
+// HDR とブルームを合成し、画面表示用の色域へ変換する PSO を作る。
 bool Renderer::CreateTonemapPipeline()
 {
     // このパス専用のルートシグネチャ:
@@ -170,6 +179,7 @@ bool Renderer::CreateTonemapPipeline()
         IID_PPV_ARGS(&m_tonemapPSO)));
 }
 
+// 輝度抽出と二方向ぼかしに使う低解像度の作業テクスチャを用意する。
 bool Renderer::CreateBloomResources()
 {
     m_bloomWidth = m_width / 4;

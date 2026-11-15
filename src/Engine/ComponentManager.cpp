@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          ComponentManager.cpp
+//
+//  一つの GameObject に属する部品の更新・描画を実行する。
+//-------------------------------------------------
+
 #include "ComponentManager.h"
 
 void ComponentManager::Draw(Renderer& renderer)

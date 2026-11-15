@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          EffectManager.h
+//
+//  一時エフェクトの生成・更新・描画に使う型を定義する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <DirectXMath.h>
@@ -7,6 +14,7 @@
 
 class Renderer;
 
+// 剣の根元と先端。複数フレーム分をつないで軌跡にする。
 struct SwordTrailPose
 {
     DirectX::XMFLOAT3 start {};
@@ -29,6 +37,7 @@ enum class EffectType
     SpecialSlash
 };
 
+// 生成時のパラメータ。速度はワールド単位/秒、寿命は秒。
 struct EffectDesc
 {
     EffectType type = EffectType::Custom;
@@ -46,6 +55,7 @@ struct EffectDesc
     float visualLength = 0.0f;
 };
 
+// 再生中の状態。age に応じて色と大きさを始点から終点へ補間する。
 struct EffectInstance
 {
     std::uint64_t id = 0;
@@ -67,6 +77,7 @@ struct EffectInstance
     float visualLength = 0.0f;
 };
 
+// 一時的なパーティクルを管理し、専用の生成関数で演出を組み立てる。
 class EffectManager
 {
 public:
@@ -100,6 +111,7 @@ public:
 private:
     float NextRandom();
     std::vector<EffectInstance> m_effects;
+    // ID は発生したエフェクトを個別に停止するための識別子。
     std::uint64_t m_nextId = 1;
     std::uint32_t m_textureIndex = UINT32_MAX;
     std::uint32_t m_randomState = 0x9e3779b9u;

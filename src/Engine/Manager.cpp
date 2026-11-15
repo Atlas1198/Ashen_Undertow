@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Manager.cpp
+//
+//  入力、シーン、音声、描画を一フレームの順序で接続する。
+//-------------------------------------------------
+
 #include "Manager.h"
 
 #include "Scene_Game.h"
@@ -17,6 +24,7 @@ std::unique_ptr<SceneManager> CreateRequestedScene(SceneRequest request,
 }
 }
 
+// モデルと描画資源を用意して最初のシーンを立ち上げる。
 bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
 {
     m_input.Initialize(hwnd);
@@ -42,6 +50,7 @@ bool Manager::Initialize(HWND hwnd, uint32_t width, uint32_t height)
     return true;
 }
 
+// 実時間から deltaTime を求め、入力・シーン・音声・描画を順に進める。
 void Manager::RunFrame()
 {
     const auto now = std::chrono::steady_clock::now();

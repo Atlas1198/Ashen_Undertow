@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          AnimationComponent.cpp
+//
+//  glTF のキーフレーム補間からノード姿勢とスキニング行列を作る。
+//-------------------------------------------------
+
 #include "AnimationComponent.h"
 
 #include <algorithm>
@@ -38,6 +45,7 @@ bool AnimationComponent::Initialize()
     return true;
 }
 
+// 再生時刻を進め、チャンネルを補間してから階層姿勢とスキニング行列を作る。
 void AnimationComponent::Update(float deltaTime)
 {
     const auto& animation = m_model->animations[m_animationIndex];
@@ -102,6 +110,7 @@ void AnimationComponent::Update(float deltaTime)
             continue;
         }
 
+        // 現在時刻を挟む二つのキーを探す。境界では最初／最後のキーへ寄せる。
         const auto upper = std::upper_bound(channel.times.begin(), channel.times.end(), m_time);
         const size_t next = upper == channel.times.end()
             ? channel.times.size() - 1 : static_cast<size_t>(upper - channel.times.begin());
@@ -192,6 +201,7 @@ void AnimationComponent::Update(float deltaTime)
     }
 }
 
+// クリップ切替時に現在の姿勢を保存し、指定秒数で新しい姿勢へ混ぜる。
 bool AnimationComponent::Play(const char* name, bool loop, float playbackSpeed,
     float blendDuration)
 {
@@ -263,6 +273,7 @@ bool AnimationComponent::IsPlaying(const char* name) const
         m_model->animations[m_animationIndex].name == name;
 }
 
+// 親から順にノード変換を合成し、同フレーム内では計算結果を再利用する。
 XMMATRIX AnimationComponent::ComputeGlobal(size_t nodeIndex)
 {
     if (m_globalState[nodeIndex] == 2)

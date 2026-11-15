@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          RendererModels.cpp
+//
+//  モデルのメッシュとテクスチャを GPU に転送する。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 #include "Terrain.h"
 
@@ -89,6 +96,7 @@ bool Renderer::CreateVertexBuffer()
     return hasMesh;
 }
 
+// CPU の RGBA 画素を行ピッチを揃えた UPLOAD ヒープ経由で GPU へ転送する。
 bool Renderer::UploadTexture(const void* pixels, UINT width, UINT height,
     DXGI_FORMAT format, ComPtr<ID3D12Resource>& outResource)
 {
@@ -272,6 +280,7 @@ bool Renderer::UploadTexture(const void* pixels, UINT width, UINT height,
     return true;
 }
 
+// glTF の色空間に合わせて SRV を作り、欠けた画像には既定値を割り当てる。
 bool Renderer::CreateMaterialTextures()
 {
     const uint8_t whitePixel[4] = { 255, 255, 255, 255 };

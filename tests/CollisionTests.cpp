@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          CollisionTests.cpp
+//
+//  各形状の交差、接触の対称性、解決後の位置を検証する。
+//-------------------------------------------------
+
 #include "ObjectManager.h"
 #include "ModelManager.h"
 #include "Collider.h"

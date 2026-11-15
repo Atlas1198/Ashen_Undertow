@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          UI.hlsl
+//
+//  UI の頂点色と画像色を合成する。
+//-------------------------------------------------
+
 Texture2D imageTexture : register(t0);
 SamplerState imageSampler : register(s0);
 struct VertexOutput
@@ -6,6 +13,7 @@ struct VertexOutput
     float2 uv : TEXCOORD0;
     float4 color : COLOR0;
 };
+// RendererUI が渡す画面座標をそのままクリップ空間へ送る。
 VertexOutput VSMain(float2 position : POSITION, float2 uv : TEXCOORD0, float4 color : COLOR0)
 {
     VertexOutput output;

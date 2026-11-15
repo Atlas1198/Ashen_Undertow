@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          ModelComponent.cpp
+//
+//  共有モデルのハンドルと個別のワールド行列を描画へ渡す。
+//-------------------------------------------------
+
 #include "ModelComponent.h"
 #include "AnimationComponent.h"
 #include "ModelManager.h"

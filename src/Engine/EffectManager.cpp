@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          EffectManager.cpp
+//
+//  一時エフェクトの寿命・速度・色・サイズを更新して描画へ渡す。
+//-------------------------------------------------
+
 #include "EffectManager.h"
 #include "Renderer.h"
 
@@ -43,6 +50,7 @@ void EffectManager::Stop(std::uint64_t id)
         [id](const EffectInstance& effect) { return effect.id == id; });
 }
 
+// 加速度・抵抗で位置を進め、寿命割合から見た目を補間して期限切れを除く。
 void EffectManager::Update(float deltaTime)
 {
     if (deltaTime <= 0.0f) return;
@@ -52,6 +60,7 @@ void EffectManager::Update(float deltaTime)
         effect.velocity.x += effect.acceleration.x * deltaTime;
         effect.velocity.y += effect.acceleration.y * deltaTime;
         effect.velocity.z += effect.acceleration.z * deltaTime;
+        // フレーム時間に応じた減衰で速度を落とす。
         const float damping = 1.0f / (1.0f + effect.drag * deltaTime);
         effect.velocity.x *= damping;
         effect.velocity.y *= damping;
@@ -78,6 +87,7 @@ void EffectManager::Update(float deltaTime)
     });
 }
 
+// 種類に応じて波紋・丸い粒子・速度方向の軌跡へ描画方法を振り分ける。
 void EffectManager::Draw(Renderer& renderer) const
 {
     if (m_textureIndex == UINT32_MAX) return;

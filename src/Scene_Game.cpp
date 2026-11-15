@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Scene_Game.cpp
+//
+//  本編の配置、進行、戦闘結果、画面演出を統括する。
+//-------------------------------------------------
+
 #include "Scene_Game.h"
 
 #include "Boss.h"
@@ -193,6 +200,7 @@ void Scene_Game::OnDrawUI(UIManager& ui)
     drawMenuItem(1110.0f, m_retryTexture, m_deathMenuChoice == 1);
 }
 
+// 開始・死亡・クリア画面を優先し、通常時だけ入力とカメラを処理する。
 void Scene_Game::OnUpdate(float deltaTime)
 {
     if (m_gameStartTime < 2.2f)
@@ -258,6 +266,7 @@ void Scene_Game::UpdateCameraGroundConstraint()
         cameraPosition.x, cameraPosition.z) + CameraGroundClearance);
 }
 
+// オブジェクトと衝突の更新後に命中・撃破・演出を確定する。
 void Scene_Game::OnAfterUpdate(float deltaTime)
 {
     m_effectManager.Update(deltaTime);
@@ -292,6 +301,7 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
         else
         {
             m_clearSettleTime += deltaTime;
+            // 最後の攻撃モーションが終わってからクリア画面を出す。
             if (m_clearSettleTime >= ClearSettleDuration)
             {
                 m_clearScreenTime = 0.0f;
@@ -307,9 +317,11 @@ void Scene_Game::OnAfterUpdate(float deltaTime)
     m_bossAttackVisualTime += deltaTime;
 }
 
+// 炎フェーズ中、池の内側を安全地帯としてプレイヤーへのダメージを判定する。
 void Scene_Game::UpdateBossGlobalAttack()
 {
-    if (m_boss->GetGlobalAttackPhase() != Boss::GlobalAttackPhase::Flame)
+    if (m_boss->IsDead() ||
+        m_boss->GetGlobalAttackPhase() != Boss::GlobalAttackPhase::Flame)
     {
         m_bossFlameSoundActive = false;
         return;
@@ -328,6 +340,7 @@ void Scene_Game::UpdateBossGlobalAttack()
         m_player->TakeDamage(GameBalance::Boss::GlobalAttackDamage);
 }
 
+// 剣の過去姿勢から残像を作り、溜め時間に応じてオーラの発生間隔を縮める。
 void Scene_Game::UpdatePlayerEffects(float deltaTime)
 {
     DirectX::XMFLOAT3 swordStart {};
@@ -372,21 +385,25 @@ void Scene_Game::UpdatePlayerEffects(float deltaTime)
 
 }
 
+// ゲージ満タン時だけ発射し、成功した発射でゲージを消費する。
 void Scene_Game::TryLaunchSpecialAttack()
 {
-    if (!m_input.SpecialAttackPressed() || m_specialAttack.IsActive() ||
+    if (m_player->IsDead() || m_boss->IsDead() ||
+        !m_input.SpecialAttackPressed() || m_specialAttack.IsActive() ||
         !m_player->IsSpecialGaugeFull()) return;
 
     auto start = m_player->GetPosition();
     start.y += 1.0f;
     if (m_specialAttack.Launch(start, m_boss->GetSpecialAttackTarget()))
     {
+        m_player->InterruptCombatForSpecialAttack();
         m_player->ConsumeSpecialGauge();
         m_specialAttackEffectTimer = 0.0f;
         m_audio.PlaySound(AudioId::SpecialAttack, 1.15f, 0.82f);
     }
 }
 
+// 飛行中は軌跡を間欠生成し、命中時にボスへのダメージと着弾演出を出す。
 void Scene_Game::UpdateSpecialAttack(float deltaTime)
 {
     if (!m_specialAttack.IsActive()) return;
@@ -415,6 +432,7 @@ void Scene_Game::UpdateSpecialAttack(float deltaTime)
     m_hitStopTimer = (std::max)(m_hitStopTimer, MaxChargeHitStop);
 }
 
+// 先に雷の予兆を出し、ボス HP が減るほど出現間隔・同時数を増やす。
 void Scene_Game::UpdateMiniCopySpawning(float deltaTime)
 {
     for (auto& pending : m_pendingMiniCopySpawns)
@@ -473,6 +491,7 @@ void Scene_Game::QueueMiniCopySpawn(const DirectX::XMFLOAT3& position)
         { position, MiniCopySpawnWarning, false });
 }
 
+// 死亡済みの敵を再利用し、必要な場合だけ新しい個体を追加する。
 void Scene_Game::SpawnMiniCopyAt(const DirectX::XMFLOAT3& position)
 {
     MiniCopy* miniCopy = nullptr;
@@ -492,6 +511,7 @@ void Scene_Game::SpawnMiniCopyAt(const DirectX::XMFLOAT3& position)
     }
 }
 
+// プレイヤー周辺から候補を取り、池と闘技場の境界を避けて地面へ置く。
 DirectX::XMFLOAT3 Scene_Game::MakeMiniCopySpawnPosition(
     float angle, float radius) const
 {
@@ -528,6 +548,7 @@ float Scene_Game::NextSpawnRandom()
 
 }
 
+// 攻撃種類ごとにダメージ、音、ヒットストップを確定する。
 void Scene_Game::ResolveCombat()
 {
     for (MiniCopy* miniCopy : m_miniCopies)
@@ -580,6 +601,7 @@ void Scene_Game::UpdateCameraAndTrees()
 
 }
 
+// 前フレームからの移動量と地形を使い、足音・砂煙・水しぶきを発生させる。
 void Scene_Game::UpdateEnvironmentEffects(float deltaTime)
 {
     const auto updateWaterMovement = [deltaTime](const DirectX::XMFLOAT3& current,

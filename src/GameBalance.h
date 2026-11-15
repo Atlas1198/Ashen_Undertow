@@ -1,9 +1,19 @@
+//-------------------------------------------------
+//
+//          GameBalance.h
+//
+//  ゲーム内の距離・時間・ダメージなどの調整値を集約する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <DirectXMath.h>
 
+// ゲームプレイ調整値の集約。距離はワールド単位、時間は秒、
+// AttackHitStart/End などのアニメーション区間は 0～1 の正規化時刻。
 namespace GameBalance
 {
+// プレイヤーの移動・攻撃・防御・スタミナ。
 namespace Player
 {
 constexpr float FootOffset = 1.05f;
@@ -46,6 +56,7 @@ constexpr float StaminaRecoveryPerSecond = 15.0f;
 constexpr int AttackDamage = 100;
 }
 
+// ボスの見た目倍率と全体攻撃の発動条件／継続時間。
 namespace Boss
 {
 constexpr float VisualScale = 40.0f;
@@ -56,6 +67,7 @@ constexpr float GlobalAttackFlameDuration = 4.0f;
 constexpr int GlobalAttackDamage = 100;
 }
 
+// 雑魚敵の索敵距離、移動、攻撃、撃破時の効果。
 namespace MiniCopy
 {
 constexpr float SightRange = 10.0f;
@@ -77,6 +89,7 @@ constexpr int BossDamageOnDefeat = 100;
 constexpr float DeathEffectDuration = 1.6f;
 }
 
+// 出現数、画面演出、ヒットストップなどシーン側の調整値。
 namespace Scene
 {
 constexpr int InitialMiniCopies = 8;
@@ -91,6 +104,7 @@ constexpr float SpecialPromptPulseSpeed = 4.5f;
 constexpr float StaminaShortageNoticeDuration = 2.0f;
 }
 
+// 特殊攻撃のゲージ増加量、追尾、命中、寿命。
 namespace SpecialAttack
 {
 constexpr float GaugePerDefeat = 10.0f;

@@ -1,9 +1,17 @@
+//-------------------------------------------------
+//
+//          ModelManager.cpp
+//
+//  正規化したパスをキーにモデルを共有・再利用する。
+//-------------------------------------------------
+
 #include "ModelManager.h"
 
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 
+// 表記が異なる同一パスも共有し、成功したモデルだけにハンドルを割り当てる。
 ModelHandle ModelManager::Load(const std::string& path)
 {
     if (path.empty()) return {};

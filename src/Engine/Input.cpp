@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Input.cpp
+//
+//  キーボードとマウスの現在値・押下エッジを収集する。
+//-------------------------------------------------
+
 #include "Input.h"
 
 Input::~Input() { RestoreCursor(); }
@@ -11,6 +18,7 @@ void Input::RestoreCursor()
     }
 }
 
+// 前フレームとの差から一回限りの押下／解放を作り、移動軸を更新する。
 void Input::Update()
 {
     m_moveX = m_moveZ = m_lookX = m_lookY = 0;

@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          ObjectManager.h
+//
+//  シーン内のオブジェクトを所有し、更新と描画を実行する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <memory>
@@ -36,11 +43,13 @@ public:
         return result;
     }
 
+    // 全オブジェクト／コンポーネント更新後に接触を計算・解決する。
     void Update(float deltaTime);
     void Draw(Renderer& renderer);
 
 private:
     ModelManager& m_modelManager;
+    // 登録順を保って更新する。返す生ポインタは非所有。
     std::vector<std::unique_ptr<GameObject>> m_gameObjects;
     CollisionManager m_collisionManager;
     CollisionResolver m_collisionResolver;

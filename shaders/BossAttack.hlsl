@@ -1,3 +1,13 @@
+//-------------------------------------------------
+//
+//          BossAttack.hlsl
+//
+//  ボスの炎と攻撃予兆を頂点生成し、色と透明度を描く。
+//-------------------------------------------------
+
+// originTime.xyz=炎の発射位置、w=時刻。
+// directionProgress.xyz=発射方向、w=攻撃フェーズの進行率。
+// terrain.xy=池中心、z=安全地帯の半径、w=予兆の強さ。
 cbuffer BossAttackConstants : register(b0)
 {
     float4x4 viewProjection;
@@ -32,6 +42,7 @@ struct FlameOutput
     float seed : TEXCOORD1;
 };
 
+// インスタンスごとに行き先と速度を変え、口元から地面へ飛ぶ帯を作る。
 FlameOutput FlameVS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
 {
     const float seed = Hash(instanceId * 17u + 3u);
@@ -61,6 +72,7 @@ FlameOutput FlameVS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID
     const float3 control = attackOriginTime.xyz + forward * (18.0 + seed4 * 18.0)
         + up * (5.0 + seed3 * 9.0) + right * (seed2 - 0.5) * 12.0;
     const float travel = pow(age, 0.78);
+    // 2 段の線形補間で曲線軌道を作り、単純な直線飛行を避ける。
     const float3 first = lerp(attackOriginTime.xyz, control, travel);
     const float3 second = lerp(control, target, travel);
     float3 center = lerp(first, second, travel);
@@ -89,6 +101,7 @@ FlameOutput FlameVS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID
     return output;
 }
 
+// 四角形の端を透明にし、中心の発光を強める。
 float4 FlamePS(FlameOutput input) : SV_TARGET
 {
     const float2 p = input.uv * 2.0 - 1.0;
@@ -100,6 +113,7 @@ float4 FlamePS(FlameOutput input) : SV_TARGET
     return float4(input.color.rgb + core * float3(0.35, 0.7, 1.0), alpha);
 }
 
+// CPU 側の Terrain::VertexHeight と同じ地形式で着地点を合わせる。
 float TerrainHeight(float x, float z)
 {
     const float radius = sqrt(x * x + z * z);
@@ -122,6 +136,7 @@ struct TelegraphOutput
     float2 worldXZ : TEXCOORD0;
 };
 
+// 地表を 96×96 のセルへ分け、予兆用の薄い面を地形に沿わせる。
 TelegraphOutput TelegraphVS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
 {
     static const float2 corners[6] = {
@@ -139,6 +154,7 @@ TelegraphOutput TelegraphVS(uint vertexId : SV_VertexID, uint instanceId : SV_In
     return output;
 }
 
+// 闘技場外と池を除外し、危険範囲だけを脈動表示する。
 float4 TelegraphPS(TelegraphOutput input) : SV_TARGET
 {
     if (length(input.worldXZ) > 38.0) discard;

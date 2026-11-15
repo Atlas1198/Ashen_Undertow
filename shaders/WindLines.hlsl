@@ -1,5 +1,13 @@
+//-------------------------------------------------
+//
+//          WindLines.hlsl
+//
+//  風の筋をインスタンスごとに生成して描く。
+//-------------------------------------------------
+
 #include "Common.hlsli"
 
+// 一本の風筋を複数の短い帯へ分け、緩い曲がりを与える。
 static const uint SegmentCount = 8;
 
 struct PSInput
@@ -22,6 +30,7 @@ float Random01(uint seed)
     return float(Hash(seed) & 0x00ffffffu) / 16777215.0;
 }
 
+// インスタンス ID から決定的な位置を作り、時刻で風向へ流す。
 PSInput VSMain(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
 {
     static const float2 corners[6] =
@@ -66,6 +75,7 @@ PSInput VSMain(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     return output;
 }
 
+// 両端と帯の端を薄くして風筋の切れ目を目立たなくする。
 float4 PSMain(PSInput input) : SV_TARGET
 {
     const float endFade = smoothstep(0.0, 0.18, input.ribbon.x)

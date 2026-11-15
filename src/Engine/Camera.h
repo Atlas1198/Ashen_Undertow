@@ -1,7 +1,15 @@
+//-------------------------------------------------
+//
+//          Camera.h
+//
+//  注視点を中心に回る三人称カメラを定義する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <DirectXMath.h>
 
+// 注視点の周りを yaw/pitch で回る三人称カメラ。
 class Camera
 {
 public:
@@ -16,6 +24,7 @@ private:
     DirectX::XMFLOAT3 m_target { 0, 0, 0 };
     float m_yaw = 0;
     float m_pitch = 0.39479112f;
+    // 地面へのめり込みを避けるため、求めたカメラ位置の高さを制限する。
     float m_minimumHeight = -10000.0f;
     static constexpr float kDistance = 6.5f;
     static constexpr float kSensitivity = 0.005f;

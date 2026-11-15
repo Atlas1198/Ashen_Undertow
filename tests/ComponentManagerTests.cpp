@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          ComponentManagerTests.cpp
+//
+//  コンポーネントの所有・初期化・更新中の追加を検証する。
+//-------------------------------------------------
+
 #include "ObjectManager.h"
 #include "ModelManager.h"
 #include <cassert>

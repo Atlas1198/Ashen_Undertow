@@ -1,6 +1,10 @@
-//----------------------------------------------------------------------------
-// Renderer.h
-// DX12 の初期化と毎フレームの描画をまとめたクラス。
+//-------------------------------------------------
+//
+//          Renderer.h
+//
+//  DX12 の初期化と毎フレームの描画をまとめたクラス。
+//-------------------------------------------------
+
 //
 // DX12 の全体像(このクラスが持っているもの):
 //   Device        : GPU との窓口。あらゆるオブジェクトの生成器
@@ -10,7 +14,7 @@
 //   Fence         : CPU と GPU の同期を取る仕組み
 //   RootSignature : シェーダに渡すリソースの「配置表」
 //   PSO           : シェーダ + 各種固定機能設定を一塊に焼き固めたもの
-//----------------------------------------------------------------------------
+
 #pragma once
 
 #include <vector>
@@ -51,6 +55,7 @@ public:
         m_grassInteractors[1] = { enemy.x, enemy.y, enemy.z, 1.15f };
         m_waterInteractionStrength = { playerWaterMovement, enemyWaterMovement };
     }
+    // 描画要求をキューへ積む。実際の GPU コマンドは Render で記録する。
     void DrawModel(ModelHandle modelHandle, const DirectX::XMFLOAT4X4& world,
         const std::vector<DirectX::XMFLOAT4X4>* skinMatrices = nullptr,
         const DirectX::XMFLOAT4X4* shadowWorld = nullptr,
@@ -233,6 +238,7 @@ private:
         DirectX::XMFLOAT4 rimLightColor;
         std::vector<DirectX::XMFLOAT4X4> skinMatrices;
     };
+    // フレーム中に集め、影パスと本描画パスの両方で参照する。
     std::vector<DrawCommand> m_drawCommands;
     size_t m_drawMeshCount = 0;
 
@@ -267,6 +273,7 @@ private:
         uint32_t effectFlags;
     };
     static constexpr uint32_t kMaxEffectParticles = 4096;
+    // 加算合成と通常のアルファ合成を分け、描画順と PSO を切り替える。
     std::vector<EffectParticleVertex> m_effectParticles;
     std::vector<EffectParticleVertex> m_alphaEffectParticles;
     uint32_t m_effectTextureIndex = UINT32_MAX;

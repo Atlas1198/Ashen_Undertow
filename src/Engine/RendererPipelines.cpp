@@ -1,8 +1,16 @@
+//-------------------------------------------------
+//
+//          RendererPipelines.cpp
+//
+//  モデル描画とシャドウマップ用のルートシグネチャ・PSO を生成する。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 
 using namespace DirectX;
 using namespace RendererDetail;
 
+// PBR モデル描画用の入力レイアウト、ルートシグネチャ、PSO を組む。
 bool Renderer::CreateTrianglePipeline()
 {
     // ディスクリプタテーブルを 2 つに分ける:
@@ -252,6 +260,7 @@ bool Renderer::CreateTrianglePipeline()
         IID_PPV_ARGS(&m_windPipelineState)));
 }
 
+// 光源視点の深度を書き込むテクスチャと参照用 SRV を用意する。
 bool Renderer::CreateShadowMap()
 {
     D3D12_HEAP_PROPERTIES defaultHeap = {};

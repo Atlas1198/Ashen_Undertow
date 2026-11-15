@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          UIManager.h
+//
+//  UI 画像のキャッシュと描画命令を管理する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <DirectXMath.h>
@@ -6,6 +13,7 @@
 #include <filesystem>
 #include <vector>
 
+// 読み込み済み画像の添字。UINT32_MAX は未読み込み／失敗。
 struct UIImageHandle
 {
     uint32_t index = UINT32_MAX;
@@ -38,6 +46,7 @@ public:
         uint32_t width = 0, height = 0;
         std::vector<uint8_t> pixels;
     };
+    // 画像または頂点色を一枚の四角形として描画キューへ積む。
     struct Command
     {
         std::array<DirectX::XMFLOAT2, 4> points;

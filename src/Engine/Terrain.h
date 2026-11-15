@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Terrain.h
+//
+//  地形の高さと移動可能範囲を共通の式で定義する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <algorithm>
@@ -19,6 +26,7 @@ namespace Terrain
     inline constexpr float PondWaterRadius = 7.2f;
     inline constexpr float PondWaterHeight = BaseHeight - 0.65f;
 
+    // 格子点の高さ。周辺の丘と池のくぼみを同じ関数から生成する。
     inline float VertexHeight(int x, int z)
     {
         const float px = x * CellSize - HalfSize;
@@ -55,6 +63,7 @@ namespace Terrain
         return a * (1 - u) + c * v + VertexHeight(ix + 1, iz) * (u - v);
     }
 
+    // 移動可能な円形領域の外に出た座標を円周上へ戻す。
     inline void ClampToArena(float& x, float& z)
     {
         const float radius = std::sqrt(x * x + z * z);

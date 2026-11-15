@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          AudioManager.cpp
+//
+//  WAV を読み込み、XAudio2 で BGM と効果音を再生する。
+//-------------------------------------------------
+
 #include "AudioManager.h"
 
 #include <algorithm>
@@ -29,6 +36,7 @@ AudioManager::~AudioManager()
     Shutdown();
 }
 
+// 音声デバイスを初期化し、使用する WAV を ID ごとに先読みする。
 bool AudioManager::Initialize()
 {
     Shutdown();
@@ -75,6 +83,7 @@ bool AudioManager::Initialize()
     return loaded;
 }
 
+// 終了した効果音 Voice を解放して同時再生数の増え続けを防ぐ。
 void AudioManager::Update()
 {
     for (size_t i = m_effectVoices.size(); i-- > 0;)
@@ -87,6 +96,7 @@ void AudioManager::Update()
     }
 }
 
+// 専用 Voice を入れ替え、BGM を重複再生しない。
 void AudioManager::PlayMusic(AudioId id, float volume)
 {
     if (!m_available || m_currentMusic == id) return;
@@ -122,6 +132,7 @@ void AudioManager::StopMusic()
     m_currentMusic = AudioId::Count;
 }
 
+// 効果音ごとに Voice を作るため、同じ音も重ねて鳴らせる。
 void AudioManager::PlaySound(AudioId id, float volume, float pitch)
 {
     const SoundData* sound = Find(id);
@@ -146,6 +157,7 @@ void AudioManager::PlaySound(AudioId id, float volume, float pitch)
     m_effectVoices.push_back(voice);
 }
 
+// RIFF チャンクからフォーマットと PCM データを取り出す。
 bool AudioManager::LoadWave(AudioId id, const std::string& path, float maxSeconds)
 {
     std::ifstream file(path, std::ios::binary);

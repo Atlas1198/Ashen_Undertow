@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          CollisionManager.cpp
+//
+//  シーン内の Collider の接触情報を毎フレーム作り直す。
+//-------------------------------------------------
+
 #include "CollisionManager.h"
 #include "GameObject.h"
 #include "Collider.h"

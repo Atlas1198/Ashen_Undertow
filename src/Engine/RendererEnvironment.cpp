@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          RendererEnvironment.cpp
+//
+//  HDR 環境画像から空・拡散 IBL・鏡面 IBL・BRDF LUT を生成する。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 
 using namespace DirectX;
@@ -193,6 +200,7 @@ bool Renderer::CreateSkyboxPipeline()
         IID_PPV_ARGS(&m_skyboxPSO)));
 }
 
+// HDR 環境画像を半球方向へ積分し、拡散反射用の照度マップを作る。
 bool Renderer::CreateIrradianceMap()
 {
     // 積分結果は非常に滑らかなので、この程度の解像度で十分足りる
@@ -387,6 +395,7 @@ bool Renderer::CreateIrradianceMap()
     return true;
 }
 
+// roughness ごとに環境画像を事前畳み込みし、ミップへ保存する。
 bool Renderer::CreatePrefilterMap()
 {
     const UINT kBaseWidth = 256;
@@ -609,6 +618,7 @@ bool Renderer::CreatePrefilterMap()
     return true;
 }
 
+// 視線角と roughness に依存する鏡面 BRDF の積分結果を表にする。
 bool Renderer::CreateBrdfLut()
 {
     const UINT kSize = 256;

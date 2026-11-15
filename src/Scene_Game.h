@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Scene_Game.h
+//
+//  本編シーンの進行、敵の出現、戦闘、演出を統括する。
+//-------------------------------------------------
+
 #pragma once
 
 #include "Camera.h"
@@ -15,6 +22,7 @@ class Tree;
 class Input;
 class AudioManager;
 
+// 本編シーン。敵の出現、戦闘結果、演出、UI と画面遷移を統括する。
 class Scene_Game final : public SceneManager
 {
 public:
@@ -39,6 +47,7 @@ private:
     void UpdateSpecialAttack(float deltaTime);
     void OnUpdate(float deltaTime) override;
     void OnAfterUpdate(float deltaTime) override;
+    // ヒットストップや開始／終了演出中はゲーム世界の更新を止める。
     bool IsSimulationPaused() const override
     {
         return m_hitStopThisFrame || m_deathScreenTime >= 0.0f ||
@@ -56,6 +65,7 @@ private:
     UIImageHandle m_staminaShortageTexture;
     GameHud m_hud;
 
+    // 実体の所有者は SceneManager。ここでは参照のみ保持する。
     Player* m_player = nullptr;
     Boss* m_boss = nullptr;
     std::vector<MiniCopy*> m_miniCopies;
@@ -69,6 +79,7 @@ private:
     float m_specialAttackEffectTimer = 0.0f;
     bool m_showColliders = false;
     int m_spawnSequence = 0;
+    // 予兆の雷から実体出現までを遅延させるキュー。
     struct PendingMiniCopySpawn
     {
         DirectX::XMFLOAT3 position {};
@@ -76,9 +87,11 @@ private:
         bool lightningStarted = false;
     };
     std::vector<PendingMiniCopySpawn> m_pendingMiniCopySpawns;
+    // 湧き間隔は秒単位。乱数状態を保持して出現位置を再現可能にする。
     float m_miniCopySpawnTimer = 6.0f;
     int m_spawnWaveSequence = 0;
     std::uint32_t m_spawnRandomState = 0x51f15e5du;
+    // 前フレーム位置と各タイマーから足音・水しぶきの頻度／強さを決める。
     DirectX::XMFLOAT3 m_previousPlayerPosition {};
     DirectX::XMFLOAT3 m_previousMiniCopyPosition {};
     float m_playerWaterMovement = 0.0f;
@@ -93,6 +106,7 @@ private:
     std::vector<float> m_miniCopyFootstepTimers;
     int m_enemyFootstepSequence = 0;
     std::vector<bool> m_miniCopyWasDead;
+    // 攻撃命中時の一時停止と、剣軌跡の直近ポーズ。
     float m_hitStopTimer = 0.0f;
     bool m_hitStopThisFrame = false;
     std::array<SwordTrailPose, 4> m_swordTrailHistory {};
@@ -101,6 +115,7 @@ private:
     bool m_bossFlameSoundActive = false;
     float m_bossAttackVisualTime = 0.0f;
     float m_staminaShortageNoticeTime = 0.0f;
+    // 画面遷移用タイマーは秒単位。負値は画面がまだ始まっていない状態。
     float m_gameStartTime = 0.0f;
     float m_deathScreenTime = -1.0f;
     int m_deathMenuChoice = 1;

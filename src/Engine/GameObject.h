@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          GameObject.h
+//
+//  シーン内の実体に共通する位置・HP・部品管理を定義する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <DirectXMath.h>
@@ -93,11 +100,13 @@ protected:
         m_hp = m_maxHP;
     }
 
+    // ワールド空間の位置・ラジアン回転・表示倍率。
     DirectX::XMFLOAT3 m_position { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_rotation { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_scale { 1.0f, 1.0f, 1.0f };
 
 private:
+    // HP は 0～最大値に制限し、実際の死亡演出は派生クラスが担う。
     int m_maxHP = 1;
     int m_hp = 1;
     ComponentManager m_componentManager;

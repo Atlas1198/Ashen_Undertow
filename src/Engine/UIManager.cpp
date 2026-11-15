@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          UIManager.cpp
+//
+//  UI 画像の読み込みと一フレーム分の描画命令を管理する。
+//-------------------------------------------------
+
 #include "UIManager.h"
 #include <Windows.h>
 #include <wincodec.h>
@@ -7,6 +14,7 @@
 #pragma comment(lib, "windowscodecs.lib")
 #pragma comment(lib, "ole32.lib")
 
+// 同じパスの画像は共有し、描画命令には軽量なハンドルだけを渡す。
 UIImageHandle UIManager::LoadImageFile(const std::filesystem::path& path)
 {
     std::error_code error;
@@ -70,6 +78,7 @@ bool UIManager::DrawQuad(const std::array<DirectX::XMFLOAT2, 4>& points,
     return DrawGradientQuad(points, { color, color, color, color });
 }
 
+// 頂点ごとの色を指定し、ゲージやフェード用の四角形をキューへ積む。
 bool UIManager::DrawGradientQuad(
     const std::array<DirectX::XMFLOAT2, 4>& points,
     const std::array<DirectX::XMFLOAT4, 4>& colors)

@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          EngineTests.cpp
+//
+//  描画本体なしで更新順、カメラ、モデル共有を検証する。
+//-------------------------------------------------
+
 #include "Camera.h"
 #include "AnimationComponent.h"
 #include "ModelManager.h"

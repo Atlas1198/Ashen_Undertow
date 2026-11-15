@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          RigidbodyTests.cpp
+//
+//  力、衝撃、抗力、重力と物理状態を検証する。
+//-------------------------------------------------
+
 #include "ObjectManager.h"
 #include "ModelManager.h"
 #include "Rigidbody.h"

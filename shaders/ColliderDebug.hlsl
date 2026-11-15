@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          ColliderDebug.hlsl
+//
+//  デバッグ用コライダー線を画面へ投影する。
+//-------------------------------------------------
+
 cbuffer DebugConstants : register(b0)
 {
     float4x4 viewProjection;
@@ -15,6 +22,7 @@ struct PSInput
     float4 color : COLOR;
 };
 
+// 衝突状態に応じた頂点色を変えずに投影する。
 PSInput VSMain(VSInput input)
 {
     PSInput output;

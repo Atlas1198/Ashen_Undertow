@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          Rigidbody.h
+//
+//  力・速度・重力による移動を扱うコンポーネントを定義する。
+//-------------------------------------------------
+
 #pragma once
 
 #include <DirectXMath.h>
@@ -31,6 +38,7 @@ public:
     bool IsKinematic() const { return m_isKinematic; }
 
 private:
+    // 速度はワールド単位/秒、力は次回更新まで蓄積する。
     DirectX::XMFLOAT3 m_velocity { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_force { 0.0f, 0.0f, 0.0f };
     DirectX::XMFLOAT3 m_gravity { 0.0f, -9.81f, 0.0f };

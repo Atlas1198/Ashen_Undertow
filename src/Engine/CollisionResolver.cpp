@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          CollisionResolver.cpp
+//
+//  接触後に非 Trigger の重なりを位置補正する。
+//-------------------------------------------------
+
 #include "CollisionResolver.h"
 
 #include "Collider.h"
@@ -11,6 +18,7 @@ using namespace DirectX;
 
 namespace
 {
+// 中心間の分離量から押し戻す方向と深さを求める。
 bool ComputePenetration(const CollisionShape& a, const CollisionShape& b,
     XMFLOAT3& normal, float& depth)
 {
@@ -48,6 +56,7 @@ bool ComputePenetration(const CollisionShape& a, const CollisionShape& b,
         return true;
     }
 
+    // 中心が重なって方向を決められない場合は、最も浅い軸へ押し出す。
     const float overlaps[] = {
         halfSum.x + radius - std::abs(delta.x),
         halfSum.y + radius - std::abs(delta.y),
@@ -71,6 +80,7 @@ void MoveObject(GameObject& object, const XMFLOAT3& direction, float distance)
         position.z + direction.z * distance);
 }
 
+// 接触面へ向かう速度成分だけ消し、接線方向の移動は残す。
 void RemoveClosingVelocity(Rigidbody& body, const XMFLOAT3& outward)
 {
     const auto velocity = body.GetVelocity();
@@ -93,6 +103,7 @@ void CollisionResolver::Update(const std::vector<std::unique_ptr<GameObject>>& o
     {
         for (auto* b : a->GetContacts())
         {
+            // 接触リストは双方にあるため、ポインタ順で各組を一度だけ処理する。
             if (!std::less<Collider*>{}(a, b)) continue;
             if (a->IsTrigger() || b->IsTrigger()) continue;
 
@@ -103,6 +114,7 @@ void CollisionResolver::Update(const std::vector<std::unique_ptr<GameObject>>& o
 
             auto* bodyA = a->GetOwner().GetComponent<Rigidbody>();
             auto* bodyB = b->GetOwner().GetComponent<Rigidbody>();
+            // 重い側ほど小さく移動する。静的／運動学的な側は動かさない。
             const float inverseMassA = bodyA && !bodyA->IsKinematic()
                 ? 1.0f / bodyA->GetMass() : 0.0f;
             const float inverseMassB = bodyB && !bodyB->IsKinematic()

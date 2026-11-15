@@ -1,3 +1,10 @@
+#-------------------------------------------------
+#
+#          RunTests.ps1
+#
+#  VS 開発環境を有効にし、各テストを個別の実行ファイルとしてビルド・実行する。
+#-------------------------------------------------
+
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'

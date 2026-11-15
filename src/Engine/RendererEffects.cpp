@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          RendererEffects.cpp
+//
+//  パーティクルとボス攻撃の描画資源を作り、合成する。
+//-------------------------------------------------
+
 #include "RendererInternal.h"
 #include "UIManager.h"
 
@@ -197,6 +204,7 @@ void Renderer::DrawBossFlame(const XMFLOAT3& mouth,
     m_bossFlameActive = true;
 }
 
+// 集めた粒子を加算合成とアルファ合成に分け、ボス攻撃も同じパスで描く。
 void Renderer::DrawEffects(const XMMATRIX& viewProjection)
 {
     const size_t totalCount =

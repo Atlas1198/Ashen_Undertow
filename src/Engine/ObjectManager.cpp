@@ -1,3 +1,10 @@
+//-------------------------------------------------
+//
+//          ObjectManager.cpp
+//
+//  シーン内の実体と部品を更新し、衝突を解決する。
+//-------------------------------------------------
+
 #include "ObjectManager.h"
 
 void ObjectManager::Update(float deltaTime)
